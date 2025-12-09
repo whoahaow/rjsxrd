@@ -1,0 +1,3 @@
+"""
+VPN Configs Generator package
+"""

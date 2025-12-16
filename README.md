@@ -55,7 +55,7 @@
 <details>
 <summary>Советы по производительности и оптимизации</summary>
 
-Если у вас возникают проблемы с производительностью при импорте большого файла 26.txt, особенно на мобильных устройствах, рекомендуется разделить импорт на несколько более мелких конфигов. Основной файл 26.txt был разделен на несколько файлов (26.txt, 27.txt, 28.txt и т.д.) по 300 серверов в каждом, чтобы избежать проблем с производительностью. Импортируйте файлы 26.txt, 27.txt и последующие по отдельности для лучшего опыта и избегания возможных лагов на мобильных устройствах.
+Все конфиги для обхода SNI/CIDR белых списков теперь доступны в одном файле: **[all](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/all.txt)**. Если у вас возникают проблемы с производительностью при импорте большого файла all.txt, особенно на мобильных устройствах, рекомендуется разделить импорт на несколько более мелких конфигов. Основной файл all.txt был разделен на несколько файлов (26.txt, 27.txt, 28.txt и т.д.) по 300 серверов в каждом, чтобы избежать проблем с производительностью. Импортируйте файлы 26.txt, 27.txt и последующие по отдельности для лучшего опыта и избегания возможных лагов на мобильных устройствах.
 
 </details>
 
@@ -65,7 +65,7 @@
 
 > Рекомендованные списки: **[6](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/6.txt)**, **[22](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/22.txt)**, **[23](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/23.txt)**, **[24](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/24.txt)** и **[25](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/25.txt)**.
 
-> Обход SNI/CIDR белых списков: файлы **[26](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/26.txt)** и **[27](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/27.txt)** и т.д.
+> Обход SNI/CIDR белых списков: **[all](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/all.txt)** (все конфиги в одном файле), или файлы **[26](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/26.txt)** и **[27](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/27.txt)** и т.д. (разделенные файлы по 300 серверов).
 
  - [ ] **Вечно актуальные**
 
@@ -94,6 +94,8 @@
 23) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/23.txt`
 24) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/24.txt`
 25) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/25.txt`
+
+26-35) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/all.txt`
 26) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/26.txt`
 27) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/27.txt`
 28) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/28.txt`
@@ -120,7 +122,7 @@
 
 > Рекомендованные списки: **[6](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/6.txt)**, **[22](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/22.txt)**, **[23](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/23.txt)**, **[24](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/24.txt)** и **[25](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/25.txt)**.
 
-> Обход SNI/CIDR белых списков: файлы **[26](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/26.txt)**, **[27](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/27.txt)** и т.д.
+> Обход SNI/CIDR белых списков: **[all](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/all.txt)** (все конфиги в одном файле), или файлы **[26](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/26.txt)** и **[27](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/27.txt)** и т.д. (разделенные файлы по 300 серверов).
 
  - [ ] **Вечно актуальные**
 
@@ -149,6 +151,8 @@
 23) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/23.txt`
 24) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/24.txt`
 25) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/25.txt`
+
+26-35) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/all.txt`
 26) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/26.txt`
 27) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/27.txt`
 28) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/28.txt`
@@ -176,7 +180,7 @@
 
 > Рекомендованные **«QR-коды»**: **[6](https://github.com/whoahaow/rjsxrd/blob/main/qr-codes/6.png)**, **[22](https://github.com/whoahaow/rjsxrd/blob/main/qr-codes/22.png)**, **[23](https://github.com/whoahaow/rjsxrd/blob/main/qr-codes/23.png)**, **[24](https://github.com/whoahaow/rjsxrd/blob/main/qr-codes/24.png)** и **[25](https://github.com/whoahaow/rjsxrd/blob/main/qr-codes/25.png)**.
 
-> Обход SNI/CIDR белых списков: **[26](https://github.com/whoahaow/rjsxrd/blob/main/qr-codes/26.png)**.
+> Обход SNI/CIDR белых списков: **[all](https://github.com/whoahaow/rjsxrd/blob/main/qr-codes/all.png)** (все конфиги в одном файле, QR-код), или **[26](https://github.com/whoahaow/rjsxrd/blob/main/qr-codes/26.png)** (разделенные файлы по 300 серверов).
 
 **2.** Скачиваем **«QR-коды»** вечно актуальных конфигов - [Ссылка](https://github.com/whoahaow/rjsxrd/tree/main/qr-codes)
 
@@ -251,12 +255,13 @@
 <summary>Гайд для Windows, Linux</summary>
 
 **1.** Скачиваем **«Throne»** - [Windows 10/11](https://github.com/throneproj/Throne/releases/download/1.0.10/Throne-1.0.10-windows64.zip) / [Windows 7/8/8.1](https://github.com/throneproj/Throne/releases/download/1.0.10/Throne-1.0.10-windowslegacy64.zip) / [Linux](https://github.com/throneproj/Throne/releases/download/1.0.10/Throne-1.0.10-linux-amd64.zip)
+Можно использовать **nekoray** - [Ссылка](https://github.com/MatsuriDayo/nekoray/releases)
 
 **2.** Копируем в буфер обмена:
 
 > Рекомендованные списки: **[6](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/6.txt)**, **[22](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/22.txt)**, **[23](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/23.txt)**, **[24](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/24.txt)** и **[25](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/25.txt)**.
 
-> Обход SNI/CIDR белых списков: файлы **[26](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/26.txt)**, **[27](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/27.txt)** и т.д.
+> Обход SNI/CIDR белых списков: **[all](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/all.txt)** (все конфиги в одном файле), или файлы **[26](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/26.txt)** и **[27](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/27.txt)** и т.д. (разделенные файлы по 300 серверов).
 
  - [ ] **Вечно актуальные**
 
@@ -285,6 +290,8 @@
 23) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/23.txt`
 24) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/24.txt`
 25) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/25.txt`
+
+26-35) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/all.txt`
 26) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/26.txt`
 27) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/27.txt`
 28) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/28.txt`
@@ -343,12 +350,13 @@
 <summary>Гайд для iOS, iPadOS</summary>
 
 **1.** Скачиваем **«V2Box - V2ray Client»** - [Ссылка](https://apps.apple.com/ru/app/v2box-v2ray-client/id6446814690)
+(Можно использовать **Happ** - [Ссылка](https://apps.apple.com/us/app/happ-proxy-utility/id6504287215), но в настройках: Подписки -> сортировать по пингу)
 
 **2.** Копируем в буфер обмена:
 
 > Рекомендованные списки: **[6](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/6.txt)**, **[22](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/22.txt)**, **[23](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/23.txt)**, **[24](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/24.txt)** и **[25](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/25.txt)**.
 
-> Обход SNI/CIDR белых списков: файлы **[26](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/26.txt)**, **[27](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/27.txt)** и т.д.
+> Обход SNI/CIDR белых списков: **[all](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/all.txt)** (все конфиги в одном файле), или файлы **[26](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/26.txt)** и **[27](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/27.txt)** и т.д. (разделенные файлы по 300 серверов).
 
  - [ ] **Вечно актуальные**
 
@@ -377,6 +385,8 @@
 23) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/23.txt`
 24) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/24.txt`
 25) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/25.txt`
+
+26-35) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/all.txt`
 26) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/26.txt`
 27) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/27.txt`
 28) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/28.txt`
@@ -420,7 +430,7 @@
 
 > Рекомендованные списки: **[6](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/6.txt)**, **[22](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/22.txt)**, **[23](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/23.txt)**, **[24](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/24.txt)** и **[25](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/25.txt)**.
 
-> Обход SNI/CIDR белых списков: файлы **[26](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/26.txt)**, **[27](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/27.txt)** и т.д.
+> Обход SNI/CIDR белых списков: **[all](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/all.txt)** (все конфиги в одном файле), или файлы **[26](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/26.txt)** и **[27](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/27.txt)** и т.д. (разделенные файлы по 300 серверов).
 
  - [ ] **Вечно актуальные**
 
@@ -449,6 +459,8 @@
 23) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/23.txt`
 24) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/24.txt`
 25) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/25.txt`
+
+26-35) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/all.txt`
 26) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/26.txt`
 27) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/27.txt`
 28) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/28.txt`
@@ -487,7 +499,7 @@
 ## Статус конфигов
 
 > **Внимание!** Эта таблица показывает только **источники** и статус обновления конфигов. **Не копируйте ссылки отсюда!**
-> Для использования копируйте ссылки из раздела **«Общий список всех вечно актуальных конфигов»** ниже.
+> Для использования копируйте ссылки из раздела **«Общий список всех вечно актуальных конфигов»**.
 
 | № | Файл | Источник | Время | Дата |
 |--|--|--|--|--|
@@ -516,7 +528,7 @@
 | 23 | [`23.txt`](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/23.txt) | [AzadNetCH/Clash](https://raw.githubusercontent.com/AzadNetCH/Clash/refs/heads/main/AzadNet.txt) | 08:45 | 22.10.2025 |
 | 24 | [`24.txt`](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/24.txt) | [STR97/STRUGOV](https://raw.githubusercontent.com/STR97/STRUGOV/refs/heads/main/STR.BYPASS#STR.BYPASS%F0%9F%91%BE) | 08:15 | 25.11.2025 |
 | 25 | [`25.txt`](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/25.txt) | [V2RayRoot/V2RayConfig](https://raw.githubusercontent.com/V2RayRoot/V2RayConfig/refs/heads/main/Config/vless.txt) | 14:27 | 29.11.2025 |
-| 26 | [`26.txt`](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/26.txt) | [Обход SNI/CIDR белых списков](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/26.txt) | 14:35 | 29.11.2025 |
+| 26 | [`all.txt`](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/all.txt) | [Обход SNI/CIDR белых списков](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/all.txt) | 14:35 | 29.11.2025 |
 
 ## Структура репозитория
 ```text
@@ -544,7 +556,7 @@ README.md            - этот файл
 ## Локальный запуск генератора
 ```bash
 git clone https://github.com/whoahaow/rjsxrd
-cd goida-vpn-configs/source
+cd rjsxrd/source
 python -m pip install -r requirements.txt
 export MY_TOKEN=<GITHUB_TOKEN>   # токен с правом repo, чтобы пушить изменения
 python main.py                   # конфиги появятся в ../githubmirror
@@ -564,7 +576,7 @@ python main.py                   # конфиги появятся в ../githubm
 
 Основной репозиторий, который вдохновил данный проект: https://github.com/AvenCores/goida-vpn-configs
 
-## ДИСКЛЕЙМЕР
+# ДИСКЛЕЙМЕР
 
 > *Автор не является владельцем/разработчиком/поставщиком перечисленных VPN-конфигураций. Это независимый информационный обзор и результаты тестирования.*
 >

@@ -92,8 +92,12 @@ def main(dry_run: bool = False, output_dir: str = "../githubmirror"):
 
     # Add filtered files to upload list
     for filtered_file in filtered_files:
-        file_idx = int(os.path.basename(filtered_file).split('.')[0])
-        remote_path = f"githubmirror/{file_idx}.txt"
+        filename = os.path.basename(filtered_file)
+        if filename == "all.txt":
+            remote_path = f"githubmirror/{filename}"
+        else:
+            file_idx = int(filename.split('.')[0])
+            remote_path = f"githubmirror/{file_idx}.txt"
         file_pairs.append((filtered_file, remote_path))
 
     # Initialize GitHub handler and upload files

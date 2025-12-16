@@ -15,6 +15,7 @@ from utils.logger import log
 def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
     """
     Creates filtered configs for SNI/CIDR bypass (file 26 and split versions).
+    Also creates all.txt with all SNI/CIDR bypass servers.
     Returns a list of created file paths.
     """
     # Optimize domain list by removing redundant domains
@@ -55,7 +56,7 @@ def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
 
             for line in lines:
                 line = line.strip()
-                if not line: 
+                if not line:
                     continue
                 # Quick check with optimized Regex
                 if sni_regex.search(line):
@@ -104,8 +105,17 @@ def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
 
     # Deduplicate all configs
     unique_configs = deduplicate_configs(all_configs)
-    
-    # Split into multiple files if needed
+
+    # Create all.txt with all unique configs
+    all_txt_path = f"{output_dir}/all.txt"
+    try:
+        with open(all_txt_path, "w", encoding="utf-8") as file:
+            file.write("\n".join(unique_configs))
+        log(f"Создан файл {all_txt_path} с {len(unique_configs)} конфигами")
+    except Exception as e:
+        log(f"Ошибка при сохранении {all_txt_path}: {e}")
+
+    # Split into multiple files if needed (starting from 26.txt)
     created_files = []
 
     # Split into chunks of MAX_SERVERS_PER_FILE configs each
@@ -121,5 +131,8 @@ def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
             created_files.append(filename)
         except Exception as e:
             log(f"Ошибка при сохранении {filename}: {e}")
+
+    # Add all.txt to the list of created files to be uploaded
+    created_files.append(all_txt_path)
 
     return created_files

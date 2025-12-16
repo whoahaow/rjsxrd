@@ -6,7 +6,7 @@ import base64
 import json
 import concurrent.futures
 from typing import List, Set
-from config.settings import SNI_DOMAINS, EXTRA_URLS_FOR_26, MAX_SERVERS_PER_FILE
+from config.settings import SNI_DOMAINS, EXTRA_URLS_FOR_BYPASS, MAX_SERVERS_PER_FILE
 from fetchers.fetcher import fetch_data
 from utils.file_utils import extract_host_port, deduplicate_configs, prepare_config_content
 from utils.logger import log
@@ -14,7 +14,7 @@ from utils.logger import log
 
 def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
     """
-    Creates filtered configs for SNI/CIDR bypass (file 26 and split versions).
+    Creates filtered configs for SNI/CIDR bypass (starting from next file after original configs and split versions).
     Also creates all.txt with all SNI/CIDR bypass servers.
     Returns a list of created file paths.
     """
@@ -67,10 +67,11 @@ def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
 
     all_configs = []
 
-    # Process files 1-25 for SNI filtering
+    # Process original config files for SNI filtering
+    from config.settings import URLS
     max_workers = min(16, os.cpu_count() + 4)
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [executor.submit(_process_file_filtering, i) for i in range(1, 26)]
+        futures = [executor.submit(_process_file_filtering, i) for i in range(1, len(URLS) + 1)]
         for future in concurrent.futures.as_completed(futures):
             all_configs.extend(future.result())
 
@@ -96,8 +97,8 @@ def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
             return []
 
     extra_configs = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=min(4, len(EXTRA_URLS_FOR_26))) as executor:
-        futures = [executor.submit(_load_extra_configs, url) for url in EXTRA_URLS_FOR_26]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(4, len(EXTRA_URLS_FOR_BYPASS))) as executor:
+        futures = [executor.submit(_load_extra_configs, url) for url in EXTRA_URLS_FOR_BYPASS]
         for future in concurrent.futures.as_completed(futures):
             extra_configs.extend(future.result())
 
@@ -115,14 +116,18 @@ def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
     except Exception as e:
         log(f"Ошибка при сохранении {all_txt_path}: {e}")
 
-    # Split into multiple files if needed (starting from 26.txt)
+    # Split into multiple files if needed (starting after original config files)
     created_files = []
 
     # Split into chunks of MAX_SERVERS_PER_FILE configs each
+    from config.settings import URLS
     chunks = [unique_configs[i:i + MAX_SERVERS_PER_FILE]
              for i in range(0, len(unique_configs), MAX_SERVERS_PER_FILE)]
 
-    for idx, chunk in enumerate(chunks, 26):  # Start from 26.txt
+    # Start from the next number after the original files
+    start_idx = len(URLS) + 1  # Start generating files after the original config files
+
+    for idx, chunk in enumerate(chunks, start_idx):  # Start from next number after original files
         filename = f"{output_dir}/{idx}.txt"
         try:
             with open(filename, "w", encoding="utf-8") as file:

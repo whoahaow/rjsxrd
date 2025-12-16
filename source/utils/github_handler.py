@@ -167,18 +167,20 @@ class GitHubHandler:
                         except ValueError:
                             continue
 
-            # Process extra files (26.txt and beyond)
-            highest_file_num = max(existing_files) if existing_files else 25
-            for i in range(26, highest_file_num + 1):
+            # Process extra files (starting after the original config files)
+            from config.settings import URLS
+            start_idx = len(URLS) + 1  # Start after the original config files
+            highest_file_num = max(existing_files) if existing_files else len(URLS)
+            for i in range(start_idx, highest_file_num + 1):
                 remote_path = f"githubmirror/{i}.txt"
                 filename = f"{i}.txt"
                 raw_file_url = f"https://github.com/{REPO_NAME}/raw/refs/heads/main/githubmirror/{i}.txt"
 
-                if i == 26:  # Special handling for 26.txt
+                if i == start_idx:  # Special handling for the first extra file
                     source_name = "Обход SNI/CIDR белых списков"
                     source_column = f"[{source_name}]({raw_file_url})"
                 else:
-                    source_column = "Разделенный файл для обхода SNI/CIDR"  # For files beyond 26.txt
+                    source_column = "Разделенный файл для обхода SNI/CIDR"  # For files beyond the first extra file
 
                 if i in updated_files:
                     update_time = time_part

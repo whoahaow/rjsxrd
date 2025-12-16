@@ -87,7 +87,7 @@ def main(dry_run: bool = False, output_dir: str = "../githubmirror"):
             if result:
                 file_pairs.append(result)
 
-    # Create filtered configs (26.txt and splits if needed)
+    # Create filtered configs (starting after original files and splits if needed)
     filtered_files = create_filtered_configs(output_dir)
 
     # Add filtered files to upload list

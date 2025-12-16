@@ -69,6 +69,7 @@
 
  - [ ] **Вечно актуальные**
 
+`https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/all.txt`
 1) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/1.txt`
 2) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/2.txt`
 3) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/3.txt`
@@ -94,8 +95,6 @@
 23) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/23.txt`
 24) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/24.txt`
 25) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/25.txt`
-
-26-35) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/all.txt`
 26) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/26.txt`
 27) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/27.txt`
 28) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/28.txt`
@@ -118,6 +117,8 @@
 
 **1.** Скачиваем **«v2rayNG»** - [Ссылка](https://github.com/2dust/v2rayNG/releases/download/1.10.28/v2rayNG_1.10.28_universal.apk)
 
+Можно использовать **Happ** - [Ссылка](https://play.google.com/store/apps/details?id=com.happproxy&hl=ru), но в настройках: Подписки -> сортировать по пингу
+
 **2.** Копируем в буфер обмена:
 
 > Рекомендованные списки: **[6](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/6.txt)**, **[22](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/22.txt)**, **[23](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/23.txt)**, **[24](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/24.txt)** и **[25](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/25.txt)**.
@@ -126,6 +127,7 @@
 
  - [ ] **Вечно актуальные**
 
+`https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/all.txt`
 1) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/1.txt`
 2) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/2.txt`
 3) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/3.txt`
@@ -151,8 +153,6 @@
 23) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/23.txt`
 24) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/24.txt`
 25) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/25.txt`
-
-26-35) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/all.txt`
 26) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/26.txt`
 27) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/27.txt`
 28) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/28.txt`
@@ -255,6 +255,7 @@
 <summary>Гайд для Windows, Linux</summary>
 
 **1.** Скачиваем **«Throne»** - [Windows 10/11](https://github.com/throneproj/Throne/releases/download/1.0.10/Throne-1.0.10-windows64.zip) / [Windows 7/8/8.1](https://github.com/throneproj/Throne/releases/download/1.0.10/Throne-1.0.10-windowslegacy64.zip) / [Linux](https://github.com/throneproj/Throne/releases/download/1.0.10/Throne-1.0.10-linux-amd64.zip)
+
 Можно использовать **nekoray** - [Ссылка](https://github.com/MatsuriDayo/nekoray/releases)
 
 **2.** Копируем в буфер обмена:
@@ -265,6 +266,7 @@
 
  - [ ] **Вечно актуальные**
 
+`https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/all.txt`
 1) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/1.txt`
 2) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/2.txt`
 3) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/3.txt`
@@ -290,8 +292,6 @@
 23) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/23.txt`
 24) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/24.txt`
 25) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/25.txt`
-
-26-35) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/all.txt`
 26) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/26.txt`
 27) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/27.txt`
 28) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/28.txt`
@@ -350,7 +350,8 @@
 <summary>Гайд для iOS, iPadOS</summary>
 
 **1.** Скачиваем **«V2Box - V2ray Client»** - [Ссылка](https://apps.apple.com/ru/app/v2box-v2ray-client/id6446814690)
-(Можно использовать **Happ** - [Ссылка](https://apps.apple.com/us/app/happ-proxy-utility/id6504287215), но в настройках: Подписки -> сортировать по пингу)
+
+Можно использовать **Happ** - [Ссылка](https://apps.apple.com/us/app/happ-proxy-utility/id6504287215), но в настройках: Подписки -> сортировать по пингу
 
 **2.** Копируем в буфер обмена:
 
@@ -360,6 +361,7 @@
 
  - [ ] **Вечно актуальные**
 
+`https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/all.txt`
 1) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/1.txt`
 2) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/2.txt`
 3) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/3.txt`
@@ -385,8 +387,6 @@
 23) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/23.txt`
 24) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/24.txt`
 25) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/25.txt`
-
-26-35) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/all.txt`
 26) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/26.txt`
 27) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/27.txt`
 28) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/28.txt`
@@ -434,6 +434,7 @@
 
  - [ ] **Вечно актуальные**
 
+`https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/all.txt`
 1) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/1.txt`
 2) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/2.txt`
 3) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/3.txt`
@@ -459,8 +460,6 @@
 23) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/23.txt`
 24) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/24.txt`
 25) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/25.txt`
-
-26-35) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/all.txt`
 26) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/26.txt`
 27) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/27.txt`
 28) `https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/28.txt`

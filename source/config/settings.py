@@ -21,16 +21,6 @@ try:
 except FileNotFoundError:
     print("URLS.txt file not found!")
     URLS = []  # Fallback to empty list
-# Extra URLs for SNI/CIDR bypass configs (after original config files)
-EXTRA_URLS_FOR_BYPASS = [
-    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/Vless-Reality-White-Lists-Rus-Cable.txt",
-    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/Vless-Reality-White-Lists-Rus-Mobile.txt",
-    "https://raw.githubusercontent.com/zieng2/wl/main/vless.txt",
-    "https://raw.githubusercontent.com/zieng2/wl/refs/heads/main/vless_universal.txt",
-    "https://raw.githubusercontent.com/zieng2/wl/main/vless_lite.txt",
-    "https://jsnegsukavsos.hb.ru-msk.vkcloud-storage.ru/love",
-]
-
 # SNI domains for filtering - Russian white-list bypass
 def load_sni_domains():
     """Load SNI domains from whitelist-all.txt file."""

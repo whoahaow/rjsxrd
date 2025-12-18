@@ -59,6 +59,62 @@
 - **[bypass-3](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/bypass/bypass-3.txt)**
 - и т.д.
 
+<details>
+
+<summary>Все конфиги</summary>
+
+default:
+1) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/1.txt
+2) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/2.txt
+3) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/3.txt
+4) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/4.txt
+5) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/5.txt
+6) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/6.txt
+7) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/7.txt
+8) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/8.txt
+9) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/9.txt
+10) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/10.txt
+11) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/11.txt
+12) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/12.txt
+13) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/13.txt
+14) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/14.txt
+15) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/15.txt
+16) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/16.txt
+17) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/17.txt
+18) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/18.txt
+19) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/19.txt
+20) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/20.txt
+21) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/21.txt
+22) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/22.txt
+23) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/23.txt
+24) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/24.txt
+25) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/25.txt
+26) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/26.txt
+27) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/27.txt
+28) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/28.txt
+29) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/29.txt
+30) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/30.txt
+31) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/31.txt
+32) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/32.txt
+33) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/33.txt
+34) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/34.txt
+35) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/35.txt
+36) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/36.txt
+37) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/37.txt
+38) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/38.txt
+
+
+
+bypass:
+https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/bypass/bypass-all.txt
+
+1) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/bypass/bypass-1.txt
+2) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/bypass/bypass-2.txt
+3) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/bypass/bypass-3.txt
+4) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/bypass/bypass-4.txt
+5) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/bypass/bypass-5.txt
+</details>
+
 🔗 [Ссылка на QR-коды вечно актуальных конфигов](https://github.com/whoahaow/rjsxrd/tree/main/qr-codes)
 
 

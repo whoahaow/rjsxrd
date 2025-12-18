@@ -13,7 +13,6 @@ https://raw.githubusercontent.com/mheidari98/.proxy/refs/heads/main/all
 https://github.com/Kwinshadow/TelegramV2rayCollector/raw/refs/heads/main/sublinks/mix.txt
 https://github.com/LalatinaHub/Mineral/raw/refs/heads/master/result/nodes
 https://raw.githubusercontent.com/miladtahanian/multi-proxy-config-fetcher/refs/heads/main/configs/proxy_configs.txt
-https://raw.githubusercontent.com/Pawdroid/Free-servers/refs/heads/main/sub
 https://github.com/MhdiTaheri/V2rayCollector_Py/raw/refs/heads/main/sub/Mix/mix.txt
 https://github.com/Epodonios/v2ray-configs/raw/main/Splitted-By-Protocol/vmess.txt
 https://github.com/MhdiTaheri/V2rayCollector/raw/refs/heads/main/sub/mix
@@ -59,7 +58,6 @@ https://raw.githubusercontent.com/Epodonios/v2ray-configs/refs/heads/main/All_Co
 https://raw.githubusercontent.com/ALIILAPRO/v2rayNG-Config/refs/heads/main/server.txt
 https://github.com/mrvcoder/V2rayCollector/raw/refs/heads/main/vless_iran.txt
 https://raw.githubusercontent.com/ssrsub/ssr/refs/heads/master/vless.txt
-https://ivuxy.tech/v.txt
 https://github.com/vxiaov/free_proxies/raw/refs/heads/main/links.txt
 https://github.com/peasoft/NoMoreWalls/raw/refs/heads/master/list_raw.txt
 https://raw.githubusercontent.com/xiaoji235/airport-free/refs/heads/main/v2ray/clashnodecc.txt
@@ -99,3 +97,5 @@ https://raw.githubusercontent.com/itsyebekhe/LiveProxy/refs/heads/main/subscript
 https://raw.githubusercontent.com/rango-cfs/NewCollector/refs/heads/main/v2ray_links.txt
 https://raw.githubusercontent.com/aqayerez/MatnOfficial-VPN/refs/heads/main/MatnOfficial
 https://raw.githubusercontent.com/arshiacomplus/v2rayExtractor/refs/heads/main/mix/sub.html
+https://raw.githubusercontent.com/nscl5/5/refs/heads/main/configs/at/all.txt
+https://raw.githubusercontent.com/Danialsamadi/v2go/main/All_Configs_Sub.txt

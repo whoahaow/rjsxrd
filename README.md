@@ -16,7 +16,7 @@
 
 ## Быстрый старт
 
-1. Скопируйте нужную ссылку из раздела [Конфигурации](#конфигурации) (рекомендуем начать с 6.txt, 22.txt, 23.txt, 24.txt или 25.txt из папки default/)
+1. Скопируйте нужную ссылку из раздела [Конфигурации](#конфигурации) (рекомендуем начать с 6.txt, 22.txt, 23.txt, 24.txt или 25.txt из папки default/ или bypass/ bypass-all.txt для мобильного интернета)
 2. Импортируйте её в ваш **VPN-клиент**
 3. Выберите сервер с минимальным пингом и подключайтесь
 
@@ -40,23 +40,23 @@
 
 ### Обычные конфиги (default/)
 Обычные конфиги для обхода стандартных блокировок. Рекомендуемые:
-- **[1](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/default/1.txt)**
-- **[6](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/default/6.txt)**
-- **[22](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/default/22.txt)**
-- **[23](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/default/23.txt)**
-- **[24](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/default/24.txt)**
-- **[25](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/default/25.txt)**
+- **[1](https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/1.txt)**
+- **[6](https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/6.txt)**
+- **[22](https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/22.txt)**
+- **[23](https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/23.txt)**
+- **[24](https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/24.txt)**
+- **[25](https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/25.txt)**
 
 ### Конфиги для обхода SNI/CIDR белых списков (bypass/)
 
 > **Для пользователей мобильных устройств**: при возникновении проблем с производительностью рекомендуется использовать файлы по отдельности, а не bypass-all.txt
 
-**[bypass-all](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/bypass/bypass-all.txt)** - все конфиги для обхода SNI/CIDR в одном файле
+**[bypass-all](https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/bypass/bypass-all.txt)** - все конфиги для обхода SNI/CIDR в одном файле
 
 **Файлы разделенные по 300 конфигов**:
-- **[bypass-1](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/bypass/bypass-1.txt)**
-- **[bypass-2](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/bypass/bypass-2.txt)**
-- **[bypass-3](https://github.com/whoahaow/rjsxrd/raw/refs/heads/main/githubmirror/bypass/bypass-3.txt)**
+- **[bypass-1](https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/bypass/bypass-1.txt)**
+- **[bypass-2](https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/bypass/bypass-2.txt)**
+- **[bypass-3](https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/bypass/bypass-3.txt)**
 - и т.д.
 
 <details>

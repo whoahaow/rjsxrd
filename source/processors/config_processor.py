@@ -6,7 +6,7 @@ import base64
 import json
 import concurrent.futures
 from typing import List, Set
-from config.settings import SNI_DOMAINS, URLS, MAX_SERVERS_PER_FILE
+from config.settings import SNI_DOMAINS, URLS, EXTRA_URLS_FOR_BYPASS, MAX_SERVERS_PER_FILE
 from fetchers.fetcher import fetch_data
 from utils.file_utils import extract_host_port, deduplicate_configs, prepare_config_content
 from utils.logger import log
@@ -68,41 +68,41 @@ def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
 
     all_configs = []
 
-    # Process configs from all URLs with SNI filtering (applying the same logic as for local files)
-    from config.settings import URLS
-
-    def _process_url_filtering(url_index: int) -> List[str]:
-        """Process a URL to filter configs by SNI domains."""
-        # Get URL from the list by index (0-based index)
-        if url_index - 1 >= len(URLS):  # Using url_index-1 because the original function used 1-based indexing for file names
-            return []
-
-        url = URLS[url_index - 1]  # Adjust for 0-based indexing
-        filtered_lines = []
-
-        try:
-            data = fetch_data(url)
-            # Force separation of configs that might be glued together
-            data = re.sub(r'(vmess|vless|trojan|ss|ssr|tuic|hysteria|hysteria2|hy2)://', r'\n\1://', data)
-            lines = data.splitlines()
-
-            for line in lines:
-                line = line.strip()
-                if not line:
-                    continue
-                # Quick check with optimized Regex
-                if sni_regex.search(line):
-                    filtered_lines.append(line)
-        except Exception:
-            pass
-        return filtered_lines
-
-    # Process all URLs with SNI filtering
+    # Process original config files for SNI filtering
     max_workers = min(16, os.cpu_count() + 4)
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [executor.submit(_process_url_filtering, i) for i in range(1, len(URLS) + 1)]
+        futures = [executor.submit(_process_file_filtering, i) for i in range(1, len(URLS) + 1)]
         for future in concurrent.futures.as_completed(futures):
             all_configs.extend(future.result())
+
+    # Load configs from additional sources (no SNI filtering, only deduplication)
+    def _load_extra_configs(url: str) -> List[str]:
+        """Load configs from additional source without SNI check."""
+        try:
+            data = fetch_data(url)
+            # Force separation of glued configs
+            data = re.sub(r'(vmess|vless|trojan|ss|ssr|tuic|hysteria|hysteria2|hy2)://', r'\n\1://', data)
+            lines = data.splitlines()
+            configs = []
+            for line in lines:
+                line = line.strip()
+                if line and not line.startswith('#'):
+                    configs.append(line)
+            return configs
+        except Exception as e:
+            short_msg = str(e)
+            if len(short_msg) > 200:
+                short_msg = short_msg[:200] + "…"
+            log(f"Ошибка при загрузке {url}: {short_msg}")
+            return []
+
+    extra_configs = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(4, len(EXTRA_URLS_FOR_BYPASS))) as executor:
+        futures = [executor.submit(_load_extra_configs, url) for url in EXTRA_URLS_FOR_BYPASS]
+        for future in concurrent.futures.as_completed(futures):
+            extra_configs.extend(future.result())
+
+    all_configs.extend(extra_configs)
 
     # Deduplicate all configs
     unique_configs = deduplicate_configs(all_configs)
@@ -120,7 +120,6 @@ def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
     created_files = []
 
     # Split into chunks of MAX_SERVERS_PER_FILE configs each
-    from config.settings import URLS
     chunks = [unique_configs[i:i + MAX_SERVERS_PER_FILE]
              for i in range(0, len(unique_configs), MAX_SERVERS_PER_FILE)]
 

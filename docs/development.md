@@ -4,12 +4,15 @@
 
 ### source/
 - `main.py` - основной исполняемый файл
-- `config/settings.py` - настройки проекта и константы
+- `config/` - настройки проекта и константы:
+  - `settings.py` - общие настройки проекта
+  - `URLS.txt` - список URL для основных конфигов
+  - `URLS_base64.txt` - список URL для base64-кодированных подписок
 - `fetchers/fetcher.py` - модуль загрузки конфигов
 - `processors/config_processor.py` - обработка и фильтрация конфигов
 - `utils/` - вспомогательные модули:
   - `logger.py` - логирование
-  - `file_utils.py` - файловые операции
+  - `file_utils.py` - файловые операции, включая фильтрацию insecure конфигов
   - `github_handler.py` - работа с GitHub API
 
 ## Запуск локально

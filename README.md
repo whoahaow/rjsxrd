@@ -63,7 +63,7 @@
 
 <summary>Все конфиги</summary>
 
-default:
+**default:**
 1) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/1.txt
 2) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/2.txt
 3) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/default/3.txt
@@ -105,8 +105,9 @@ default:
 
 
 
-bypass:
-https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/bypass/bypass-all.txt
+**bypass:**
+
+all: https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/bypass/bypass-all.txt
 
 1) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/bypass/bypass-1.txt
 2) https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/bypass/bypass-2.txt

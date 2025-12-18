@@ -153,41 +153,36 @@ class GitHubHandler:
 
                 table_rows.append(f"| {i} | [`{filename}`]({raw_file_url}) | {source_column} | {update_time} | {update_date} |")
 
-            # Determine the highest file number to process
-            # Get all existing files in githubmirror directory
+            # Process bypass files (SNI/CIDR bypass configs)
+            # Get bypass files from bypass subdirectory
             import os
-            existing_files = []
-            githubmirror_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "githubmirror")
-            if os.path.exists(githubmirror_path):
-                for f in os.listdir(githubmirror_path):
-                    if f.endswith(".txt"):
+            bypass_files = []
+            bypass_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "githubmirror", "bypass")
+            if os.path.exists(bypass_dir):
+                for f in os.listdir(bypass_dir):
+                    if f.startswith("bypass-") and f.endswith(".txt") and f != "bypass-all.txt":
                         try:
-                            num = int(f.split('.')[0])
-                            existing_files.append(num)
+                            # Extract the number after "bypass-" (before ".txt")
+                            num_str = f.replace("bypass-", "").replace(".txt", "")
+                            num = int(num_str)
+                            bypass_files.append(num)
                         except ValueError:
                             continue
 
-            # Process extra files (starting after the original config files)
-            from config.settings import URLS
-            start_idx = len(URLS) + 1  # Start after the original config files
-            highest_file_num = max(existing_files) if existing_files else len(URLS)
-            for i in range(start_idx, highest_file_num + 1):
-                remote_path = f"githubmirror/{i}.txt"
-                filename = f"{i}.txt"
-                raw_file_url = f"https://github.com/{REPO_NAME}/raw/refs/heads/main/githubmirror/{i}.txt"
+            # Process bypass config files (bypass-1.txt, bypass-2.txt, etc.)
+            for i in sorted(bypass_files):
+                remote_path = f"githubmirror/bypass/bypass-{i}.txt"
+                filename = f"bypass-{i}.txt"
+                raw_file_url = f"https://github.com/{REPO_NAME}/raw/refs/heads/main/githubmirror/bypass/bypass-{i}.txt"
 
-                if i == start_idx:  # Special handling for the first extra file
-                    source_name = "Обход SNI/CIDR белых списков"
-                    source_column = f"[{source_name}]({raw_file_url})"
-                else:
-                    source_column = "Разделенный файл для обхода SNI/CIDR"  # For files beyond the first extra file
+                source_column = "Разделенный файл для обхода SNI/CIDR"
 
                 if i in updated_files:
                     update_time = time_part
                     update_date = date_part
                 else:
                     import re
-                    pattern = rf"\|\s*{i}\s*\|\s*\[`{filename}`\].*?\|.*?\|\s*(.*?)\s*\|\s*(.*?)\s*\|"
+                    pattern = rf"\|\s*bypass-{i}\s*\|\s*\[`{filename}`\].*?\|.*?\|\s*(.*?)\s*\|\s*(.*?)\s*\|"
                     match = re.search(pattern, old_content)
                     if match:
                         update_time = match.group(1).strip() if match.group(1).strip() else "Никогда"
@@ -196,7 +191,31 @@ class GitHubHandler:
                         update_time = "Никогда"
                         update_date = "Никогда"
 
-                table_rows.append(f"| {i} | [`{filename}`]({raw_file_url}) | {source_column} | {update_time} | {update_date} |")
+                table_rows.append(f"| bypass-{i} | [`{filename}`]({raw_file_url}) | {source_column} | {update_time} | {update_date} |")
+
+            # Handle bypass-all.txt specifically
+            if os.path.exists(os.path.join(githubmirror_path, "bypass", "bypass-all.txt")):
+                remote_path = "githubmirror/bypass/bypass-all.txt"
+                filename = "bypass-all.txt"
+                raw_file_url = f"https://github.com/{REPO_NAME}/raw/refs/heads/main/githubmirror/bypass/bypass-all.txt"
+                source_name = "Обход SNI/CIDR белых списков (все конфиги)"
+                source_column = f"[{source_name}]({raw_file_url})"
+
+                if 99999 in updated_files:  # Using a large number to represent bypass-all.txt in updated_files
+                    update_time = time_part
+                    update_date = date_part
+                else:
+                    import re
+                    pattern = rf"\|\s*bypass-all\s*\|\s*\[`{filename}`\].*?\|.*?\|\s*(.*?)\s*\|\s*(.*?)\s*\|"
+                    match = re.search(pattern, old_content)
+                    if match:
+                        update_time = match.group(1).strip() if match.group(1).strip() else "Никогда"
+                        update_date = match.group(2).strip() if match.group(2).strip() else "Никогда"
+                    else:
+                        update_time = "Никогда"
+                        update_date = "Никогда"
+
+                table_rows.append(f"| bypass-all | [`{filename}`]({raw_file_url}) | {source_column} | {update_time} | {update_date} |")
 
             new_table = table_header + "\n" + "\n".join(table_rows)
 
@@ -239,6 +258,38 @@ class GitHubHandler:
 
     def _add_to_updated_files(self, remote_path: str):
         """Adds a file to the updated files set."""
-        file_index = int(remote_path.split('/')[1].split('.')[0])
-        with _UPDATED_FILES_LOCK:
-            updated_files.add(file_index)
+        path_parts = remote_path.split('/')
+        if len(path_parts) >= 2:
+            folder_or_filename = path_parts[1]
+            if folder_or_filename == "bypass":
+                # Handle bypass files (e.g., bypass/bypass-1.txt, bypass/bypass-all.txt)
+                if len(path_parts) >= 3:
+                    bypass_filename = path_parts[2]
+                    if bypass_filename.startswith("bypass-") and bypass_filename.endswith(".txt"):
+                        if bypass_filename == "bypass-all.txt":
+                            # Use a special number to represent bypass-all.txt in updated_files
+                            file_index = 99999
+                        else:
+                            # Extract number from bypass-N.txt
+                            num_str = bypass_filename.replace("bypass-", "").replace(".txt", "")
+                            try:
+                                file_index = int(num_str)
+                            except ValueError:
+                                file_index = -1  # Invalid bypass file
+                    else:
+                        # Default to -1 if it's not a bypass file
+                        file_index = -1
+                else:
+                    file_index = -1
+            else:
+                # Handle default files (e.g., default/1.txt, etc.)
+                try:
+                    file_index = int(folder_or_filename.split('.')[0])
+                except ValueError:
+                    file_index = -1
+        else:
+            file_index = -1
+
+        if file_index != -1:
+            with _UPDATED_FILES_LOCK:
+                updated_files.add(file_index)

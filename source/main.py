@@ -20,8 +20,12 @@ from processors.config_processor import create_filtered_configs
 def download_and_save(idx: int, output_dir: str = "../githubmirror") -> Optional[Tuple[str, str]]:
     """Downloads and saves a single config file."""
     url = URLS[idx]
-    local_path = f"{output_dir}/{idx + 1}.txt"
-    
+    # Create default subdirectory if it doesn't exist
+    default_dir = f"{output_dir}/default"
+    import os
+    os.makedirs(default_dir, exist_ok=True)
+    local_path = f"{default_dir}/{idx + 1}.txt"
+
     try:
         data = fetch_data(url)
 
@@ -37,7 +41,7 @@ def download_and_save(idx: int, output_dir: str = "../githubmirror") -> Optional
                 pass
 
         save_to_local_file(local_path, data)
-        return local_path, f"githubmirror/{idx + 1}.txt"
+        return local_path, f"githubmirror/default/{idx + 1}.txt"
     except Exception as e:
         short_msg = str(e)
         if len(short_msg) > 200:
@@ -69,6 +73,8 @@ def main(dry_run: bool = False, output_dir: str = "../githubmirror"):
     """Main execution function."""
     # Create output directories at project root level (one level up from source)
     os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(f"{output_dir}/default", exist_ok=True)  # For original config files
+    os.makedirs(f"{output_dir}/bypass", exist_ok=True)   # For bypass config files
     os.makedirs("../qr-codes", exist_ok=True)  # Also create qr-codes directory
 
     max_workers_download = min(DEFAULT_MAX_WORKERS, max(1, len(URLS)))
@@ -93,11 +99,14 @@ def main(dry_run: bool = False, output_dir: str = "../githubmirror"):
     # Add filtered files to upload list
     for filtered_file in filtered_files:
         filename = os.path.basename(filtered_file)
-        if filename == "all.txt":
-            remote_path = f"githubmirror/{filename}"
-        else:
-            file_idx = int(filename.split('.')[0])
-            remote_path = f"githubmirror/{file_idx}.txt"
+        # Determine correct remote path based on file location
+        if filename == "bypass-all.txt":  # Updated filename for the all.txt file
+            remote_path = f"githubmirror/bypass/bypass-all.txt"
+        elif "bypass-" in filename:  # Bypass config files
+            remote_path = f"githubmirror/bypass/{filename}"
+        else:  # This should not happen for filtered configs based on our changes, but just in case
+            # This case shouldn't occur with our new code, but keeping as fallback
+            pass  # Skip these files, they should be in default directory already
         file_pairs.append((filtered_file, remote_path))
 
     # Initialize GitHub handler and upload files

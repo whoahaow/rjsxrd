@@ -14,8 +14,8 @@ from utils.logger import log
 
 def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
     """
-    Creates filtered configs for SNI/CIDR bypass (starting from next file after original configs and split versions).
-    Also creates all.txt with all SNI/CIDR bypass servers.
+    Creates filtered configs for SNI/CIDR bypass in the bypass folder.
+    Also creates bypass-all.txt with all SNI/CIDR bypass servers.
     Returns a list of created file paths.
     """
     # Optimize domain list by removing redundant domains
@@ -41,7 +41,8 @@ def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
 
     def _process_file_filtering(file_idx: int) -> List[str]:
         """Process a single file to filter configs by SNI domains."""
-        local_path = f"{output_dir}/{file_idx}.txt"
+        # Look for files in the default subdirectory
+        local_path = f"{output_dir}/default/{file_idx}.txt"
         filtered_lines = []
         if not os.path.exists(local_path):
             return filtered_lines
@@ -107,8 +108,8 @@ def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
     # Deduplicate all configs
     unique_configs = deduplicate_configs(all_configs)
 
-    # Create all.txt with all unique configs
-    all_txt_path = f"{output_dir}/all.txt"
+    # Create bypass-all.txt with all unique configs in the bypass folder
+    all_txt_path = f"{output_dir}/bypass/bypass-all.txt"
     try:
         with open(all_txt_path, "w", encoding="utf-8") as file:
             file.write("\n".join(unique_configs))
@@ -116,7 +117,7 @@ def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
     except Exception as e:
         log(f"Ошибка при сохранении {all_txt_path}: {e}")
 
-    # Split into multiple files if needed (starting after original config files)
+    # Split into multiple files if needed (starting after the original files)
     created_files = []
 
     # Split into chunks of MAX_SERVERS_PER_FILE configs each
@@ -124,20 +125,18 @@ def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
     chunks = [unique_configs[i:i + MAX_SERVERS_PER_FILE]
              for i in range(0, len(unique_configs), MAX_SERVERS_PER_FILE)]
 
-    # Start from the next number after the original files
-    start_idx = len(URLS) + 1  # Start generating files after the original config files
-
-    for idx, chunk in enumerate(chunks, start_idx):  # Start from next number after original files
-        filename = f"{output_dir}/{idx}.txt"
+    # Create bypass files named bypass-1.txt, bypass-2.txt, etc.
+    for idx, chunk in enumerate(chunks, 1):  # Start from 1 instead of original config count
+        bypass_filename = f"{output_dir}/bypass/bypass-{idx}.txt"
         try:
-            with open(filename, "w", encoding="utf-8") as file:
+            with open(bypass_filename, "w", encoding="utf-8") as file:
                 file.write("\n".join(chunk))
-            log(f"Создан файл {filename} с {len(chunk)} конфигами")
-            created_files.append(filename)
+            log(f"Создан файл {bypass_filename} с {len(chunk)} конфигами")
+            created_files.append(bypass_filename)
         except Exception as e:
-            log(f"Ошибка при сохранении {filename}: {e}")
+            log(f"Ошибка при сохранении {bypass_filename}: {e}")
 
-    # Add all.txt to the list of created files to be uploaded
+    # Add bypass-all.txt to the list of created files to be uploaded
     created_files.append(all_txt_path)
 
     return created_files

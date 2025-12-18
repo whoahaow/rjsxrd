@@ -478,6 +478,7 @@ media.mail.ru
 mediafeeds.yandex.com
 mediafeeds.yandex.ru
 mediapro.mail.ru
+megafon.ru
 merch-cpg.money.mail.ru
 metrics.alfabank.ru
 microapps.kinopoisk.ru

@@ -8,7 +8,7 @@ import concurrent.futures
 from typing import List, Set
 from config.settings import SNI_DOMAINS, URLS, EXTRA_URLS_FOR_BYPASS, URLS_BASE64, MAX_SERVERS_PER_FILE
 from fetchers.fetcher import fetch_data
-from utils.file_utils import extract_host_port, deduplicate_configs, prepare_config_content
+from utils.file_utils import extract_host_port, deduplicate_configs, prepare_config_content, filter_secure_configs
 from utils.logger import log
 
 
@@ -64,7 +64,8 @@ def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
                     filtered_lines.append(line)
         except Exception:
             pass
-        return filtered_lines
+        # Filter out insecure configs
+        return filter_secure_configs(filtered_lines)
 
     all_configs = []
 
@@ -88,7 +89,8 @@ def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
                 line = line.strip()
                 if line and not line.startswith('#'):
                     configs.append(line)
-            return configs
+            # Filter out insecure configs from extra sources
+            return filter_secure_configs(configs)
         except Exception as e:
             short_msg = str(e)
             if len(short_msg) > 200:
@@ -106,7 +108,7 @@ def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
 
     # Load configs from base64-encoded subscriptions
     def _load_base64_configs(url: str) -> List[str]:
-        """Load configs from base64-encoded subscription without SNI check."""
+        """Load configs from base64-encoded subscription and apply SNI filtering like regular configs."""
         try:
             data = fetch_data(url)
             # Decode base64 content
@@ -121,12 +123,18 @@ def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
             # Force separation of glued configs in the decoded content
             decoded_content = re.sub(r'(vmess|vless|trojan|ss|ssr|tuic|hysteria|hysteria2|hy2)://', r'\n\1://', decoded_content)
             lines = decoded_content.splitlines()
-            configs = []
+            filtered_configs = []
+
             for line in lines:
                 line = line.strip()
-                if line and not line.startswith('#'):
-                    configs.append(line)
-            return configs
+                if not line:
+                    continue
+                # Apply SNI filtering (same logic as in _process_file_filtering)
+                if sni_regex.search(line):
+                    filtered_configs.append(line)
+
+            # Filter out insecure configs from base64 sources
+            return filter_secure_configs(filtered_configs)
         except Exception as e:
             short_msg = str(e)
             if len(short_msg) > 200:
@@ -142,8 +150,11 @@ def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
 
     all_configs.extend(base64_configs)
 
+    # Filter out configs with insecure settings for bypass configs
+    secure_configs = filter_secure_configs(all_configs)
+
     # Deduplicate all configs
-    unique_configs = deduplicate_configs(all_configs)
+    unique_configs = deduplicate_configs(secure_configs)
 
     # Create bypass-all.txt with all unique configs in the bypass folder
     all_txt_path = f"{output_dir}/bypass/bypass-all.txt"

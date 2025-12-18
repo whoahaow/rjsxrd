@@ -87,6 +87,62 @@ def deduplicate_configs(configs: List[str]) -> List[str]:
     return unique_configs
 
 
+def has_insecure_setting(config_line: str) -> bool:
+    """Check if a config has insecure settings."""
+    config_lower = config_line.lower()
+
+    # Check for allowInsecure in query parameters (common in vless/trojan)
+    if 'allowinsecure=' in config_lower:
+        # Check if it's set to true, 1, or yes
+        allow_insecure_match = re.search(r'allowinsecure=([^&\?#]+)', config_lower)
+        if allow_insecure_match:
+            value = allow_insecure_match.group(1).strip()
+            if value in ['1', 'true', 'yes', 'on']:
+                return True
+
+    # Check for insecure in query parameters
+    if 'insecure=' in config_lower:
+        insecure_match = re.search(r'insecure=([^&\?#]+)', config_lower)
+        if insecure_match:
+            value = insecure_match.group(1).strip()
+            if value in ['1', 'true', 'yes', 'on']:
+                return True
+
+    # Check for insecure settings in vmess base64 JSON configuration
+    if config_line.startswith("vmess://"):
+        try:
+            payload = config_line[8:]
+            rem = len(payload) % 4
+            if rem:
+                payload += '=' * (4 - rem)
+            decoded = base64.b64decode(payload).decode('utf-8', errors='ignore')
+            if decoded.startswith('{'):
+                j = json.loads(decoded)
+                # Check for insecure settings in vmess config
+                insecure_setting = j.get('insecure') or j.get('allowInsecure')
+                if insecure_setting in [True, 'true', 1, '1']:
+                    return True
+        except Exception:
+            pass
+
+    # Check for other insecure indicators in the URL
+    if 'insecure=1' in config_lower or 'insecure=true' in config_lower:
+        return True
+    if 'verify=0' in config_lower or 'verify=false' in config_lower:
+        return True
+
+    return False
+
+
+def filter_secure_configs(configs: List[str]) -> List[str]:
+    """Filter out configs with insecure settings."""
+    secure_configs = []
+    for config in configs:
+        if not has_insecure_setting(config):
+            secure_configs.append(config)
+    return secure_configs
+
+
 def prepare_config_content(content: str) -> List[str]:
     """Prepares and normalizes config content by separating glued configs."""
     # Add newlines before known protocol prefixes that might be glued to previous lines

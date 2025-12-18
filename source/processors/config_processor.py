@@ -52,7 +52,7 @@ def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
                 content = file.read()
 
             # Force separation of configs that might be glued together
-            content = re.sub(r'(vmess|vless|trojan|ss|ssr|tuic|hysteria|hysteria2)://', r'\n\1://', content)
+            content = re.sub(r'(vmess|vless|trojan|ss|ssr|tuic|hysteria|hysteria2|hy2)://', r'\n\1://', content)
             lines = content.splitlines()
 
             for line in lines:
@@ -82,7 +82,7 @@ def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
         try:
             data = fetch_data(url)
             # Force separation of glued configs
-            data = re.sub(r'(vmess|vless|trojan|ss|ssr|tuic|hysteria|hysteria2)://', r'\n\1://', data)
+            data = re.sub(r'(vmess|vless|trojan|ss|ssr|tuic|hysteria|hysteria2|hy2)://', r'\n\1://', data)
             lines = data.splitlines()
             configs = []
             for line in lines:

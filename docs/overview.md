@@ -2,7 +2,7 @@
 
 ## Обзор
 
-rjsxrd - это автоматически обновляемая коллекция публичных VPN-конфигов (V2Ray / VLESS / Trojan / VMess / Reality / Shadowsocks) для быстрого обхода блокировок. 
+rjsxrd - это автоматически обновляемая коллекция публичных VPN-конфигов (V2Ray / VLESS / Trojan / VMess / Reality / Shadowsocks / Hysteria2 / TUIC) для быстрого обхода блокировок. 
 
 Проект генерирует и поддерживает актуальные конфигурации, которые можно импортировать практически в любой современный VPN-клиент (v2rayNG, NekoRay, Throne, v2rayN, V2Box, v2RayTun, Hiddify и др.).
 

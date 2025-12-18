@@ -13,7 +13,7 @@ ZONE = zoneinfo.ZoneInfo("Europe/Moscow")
 THISTIME = datetime.now(ZONE)
 OFFSET = THISTIME.strftime("%H:%M | %d.%m.%Y")
 
-# URL sources - 25 sources for files 1-25
+# URL sources
 URLS = [
     "https://github.com/sakha1370/OpenRay/raw/refs/heads/main/output/all_valid_proxies.txt",  # 1
     "https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/protocols/vl.txt",  # 2
@@ -59,8 +59,14 @@ URLS = [
     "https://raw.githubusercontent.com/Mahdi0024/ProxyCollector/master/sub/proxies.txt",  # 42
     "https://raw.githubusercontent.com/Mosifree/-FREE2CONFIG/refs/heads/main/Reality",  # 43
     "https://raw.githubusercontent.com/MrMohebi/xray-proxy-grabber-telegram/master/collected-proxies/row-url/all.txt",  # 44
-    
-
+    "https://raw.githubusercontent.com/Barabama/FreeNodes/refs/heads/main/nodes/blues.txt",  # 45
+    "https://raw.githubusercontent.com/Barabama/FreeNodes/refs/heads/main/nodes/clashmeta.txt",  # 46
+    "https://raw.githubusercontent.com/Barabama/FreeNodes/refs/heads/main/nodes/ndnode.txt",  # 47
+    "https://raw.githubusercontent.com/Barabama/FreeNodes/refs/heads/main/nodes/nodefree.txt",  # 48
+    "https://raw.githubusercontent.com/Barabama/FreeNodes/refs/heads/main/nodes/nodev2ray.txt",  # 49
+    "https://raw.githubusercontent.com/Barabama/FreeNodes/refs/heads/main/nodes/v2rayshare.txt",  # 50
+    "https://raw.githubusercontent.com/Barabama/FreeNodes/refs/heads/main/nodes/wenode.txt",  # 51
+    "https://raw.githubusercontent.com/Barabama/FreeNodes/refs/heads/main/nodes/yudou66.txt",  # 52
 ]
 
 # Extra URLs for SNI/CIDR bypass configs (after original config files)

@@ -90,7 +90,7 @@ def deduplicate_configs(configs: List[str]) -> List[str]:
 def prepare_config_content(content: str) -> List[str]:
     """Prepares and normalizes config content by separating glued configs."""
     # Add newlines before known protocol prefixes that might be glued to previous lines
-    content = re.sub(r'(vmess|vless|trojan|ss|ssr|tuic|hysteria|hysteria2)://', r'\n\1://', content)
+    content = re.sub(r'(vmess|vless|trojan|ss|ssr|tuic|hysteria|hysteria2|hy2)://', r'\n\1://', content)
     lines = content.splitlines()
     # Filter out empty lines and comments
     configs = []

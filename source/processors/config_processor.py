@@ -6,7 +6,7 @@ import base64
 import json
 import concurrent.futures
 from typing import List, Set
-from config.settings import SNI_DOMAINS, URLS, EXTRA_URLS_FOR_BYPASS, MAX_SERVERS_PER_FILE
+from config.settings import SNI_DOMAINS, URLS, EXTRA_URLS_FOR_BYPASS, URLS_BASE64, MAX_SERVERS_PER_FILE
 from fetchers.fetcher import fetch_data
 from utils.file_utils import extract_host_port, deduplicate_configs, prepare_config_content
 from utils.logger import log
@@ -103,6 +103,44 @@ def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
             extra_configs.extend(future.result())
 
     all_configs.extend(extra_configs)
+
+    # Load configs from base64-encoded subscriptions
+    def _load_base64_configs(url: str) -> List[str]:
+        """Load configs from base64-encoded subscription without SNI check."""
+        try:
+            data = fetch_data(url)
+            # Decode base64 content
+            try:
+                # Remove any whitespace and decode the base64 content
+                decoded_bytes = base64.b64decode(data.strip())
+                decoded_content = decoded_bytes.decode('utf-8')
+            except Exception as e:
+                log(f"Ошибка декодирования base64 для {url}: {str(e)}")
+                return []
+
+            # Force separation of glued configs in the decoded content
+            decoded_content = re.sub(r'(vmess|vless|trojan|ss|ssr|tuic|hysteria|hysteria2|hy2)://', r'\n\1://', decoded_content)
+            lines = decoded_content.splitlines()
+            configs = []
+            for line in lines:
+                line = line.strip()
+                if line and not line.startswith('#'):
+                    configs.append(line)
+            return configs
+        except Exception as e:
+            short_msg = str(e)
+            if len(short_msg) > 200:
+                short_msg = short_msg[:200] + "…"
+            log(f"Ошибка при загрузке base64-саба {url}: {short_msg}")
+            return []
+
+    base64_configs = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(4, len(URLS_BASE64))) as executor:
+        futures = [executor.submit(_load_base64_configs, url) for url in URLS_BASE64]
+        for future in concurrent.futures.as_completed(futures):
+            base64_configs.extend(future.result())
+
+    all_configs.extend(base64_configs)
 
     # Deduplicate all configs
     unique_configs = deduplicate_configs(all_configs)

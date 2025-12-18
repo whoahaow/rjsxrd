@@ -32,6 +32,15 @@ EXTRA_URLS_FOR_BYPASS = [
     "https://jsnegsukavsos.hb.ru-msk.vkcloud-storage.ru/love",
 ]
 
+# Base64-encoded subscription URLs
+URLS_BASE64 = []
+try:
+    with open(os.path.join(os.path.dirname(__file__), 'URLS_base64.txt'), 'r', encoding='utf-8') as f:
+        URLS_BASE64 = [line.strip() for line in f if line.strip()]
+except FileNotFoundError:
+    print("URLS_base64.txt file not found!")
+    URLS_BASE64 = []  # Fallback to empty list
+
 # SNI domains for filtering - Russian white-list bypass
 def load_sni_domains():
     """Load SNI domains from whitelist-all.txt file."""

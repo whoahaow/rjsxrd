@@ -12,3 +12,8 @@ https://msnake.serv00.net/sub10.txt
 https://msnake.serv00.net/sub9.txt
 https://raw.githubusercontent.com/Pawdroid/Free-servers/refs/heads/main/sub
 https://raw.githubusercontent.com/ripaojiedian/freenode/refs/heads/main/sub
+https://raw.githubusercontent.com/ts-sf/fly/main/v2
+https://raw.githubusercontent.com/mahsanet/MahsaFreeConfig/refs/heads/main/mci/sub_1.txt
+https://raw.githubusercontent.com/mahsanet/MahsaFreeConfig/refs/heads/main/mtn/sub_1.txt
+https://raw.githubusercontent.com/yebekhe/vpn-fail/refs/heads/main/sub-link
+https://v2.alicivil.workers.dev

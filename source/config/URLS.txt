@@ -99,3 +99,5 @@ https://raw.githubusercontent.com/aqayerez/MatnOfficial-VPN/refs/heads/main/Matn
 https://raw.githubusercontent.com/arshiacomplus/v2rayExtractor/refs/heads/main/mix/sub.html
 https://raw.githubusercontent.com/nscl5/5/refs/heads/main/configs/at/all.txt
 https://raw.githubusercontent.com/Danialsamadi/v2go/main/All_Configs_Sub.txt
+https://raw.githubusercontent.com/HosseinKoofi/GO_V2rayCollector/main/mixed_iran.txt
+https://raw.githubusercontent.com/Rayan-Config/C-Sub/refs/heads/main/configs/proxy.txt

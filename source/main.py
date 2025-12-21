@@ -5,7 +5,7 @@ import sys
 import concurrent.futures
 import argparse
 import base64
-from typing import Tuple, Optional
+from typing import List, Tuple, Optional
 
 # Add the source directory to the path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
@@ -238,6 +238,113 @@ def create_default_all_secure_file(output_dir: str = "../githubmirror") -> Optio
         return None
 
 
+def create_protocol_split_files(output_dir: str = "../githubmirror") -> List[Tuple[str, str]]:
+    """Creates protocol-specific files in the split-by-protocols folder, both secure and unsecure versions."""
+    from utils.file_utils import prepare_config_content, has_insecure_setting
+    import re
+
+    # Include configs from all relevant directories
+    source_dirs = [
+        f"{output_dir}/default",
+        f"{output_dir}/bypass",
+        f"{output_dir}/bypass-unsecure"
+    ]
+
+    split_dir = f"{output_dir}/split-by-protocols"
+
+    # Create the split-by-protocols directory
+    os.makedirs(split_dir, exist_ok=True)
+
+    all_configs = []
+
+    # Get all .txt files from all source directories
+    for source_dir in source_dirs:
+        if not os.path.exists(source_dir):
+            log(f"Директория {source_dir} не существует")
+            continue
+
+        txt_files = [f for f in os.listdir(source_dir) if f.endswith('.txt') and f not in ['all.txt', 'all-secure.txt', 'bypass-all.txt', 'bypass-unsecure-all.txt']]
+
+        for txt_file in txt_files:
+            file_path = os.path.join(source_dir, txt_file)
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+
+                # Prepare and normalize config content
+                configs = prepare_config_content(content)
+                all_configs.extend(configs)
+            except Exception as e:
+                log(f"Ошибка при чтении файла {file_path}: {e}")
+                continue
+
+    # Define supported protocols
+    protocols = ['vless', 'vmess', 'trojan', 'ss', 'ssr', 'tuic', 'hysteria', 'hysteria2', 'hy2']
+
+    # Separate configs by protocol and security
+    protocol_configs = {protocol: [] for protocol in protocols}
+    protocol_secure_configs = {protocol: [] for protocol in protocols}
+
+    for config in all_configs:
+        # Determine the protocol from the config line
+        config_lower = config.lower()
+        matched_protocol = None
+
+        for protocol in protocols:
+            if config_lower.startswith(f"{protocol}://"):
+                matched_protocol = protocol
+                break
+
+        if matched_protocol:
+            # Add to unsecure version (all configs for this protocol)
+            protocol_configs[matched_protocol].append(config)
+
+            # Add to secure version only if it's secure
+            if not has_insecure_setting(config):
+                protocol_secure_configs[matched_protocol].append(config)
+
+    # Create file pairs for upload
+    file_pairs = []
+
+    # Create unsecure protocol files (all configs for each protocol)
+    for protocol, configs in protocol_configs.items():
+        if configs:  # Only create file if there are configs for this protocol
+            filename = f"{protocol}.txt"
+            filepath = os.path.join(split_dir, filename)
+
+            # Remove duplicates while preserving order
+            unique_configs = list(dict.fromkeys(configs))  # Remove duplicates while preserving order
+
+            try:
+                with open(filepath, "w", encoding="utf-8") as f:
+                    f.write("\n".join(unique_configs))
+                log(f"Создан файл {filepath} с {len(unique_configs)} конфигами ({protocol})")
+
+                file_pairs.append((filepath, f"githubmirror/split-by-protocols/{filename}"))
+            except Exception as e:
+                log(f"Ошибка при создании {filepath}: {e}")
+
+    # Create secure protocol files (only secure configs for each protocol)
+    for protocol, configs in protocol_secure_configs.items():
+        if configs:  # Only create file if there are secure configs for this protocol
+            filename = f"{protocol}-secure.txt"
+            filepath = os.path.join(split_dir, filename)
+
+            # Remove duplicates while preserving order
+            unique_configs = list(dict.fromkeys(configs))  # Remove duplicates while preserving order
+
+            try:
+                with open(filepath, "w", encoding="utf-8") as f:
+                    f.write("\n".join(unique_configs))
+                log(f"Создан файл {filepath} с {len(unique_configs)} безопасными конфигами ({protocol})")
+
+                file_pairs.append((filepath, f"githubmirror/split-by-protocols/{filename}"))
+            except Exception as e:
+                log(f"Ошибка при создании {filepath}: {e}")
+
+    return file_pairs
+
+
 def main(dry_run: bool = False, output_dir: str = "../githubmirror"):
     """Main execution function."""
     # Create output directories at project root level (one level up from source)
@@ -245,6 +352,7 @@ def main(dry_run: bool = False, output_dir: str = "../githubmirror"):
     os.makedirs(f"{output_dir}/default", exist_ok=True)  # For original config files
     os.makedirs(f"{output_dir}/bypass", exist_ok=True)   # For bypass config files
     os.makedirs(f"{output_dir}/bypass-unsecure", exist_ok=True)   # For bypass-unsecure config files
+    os.makedirs(f"{output_dir}/split-by-protocols", exist_ok=True)   # For protocol-split config files
     os.makedirs("../qr-codes", exist_ok=True)  # Also create qr-codes directory
 
     max_workers_download = min(DEFAULT_MAX_WORKERS, max(1, len(URLS)))
@@ -322,6 +430,10 @@ def main(dry_run: bool = False, output_dir: str = "../githubmirror"):
     default_all_secure_file = create_default_all_secure_file(output_dir)
     if default_all_secure_file:
         file_pairs.append(default_all_secure_file)
+
+    # Create protocol-specific files in both secure and unsecure versions
+    protocol_files = create_protocol_split_files(output_dir)
+    file_pairs.extend(protocol_files)
 
     # Initialize GitHub handler and upload files
     if not dry_run and file_pairs:

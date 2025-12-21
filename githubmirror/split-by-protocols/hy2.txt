@@ -69,16 +69,11 @@ hy2://605d52db-3d29-406f-bf6d-daeb1cd84f09@dg.jgpyjc.top:443/?mport=40000-40050&
 hy2://537d7098-fdbe-11ef-8ebc-f23c93141fad@eca509d2-t56dc0-tcjtj6-d70y.la.shifen.uk:443/?mport=20000-50000&sni=eca509d2-t56dc0-tcjtj6-d70y.la.shifen.uk#%F0%9F%87%BD%F0%9F%87%BDXX%28AzadNet.t.me%29%20%281845%29
 hy2://6286105c-fb6d-11ef-be96-f23c93136cb3@cc65f71a-t4v9c0-t5waci-4550.la.shifen.uk:1743/?sni=cc65f71a-t4v9c0-t5waci-4550.la.shifen.uk#%F0%9F%87%BD%F0%9F%87%BDXX%28AzadNet.t.me%29%20%281846%29
 hy2://78c2bad7-f5f3-41f2-88cc-81de9d05040b@xg1.mangshe.xyz:2056/?insecure=1#%F0%9F%87%BD%F0%9F%87%BDXX%28AzadNet.t.me%29%20%281847%29
-hy2://1c8d81e3-eea2-48df-9c60-ac86c94bf5f8@xg.xfy003.cfd:21333?obfs=salamander&obfs-password=zTCsHcttqdA0PniW&sni=xg.xfy003.cfd&insecure=1#013 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
-hy2://5CBqBh6MeDq6GajcilBiDg==@192.227.152.86:61001?insecure=1&sni=192-227-152-86.nip.io#062 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
-hy2://Yet-Another-Public-Config-1@[2a14:3f87:f001:13::a]:36400?obfs=salamander&obfs-password=Yet-Another-Public-Config-1&sni=YAPC-1.afshin.ir&insecure=1#074 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
-hy2://e0cc849a-3a46-4358-96ef-f7700984f7a7@rb1.xiaohuolongjc.top:37771?sni=rb1.xiaohuolongjc.top&insecure=1#123 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
-hy2://cdc48fdf-728c-4b46-9078-f9b755ba8e3c@tw.foldjc.top:37013#128 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
-hy2://Yet-Another-Public-Config-1@[2a14:3f87:f001:13::a]:35200?obfs=salamander&obfs-password=Yet-Another-Public-Config-1&sni=YAPC-1.afshin.ir&insecure=1#141 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
-hy2://e33b95f1-4363-40d4-afdd-1ce468882df4@hg1.xiaohuolongjc.top:37771?insecure=1&sni=hg1.xiaohuolongjc.top#145 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
-hy2://dongtaiwang.com@208.87.243.187:22222?insecure=1#151 ✂️-🇺🇸US-last 14(@GheychiAmoozesh)
-hy2://e0cc849a-3a46-4358-96ef-f7700984f7a7@hg1.xiaohuolongjc.top:37771#154 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
-hy2://0cb561b7-73bd-4c66-8d3d-08fccae297c1@tw.foldjc.top:37013?insecure=1&sni=tw.foldjc.top#175 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
+hy2://Yet-Another-Public-Config-1@yapc-1.adamhayward.co.uk:36300?obfs=salamander&obfs-password=Yet-Another-Public-Config-1&insecure=1&sni=YAPC-1.afshin.ir#037 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
+hy2://dongtaiwang.com@51.159.111.32:5355?insecure=1&sni=www.bing.com#038 ✂️-🇺🇸US-last 14(@GheychiAmoozesh)
+hy2://Yet-Another-Public-Config-1@yapc-1.adamhayward.co.uk:35000?obfs=salamander&obfs-password=Yet-Another-Public-Config-1&sni=YAPC-1.afshin.ir&insecure=1#075 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
+hy2://879cf33f-d0ea-4eda-9d80-b9db942fd628@rb1.xiaohuolongjc.top:37771?sni=rb1.xiaohuolongjc.top&insecure=1#152 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
+hy2://c6cc43a9-20a4-43c3-aa26-758cd31161c7@xg1.xiaohuolongjc.top:37771?sni=xg1.xiaohuolongjc.top&insecure=1#167 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
 hy2://16955d72-1794-11f0-a035-f23c95b6f51d@107.167.18.123:1743/?sni=
 hy2://17cdeb6c-f046-11ee-bdac-f23c93141fad@6adab57e-t53wg0-tdvgqe-2gok.la.shifen.uk:1743/?sni=
 hy2://17cdeb6c-f046-11ee-bdac-f23c93141fad@c37b0be5-t3kyo0-t3lvgh-2gok.la.shifen.uk:1743/?sni=

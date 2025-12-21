@@ -103,3 +103,6 @@ https://raw.githubusercontent.com/HosseinKoofi/GO_V2rayCollector/main/mixed_iran
 https://raw.githubusercontent.com/Rayan-Config/C-Sub/refs/heads/main/configs/proxy.txt
 https://raw.githubusercontent.com/55prosek-lgtm/vpn_config_for_russia/refs/heads/main/blacklist.txt
 https://raw.githubusercontent.com/vlesscollector/vlesscollector/refs/heads/main/vless_configs.txt
+https://raw.githubusercontent.com/STR97/STRUGOV/refs/heads/main/Vless#VLESS.BIG.STR.BYPASS%F0%9F%94%A5
+https://raw.githubusercontent.com/STR97/STRUGOV/refs/heads/main/STR#MEGA.STR.BYPASS%E2%9A%A1%EF%B8%8F
+https://raw.githubusercontent.com/STR97/STRUGOV/refs/heads/main/BYPASS#PROXY.STR.BYPASS%F0%9F%90%BA

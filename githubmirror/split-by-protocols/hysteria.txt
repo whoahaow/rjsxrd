@@ -1,9 +1,8 @@
 hysteria://62.210.196.68:26691?alpn=h3&auth=dongtaiwang.com&downmbps=55 Mbps&protocol=udp&insecure=1&peer=apple.com&upmbps=11 Mbps#%F0%9F%87%AB%F0%9F%87%B7_FR_%E6%B3%95%E5%9B%BD
 hysteria://62.210.10.186:35511?alpn=h3&auth=dongtaiwang.com&auth_str=dongtaiwang.com&downmbps=55&protocol=udp&insecure=1&peer=apple.com&udp=true&upmbps=11#%F0%9F%87%AB%F0%9F%87%B7_FR_%E6%B3%95%E5%9B%BD
 hysteria://62.210.10.186:50011?alpn=h3&auth=dongtaiwang.com&downmbps=55 Mbps&protocol=udp&insecure=1&peer=apple.com&upmbps=11 Mbps#%F0%9F%87%AB%F0%9F%87%B7_FR_%E6%B3%95%E5%9B%BD
-hysteria://50.114.40.110:62839?upmbps=1100&downmbps=1100&auth=K6MWhE5PP8aKzSGIF1I4Zjb8tpLicSG3NzWckWLsRIGZ9CAOc9&protocol=wechat-video&peer=www.microsoft.com&alpn=h3&insecure=1#077 ✂️-🇨🇦CA-last 14(@GheychiAmoozesh)
-hysteria://50.114.40.110:62839?upmbps=1100&downmbps=1100&auth=K6MWhE5PP8aKzSGIF1I4Zjb8tpLicSG3NzWckWLsRIGZ9CAOc9&protocol=wechat-video&peer=ghbi.ir&alpn=h3&insecure=1#100 ✂️-🇨🇦CA-last 14(@GheychiAmoozesh)
-hysteria://50.114.40.110:62839?upmbps=1100&downmbps=1100&auth=K6MWhE5PP8aKzSGIF1I4Zjb8tpLicSG3NzWckWLsRIGZ9CAOc9&protocol=wechat-video&peer=hy.chushenyun.top&alpn=h3&insecure=1#106 ✂️-🇨🇦CA-last 14(@GheychiAmoozesh)
+hysteria://50.114.40.110:62839?upmbps=1100&downmbps=1100&auth=K6MWhE5PP8aKzSGIF1I4Zjb8tpLicSG3NzWckWLsRIGZ9CAOc9&protocol=wechat-video&peer=www.amazon.cn&alpn=h3&insecure=1#035 ✂️-🇨🇦CA-last 14(@GheychiAmoozesh)
+hysteria://208.87.243.187:15823?upmbps=100&downmbps=100&auth=dongtaiwang.com&insecure=1&peer=apple.com&alpn=h3#120 ✂️-🇺🇸US-last 14(@GheychiAmoozesh)
 hysteria://62.210.127.217:40099?upmbps=100&downmbps=100&auth=dongtaiwang.com&insecure=1&peer=apple.com&alpn=h3#%F0%9F%87%AB%F0%9F%87%B7%20France%20-%20Paris%20%F0%9F%8C%8D%20HY1-UDP-TLS%204%E2%83%A3
 hysteria://195.154.200.40:15010?upmbps=100&downmbps=100&auth=dongtaiwang.com&insecure=1&peer=apple.com&alpn=h3#%F0%9F%87%AB%F0%9F%87%B7%20France%20-%20Paris%20%F0%9F%8C%8D%20HY1-UDP-TLS%204%E2%83%A3
 hysteria://51.159.226.1:49003?upmbps=11&downmbps=55&auth=dongtaiwang.com&insecure=1&peer=apple.com&alpn=h3#%F0%9F%87%B3%F0%9F%87%B1%20Netherlands%20-%20Haarlem%20%F0%9F%8C%8D%20HY1-UDP-TLS%204%E2%83%A3

@@ -159,6 +159,10 @@ def has_insecure_setting(config_line: str) -> bool:
             if value in ['1', 'true', 'yes', 'on']:
                 return True
 
+    # Check for security=none (no encryption)
+    if 'security=none' in config_lower:
+        return True
+
     # Check for insecure settings in vmess base64 JSON configuration
     if config_line.startswith("vmess://"):
         try:
@@ -172,6 +176,10 @@ def has_insecure_setting(config_line: str) -> bool:
                 # Check for insecure settings in vmess config
                 insecure_setting = j.get('insecure') or j.get('allowInsecure')
                 if insecure_setting in [True, 'true', 1, '1']:
+                    return True
+                # Also check for security=none in vmess config
+                security_setting = j.get('scy') or j.get('security')
+                if security_setting and str(security_setting).lower() == 'none':
                     return True
         except Exception:
             pass

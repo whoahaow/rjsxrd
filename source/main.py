@@ -129,10 +129,10 @@ def download_and_save_extra(idx: int, output_dir: str = "../githubmirror") -> Op
 def upload_configs_to_github(file_pairs: list, github_handler: GitHubHandler, dry_run: bool = False):
     """Uploads config files to GitHub."""
     max_workers_upload = max(2, min(6, len(file_pairs)))
-    
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers_upload) as upload_pool:
         upload_futures = []
-        
+
         for local_path, remote_path in file_pairs:
             if dry_run:
                 log(f"Dry-run: пропускаем загрузку {remote_path} (локальный путь {local_path})")
@@ -140,9 +140,102 @@ def upload_configs_to_github(file_pairs: list, github_handler: GitHubHandler, dr
                 upload_futures.append(
                     upload_pool.submit(github_handler.upload_file, local_path, remote_path)
                 )
-        
+
         for uf in concurrent.futures.as_completed(upload_futures):
             _ = uf.result()
+
+
+def create_default_all_file(output_dir: str = "../githubmirror") -> Optional[Tuple[str, str]]:
+    """Creates an all.txt file in the default folder containing all unique configs from all default txt files."""
+    from utils.file_utils import deduplicate_configs, prepare_config_content
+    import re
+
+    default_dir = f"{output_dir}/default"
+    all_configs = []
+
+    # Get all .txt files in the default directory
+    if not os.path.exists(default_dir):
+        log(f"Директория {default_dir} не существует")
+        return None
+
+    txt_files = [f for f in os.listdir(default_dir) if f.endswith('.txt') and f != 'all.txt']  # Exclude all.txt if it already exists
+
+    for txt_file in txt_files:
+        file_path = os.path.join(default_dir, txt_file)
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+
+            # Prepare and normalize config content
+            configs = prepare_config_content(content)
+            all_configs.extend(configs)
+        except Exception as e:
+            log(f"Ошибка при чтении файла {file_path}: {e}")
+            continue
+
+    # Deduplicate all configs
+    unique_configs = deduplicate_configs(all_configs)
+
+    # Create the all.txt file
+    all_txt_path = os.path.join(default_dir, "all.txt")
+    try:
+        with open(all_txt_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(unique_configs))
+        log(f"Создан файл {all_txt_path} с {len(unique_configs)} уникальными конфигами")
+
+        # Return the file pair for upload
+        return all_txt_path, "githubmirror/default/all.txt"
+    except Exception as e:
+        log(f"Ошибка при создании all.txt: {e}")
+        return None
+
+
+def create_default_all_secure_file(output_dir: str = "../githubmirror") -> Optional[Tuple[str, str]]:
+    """Creates an all-secure.txt file in the default folder containing only secure configs from all default txt files."""
+    from utils.file_utils import deduplicate_configs, prepare_config_content, has_insecure_setting
+    import re
+
+    default_dir = f"{output_dir}/default"
+    all_configs = []
+
+    # Get all .txt files in the default directory
+    if not os.path.exists(default_dir):
+        log(f"Директория {default_dir} не существует")
+        return None
+
+    txt_files = [f for f in os.listdir(default_dir) if f.endswith('.txt') and f not in ['all.txt', 'all-secure.txt']]  # Exclude both all.txt and all-secure.txt if it already exists
+
+    for txt_file in txt_files:
+        file_path = os.path.join(default_dir, txt_file)
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+
+            # Prepare and normalize config content
+            configs = prepare_config_content(content)
+            all_configs.extend(configs)
+        except Exception as e:
+            log(f"Ошибка при чтении файла {file_path}: {e}")
+            continue
+
+    # Filter out insecure configs
+    secure_configs = [config for config in all_configs if not has_insecure_setting(config)]
+
+    # Deduplicate secure configs
+    unique_secure_configs = deduplicate_configs(secure_configs)
+
+    # Create the all-secure.txt file
+    all_secure_txt_path = os.path.join(default_dir, "all-secure.txt")
+    try:
+        with open(all_secure_txt_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(unique_secure_configs))
+        log(f"Создан файл {all_secure_txt_path} с {len(unique_secure_configs)} уникальными безопасными конфигами")
+
+        # Return the file pair for upload
+        return all_secure_txt_path, "githubmirror/default/all-secure.txt"
+    except Exception as e:
+        log(f"Ошибка при создании all-secure.txt: {e}")
+        return None
 
 
 def main(dry_run: bool = False, output_dir: str = "../githubmirror"):
@@ -219,6 +312,16 @@ def main(dry_run: bool = False, output_dir: str = "../githubmirror"):
             # This case shouldn't occur with our new code, but keeping as fallback
             pass  # Skip these files, they should be in default directory already
         file_pairs.append((filtered_file, remote_path))
+
+    # Create the default all.txt file containing all unique configs from default folder
+    default_all_file = create_default_all_file(output_dir)
+    if default_all_file:
+        file_pairs.append(default_all_file)
+
+    # Create the default all-secure.txt file containing only secure configs from default folder
+    default_all_secure_file = create_default_all_secure_file(output_dir)
+    if default_all_secure_file:
+        file_pairs.append(default_all_secure_file)
 
     # Initialize GitHub handler and upload files
     if not dry_run and file_pairs:

@@ -30,6 +30,8 @@ EXTRA_URLS_FOR_BYPASS = [
     "https://raw.githubusercontent.com/zieng2/wl/refs/heads/main/vless_universal.txt",
     "https://raw.githubusercontent.com/zieng2/wl/main/vless_lite.txt",
     "https://jsnegsukavsos.hb.ru-msk.vkcloud-storage.ru/love",
+    "https://raw.githubusercontent.com/LowiKLive/BypassWhitelistRu/refs/heads/main/WhiteList-Bypass_Ru.txt",
+    "https://raw.githubusercontent.com/55prosek-lgtm/vpn_config_for_russia/refs/heads/main/whitelist.txt",
 ]
 
 # Base64-encoded subscription URLs

@@ -8,6 +8,8 @@
   - `settings.py` - общие настройки проекта
   - `URLS.txt` - список URL для основных конфигов
   - `URLS_base64.txt` - список URL для base64-кодированных подписок
+  - `whitelist-all.txt` - список доменов для фильтрации SNI обхода
+  - `cidrwhitelist.txt` - список CIDR для фильтрации IP-адресов обхода
 - `fetchers/fetcher.py` - модуль загрузки конфигов
 - `processors/config_processor.py` - обработка и фильтрация конфигов
 - `utils/` - вспомогательные модули:
@@ -23,6 +25,11 @@ cd rjsxrd/source
 pip install -r requirements.txt
 export MY_TOKEN=<GITHUB_TOKEN>  # токен с правом repo
 python main.py  # конфиги появятся в ../githubmirror
+```
+
+Для локального тестирования без загрузки в GitHub используйте флаг `--dry-run`:
+```bash
+python main.py --dry-run
 ```
 
 ## Внесение изменений

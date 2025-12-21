@@ -69,6 +69,16 @@ hy2://605d52db-3d29-406f-bf6d-daeb1cd84f09@dg.jgpyjc.top:443/?mport=40000-40050&
 hy2://537d7098-fdbe-11ef-8ebc-f23c93141fad@eca509d2-t56dc0-tcjtj6-d70y.la.shifen.uk:443/?mport=20000-50000&sni=eca509d2-t56dc0-tcjtj6-d70y.la.shifen.uk#%F0%9F%87%BD%F0%9F%87%BDXX%28AzadNet.t.me%29%20%281845%29
 hy2://6286105c-fb6d-11ef-be96-f23c93136cb3@cc65f71a-t4v9c0-t5waci-4550.la.shifen.uk:1743/?sni=cc65f71a-t4v9c0-t5waci-4550.la.shifen.uk#%F0%9F%87%BD%F0%9F%87%BDXX%28AzadNet.t.me%29%20%281846%29
 hy2://78c2bad7-f5f3-41f2-88cc-81de9d05040b@xg1.mangshe.xyz:2056/?insecure=1#%F0%9F%87%BD%F0%9F%87%BDXX%28AzadNet.t.me%29%20%281847%29
+hy2://1c8d81e3-eea2-48df-9c60-ac86c94bf5f8@xg.xfy003.cfd:21333?obfs=salamander&obfs-password=zTCsHcttqdA0PniW&sni=xg.xfy003.cfd&insecure=1#013 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
+hy2://5CBqBh6MeDq6GajcilBiDg==@192.227.152.86:61001?insecure=1&sni=192-227-152-86.nip.io#062 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
+hy2://Yet-Another-Public-Config-1@[2a14:3f87:f001:13::a]:36400?obfs=salamander&obfs-password=Yet-Another-Public-Config-1&sni=YAPC-1.afshin.ir&insecure=1#074 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
+hy2://e0cc849a-3a46-4358-96ef-f7700984f7a7@rb1.xiaohuolongjc.top:37771?sni=rb1.xiaohuolongjc.top&insecure=1#123 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
+hy2://cdc48fdf-728c-4b46-9078-f9b755ba8e3c@tw.foldjc.top:37013#128 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
+hy2://Yet-Another-Public-Config-1@[2a14:3f87:f001:13::a]:35200?obfs=salamander&obfs-password=Yet-Another-Public-Config-1&sni=YAPC-1.afshin.ir&insecure=1#141 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
+hy2://e33b95f1-4363-40d4-afdd-1ce468882df4@hg1.xiaohuolongjc.top:37771?insecure=1&sni=hg1.xiaohuolongjc.top#145 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
+hy2://dongtaiwang.com@208.87.243.187:22222?insecure=1#151 ✂️-🇺🇸US-last 14(@GheychiAmoozesh)
+hy2://e0cc849a-3a46-4358-96ef-f7700984f7a7@hg1.xiaohuolongjc.top:37771#154 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
+hy2://0cb561b7-73bd-4c66-8d3d-08fccae297c1@tw.foldjc.top:37013?insecure=1&sni=tw.foldjc.top#175 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
 hy2://16955d72-1794-11f0-a035-f23c95b6f51d@107.167.18.123:1743/?sni=
 hy2://17cdeb6c-f046-11ee-bdac-f23c93141fad@6adab57e-t53wg0-tdvgqe-2gok.la.shifen.uk:1743/?sni=
 hy2://17cdeb6c-f046-11ee-bdac-f23c93141fad@c37b0be5-t3kyo0-t3lvgh-2gok.la.shifen.uk:1743/?sni=
@@ -210,6 +220,8 @@ hy2://a305ac08-d136-11ee-b6db-f23c91cfbbc9@ffc60249-t53wg0-t92wi1-1qkeg.hk2.hyhu
 hy2://linux.do@[2a01:4f9:4b:f378::1]:13599/?insecure=1&amp;sni=www.bing.com#🎲85@oneclickvpnkeys
 hy2://dongtaiwang.com@[2001:bc8:32d7:302::11]:20088/?insecure=1&amp;sni=apple.com#🎲76@oneclickvpnkeys
 hy2://freehomesvpnmahsa3@donate1.mahsa.homes:16396/?insecure=1&amp;sni=www.google.com&amp;obfs=salamander&amp;obfs-password=&O#28YB5qK!5t#U#🎲94@oneclickvpnkeys
+hy2://36097cf0-8f15-4697-8825-b21e6ec9e551@185.181.10.186:443/?insecure=1&amp;obfs=salamander&amp;obfs-password=NDhhNmY5YTY0MGYzOTgxYQ==#❄️11@oneclickvpnkeys
+hy2://Telegram-->@Ln2Ray@206.71.158.23:45000/?insecure=1&amp;sni=gavazn.55994421.xyz&amp;obfs=salamander&amp;obfs-password=Telegram-->@Ln2Ray#❄️32@oneclickvpnkeys
 hy2://f6e4b19a3110d19d@66.135.28.59:443?obfs=salamander&amp;obfs-password=8c3ce17b&amp;insecure=1&amp;sni=ELiV2RAY.eliv2.top
 hy2://cfe032e4-1bc3-454f-9d09-301b0aea08ff@40.233.83.110:45979/?insecure=1&amp;sni=www.bing.com#📟80@oneclickvpnkeys
 hy2://338ce171-d764-4610-8fd5-6688b0d321f0@132.226.162.10:30102/?insecure=1#📟86@oneclickvpnkeys

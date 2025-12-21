@@ -101,3 +101,5 @@ https://raw.githubusercontent.com/nscl5/5/refs/heads/main/configs/at/all.txt
 https://raw.githubusercontent.com/Danialsamadi/v2go/main/All_Configs_Sub.txt
 https://raw.githubusercontent.com/HosseinKoofi/GO_V2rayCollector/main/mixed_iran.txt
 https://raw.githubusercontent.com/Rayan-Config/C-Sub/refs/heads/main/configs/proxy.txt
+https://raw.githubusercontent.com/55prosek-lgtm/vpn_config_for_russia/refs/heads/main/blacklist.txt
+https://raw.githubusercontent.com/vlesscollector/vlesscollector/refs/heads/main/vless_configs.txt

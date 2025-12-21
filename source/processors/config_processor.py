@@ -12,6 +12,13 @@ from utils.file_utils import extract_host_port, deduplicate_configs, prepare_con
 from utils.logger import log
 
 
+def is_valid_vpn_config_url(line: str) -> bool:
+    """Check if a line is a valid VPN config URL by verifying it starts with a known protocol followed by ://"""
+    line = line.strip()
+    # Check if the line starts with one of the known VPN protocols followed by ://
+    return bool(re.match(r'^(vmess|vless|trojan|ss|ssr|tuic|hysteria|hysteria2|hy2)://', line, re.IGNORECASE))
+
+
 def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
     """
     Creates filtered configs for SNI/CIDR bypass in the bypass folder.
@@ -64,12 +71,16 @@ def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
                     continue
                 # Check for SNI domains
                 if sni_regex.search(line):
-                    filtered_lines.append(line)
+                    # Only add the line if it's a valid VPN config URL
+                    if is_valid_vpn_config_url(line):
+                        filtered_lines.append(line)
                 # Check for CIDR matching
                 elif cidr_whitelist:
                     ip = extract_ip_from_config(line)
                     if ip and is_ip_in_cidr_whitelist(ip, cidr_whitelist):
-                        filtered_lines.append(line)
+                        # Only add the line if it's a valid VPN config URL
+                        if is_valid_vpn_config_url(line):
+                            filtered_lines.append(line)
         except Exception:
             pass
         # Filter out insecure configs
@@ -95,7 +106,7 @@ def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
             configs = []
             for line in lines:
                 line = line.strip()
-                if line and not line.startswith('#'):
+                if line and not line.startswith('#') and is_valid_vpn_config_url(line):
                     configs.append(line)
             # Filter out insecure configs from extra sources
             return filter_secure_configs(configs)
@@ -139,12 +150,16 @@ def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
                     continue
                 # Apply SNI filtering (same logic as in _process_file_filtering)
                 if sni_regex.search(line):
-                    filtered_configs.append(line)
+                    # Only add the line if it's a valid VPN config URL
+                    if is_valid_vpn_config_url(line):
+                        filtered_configs.append(line)
                 # Check for CIDR matching
                 elif cidr_whitelist:
                     ip = extract_ip_from_config(line)
                     if ip and is_ip_in_cidr_whitelist(ip, cidr_whitelist):
-                        filtered_configs.append(line)
+                        # Only add the line if it's a valid VPN config URL
+                        if is_valid_vpn_config_url(line):
+                            filtered_configs.append(line)
 
             # Filter out insecure configs from base64 sources
             return filter_secure_configs(filtered_configs)
@@ -259,12 +274,16 @@ def create_unsecure_filtered_configs(output_dir: str = "../githubmirror") -> Lis
                     continue
                 # Check for SNI domains
                 if sni_regex.search(line):
-                    filtered_lines.append(line)
+                    # Only add the line if it's a valid VPN config URL
+                    if is_valid_vpn_config_url(line):
+                        filtered_lines.append(line)
                 # Check for CIDR matching
                 elif cidr_whitelist:
                     ip = extract_ip_from_config(line)
                     if ip and is_ip_in_cidr_whitelist(ip, cidr_whitelist):
-                        filtered_lines.append(line)
+                        # Only add the line if it's a valid VPN config URL
+                        if is_valid_vpn_config_url(line):
+                            filtered_lines.append(line)
         except Exception:
             pass
         # DO NOT filter out insecure configs - return all configs
@@ -290,7 +309,7 @@ def create_unsecure_filtered_configs(output_dir: str = "../githubmirror") -> Lis
             configs = []
             for line in lines:
                 line = line.strip()
-                if line and not line.startswith('#'):
+                if line and not line.startswith('#') and is_valid_vpn_config_url(line):
                     configs.append(line)
             # DO NOT filter out insecure configs from extra sources - return all
             return configs
@@ -334,12 +353,16 @@ def create_unsecure_filtered_configs(output_dir: str = "../githubmirror") -> Lis
                     continue
                 # Apply SNI filtering (same logic as in _process_file_filtering_unsecure)
                 if sni_regex.search(line):
-                    filtered_configs.append(line)
+                    # Only add the line if it's a valid VPN config URL
+                    if is_valid_vpn_config_url(line):
+                        filtered_configs.append(line)
                 # Check for CIDR matching
                 elif cidr_whitelist:
                     ip = extract_ip_from_config(line)
                     if ip and is_ip_in_cidr_whitelist(ip, cidr_whitelist):
-                        filtered_configs.append(line)
+                        # Only add the line if it's a valid VPN config URL
+                        if is_valid_vpn_config_url(line):
+                            filtered_configs.append(line)
 
             # DO NOT filter out insecure configs from base64 sources - return all
             return filtered_configs

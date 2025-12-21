@@ -24,6 +24,7 @@ hy2://df7bed3c-06eb-11f0-8ebc-f23c93141fad@9edb1f6e-t56dc0-t9lxaa-1glq.la.shifen
 hy2://605d52db-3d29-406f-bf6d-daeb1cd84f09@dg.jgpyjc.top:443/?mport=40000-40050&sni=dg.jgpyjc.top&obfs=salamander&obfs-password=ZDQxZDhjZDk4ZjAwYjIwNA%3D%3D#%F0%9F%87%BD%F0%9F%87%BDXX%28AzadNet.t.me%29%20%281844%29
 hy2://537d7098-fdbe-11ef-8ebc-f23c93141fad@eca509d2-t56dc0-tcjtj6-d70y.la.shifen.uk:443/?mport=20000-50000&sni=eca509d2-t56dc0-tcjtj6-d70y.la.shifen.uk#%F0%9F%87%BD%F0%9F%87%BDXX%28AzadNet.t.me%29%20%281845%29
 hy2://6286105c-fb6d-11ef-be96-f23c93136cb3@cc65f71a-t4v9c0-t5waci-4550.la.shifen.uk:1743/?sni=cc65f71a-t4v9c0-t5waci-4550.la.shifen.uk#%F0%9F%87%BD%F0%9F%87%BDXX%28AzadNet.t.me%29%20%281846%29
+hy2://879cf33f-d0ea-4eda-9d80-b9db942fd628@rb1.xiaohuolongjc.top:37771#101 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
 hy2://16955d72-1794-11f0-a035-f23c95b6f51d@107.167.18.123:1743/?sni=
 hy2://17cdeb6c-f046-11ee-bdac-f23c93141fad@6adab57e-t53wg0-tdvgqe-2gok.la.shifen.uk:1743/?sni=
 hy2://17cdeb6c-f046-11ee-bdac-f23c93141fad@c37b0be5-t3kyo0-t3lvgh-2gok.la.shifen.uk:1743/?sni=
@@ -188,4 +189,3 @@ hy2://651aaeae-ebeb-4118-a34d-3afbe8f14903@162.55.172.181:24647?obfs=salamander&
 hy2://651aaeae-ebeb-4118-a34d-3afbe8f14903@[2a01:4f8:c012:5a39::1]:24647?obfs=salamander&obfs-password=wSvgfh8Gl0&sni=downloads.segaro.tech#%F0%9F%87%A9%F0%9F%87%AA%20Germany%20-%20Falkenstein%20%F0%9F%8C%8D%20HY2-UDP-TLS%206%E2%83%A3
 hy2://651aaeae-ebeb-4118-a34d-3afbe8f14903@[2a01:4f8:c013:171b::1]:24647?obfs=salamander&obfs-password=wSvgfh8Gl0&sni=downloads.segaro.tech#%F0%9F%87%A9%F0%9F%87%AA%20Germany%20-%20Falkenstein%20%F0%9F%8C%8D%20HY2-UDP-TLS%206%E2%83%A3
 hy2://6847f901-3938-4083-9fd9-2de96bcb6b9f@45.76.92.15:15308?obfs=salamander&obfs-password=1Ofh3UPoS2tDTz4tgRGMoZaKQzwIyb&sni=hdfy2.foriran.me#%F0%9F%87%A9%F0%9F%87%AA%20Germany%20-%20Frankfurt%20am%20Main%20%F0%9F%8C%8D%20HY2-UDP-TLS%204%E2%83%A3
-hy2://Yet-Another-Public-Config-1@yapc-1.adamhayward.co.uk:35200?sni=YAPC-1.afshin.ir&path=%2f&obfs=salamander&obfs-password=Yet-Another-Public-Config-1#%f0%9f%87%b3%f0%9f%87%b1%20NL%2016

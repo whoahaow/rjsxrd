@@ -8,6 +8,7 @@ hy2://2408982813-20241210:409046c1-c229-4b54-986c-f110d96278e1@genshin-v4-oracle
 hy2://274691f9-e6c0-46ff-82f2-3a9062872a04@it1.miyazono-kaori.com:443/?mport=40000-50000&insecure=1&sni=it1.miyazono-kaori.com&obfs=salamander&obfs-password=GyiIHT0mOkKCiq0Q#🎨4@oneclickvpnkeys
 hy2://2e42c1ee-aaaa-11ec-bb74-f23c9164ca5d@107.167.18.108:443/?insecure=1&sni=🔒
 hy2://308d37dc-cfe1-4d81-a095-d576f90cf581@85.237.206.207:29854/?insecure=1&sni=🔒
+hy2://36097cf0-8f15-4697-8825-b21e6ec9e551@185.181.10.186:443/?insecure=1&obfs=salamander&obfs-password=NDhhNmY5YTY0MGYzOTgxYQ%3D%3D#%E2%9D%84%EF%B8%8F11%40oneclickvpnkeys
 hy2://3e3201b3-8d9a-4007-a7db-fcf00833e947@107.173.37.104:55518/?insecure=1&sni=🔒
 hy2://3e3201b3-8d9a-4007-a7db-fcf00833e947@107.174.79.134:55518/?insecure=1&sni=🔒
 hy2://3e3201b3-8d9a-4007-a7db-fcf00833e947@112.120.105.216:55518/?insecure=1&sni=🔒
@@ -28,8 +29,8 @@ hy2://77238c49bd20e407f05e0c073ad08fdb@dd.openaccessnode.com:989/?sni=🔒
 hy2://78c2bad7-f5f3-41f2-88cc-81de9d05040b@xg1.mangshe.xyz:2056/?insecure=1
 hy2://94931862-1484-11f0-9ab7-f23c95b6f51d@98f4acfe-t4un40-tdini3-cdfn.la.shifen.uk:1743/?sni=🔒
 hy2://SNItest@37.18.14.169:443/?insecure=1&sni=🔒
+hy2://Telegram--%3E%40Ln2Ray@206.71.158.23:45000/?insecure=1&sni=gavazn.55994421.xyz&obfs=salamander&obfs-password=Telegram--%3E%40Ln2Ray#%E2%9D%84%EF%B8%8F32%40oneclickvpnkeys
 hy2://Telegram--%3E%40Ln2Ray@206.71.158.23:45000/?insecure=1&sni=🔒
-hy2://Telegram--%3E%40Ln2Ray@[2a14:3f87:f001:9::a]:45000/?insecure=1&sni=gavazn.55994421.xyz&obfs=salamander&obfs-password=Telegram--%3E%40Ln2Ray#%F0%9F%8E%B233%40oneclickvpnkeys
 hy2://Telegram--%3E%40Ln2Ray@[2a14:3f87:f001:9::a]:45000/?insecure=1&sni=🔒
 hy2://Telegram--%3E%40Ln2Ray@gavazn.lnmarketplace.net:45000/?insecure=1&sni=🔒
 hy2://Telegram-->@Ln2Ray@[2a14:3f87:f001:9::a]:45000/?insecure=1&sni=gavazn.55994421.xyz&obfs=salamander&obfs-password=Telegram-->@Ln2Ray#🎲33@oneclickvpnkeys
@@ -63,9 +64,9 @@ hy2://dongtaiwang.com@195.154.206.231:33880/?insecure=1&sni=apple.com#%3E%3E%40o
 hy2://dongtaiwang.com@195.154.206.231:33880/?insecure=1&sni=apple.com#🔶15@oneclickvpnkeys
 hy2://dongtaiwang.com@208.87.243.187:22222/?insecure=1&sni=www.bing.com#%3E%3E%40oneclickvpnkeys%3A%3AUS
 hy2://dongtaiwang.com@62.210.99.49:40088/?insecure=1&sni=apple.com#%3E%3E%40oneclickvpnkeys%3A%3AFR
-hy2://dongtaiwang.com@62.210.99.49:40088/?insecure=1&sni=apple.com#France🇫🇷
 hy2://dongtaiwang.com@62.210.99.49:40088/?insecure=1&sni=apple.com#✅72@oneclickvpnkeys
 hy2://dongtaiwang.com@[2001:bc8:1203:209::60]:33880/?insecure=1&sni=🔒
+hy2://dongtaiwang.com@[2001:bc8:32d7:302::11]:20088/?insecure=1&sni=apple.com#%F0%9F%8E%B276%40oneclickvpnkeys
 hy2://dongtaiwang.com@[2001:bc8:32d7:302::11]:20088/?insecure=1&sni=apple.com#🎲76@oneclickvpnkeys
 hy2://dongtaiwang.com@[2001:bc8:32d7:302::11]:20088/?insecure=1&sni=🔒
 hy2://dongtaiwang.com@[2001:bc8:32d7:302::11]:20088/?insecure=1&sni=🔒#🎨19@oneclickvpnkeys
@@ -431,6 +432,7 @@ hysteria2://b4bd0613-ff7c-4f2f-954d-185915e6ddad@77.90.41.197:35000?security=tls
 hysteria2://b4bd0613-ff7c-4f2f-954d-185915e6ddad@77.90.41.197:35000?security=tls&obfs=salamander&obfs-password=%40JavidnamanIran-Javid-SHAH-KingRezaPahlavi&insecure=1&sni=api.kermanshahi.org#%F0%9F%94%B734%40oneclickvpnkeys
 hysteria2://b4bd0613-ff7c-4f2f-954d-185915e6ddad@77.90.41.197:35000?security=tls&obfs=salamander&obfs-password=%40JavidnamanIran-Javid-SHAH-KingRezaPahlavi&insecure=1&sni=api.kermanshahi.org#All-%40V2rayAlpha--44
 hysteria2://b4bd0613-ff7c-4f2f-954d-185915e6ddad@77.90.41.197:35000?security=tls&obfs=salamander&obfs-password=%40JavidnamanIran-Javid-SHAH-KingRezaPahlavi&insecure=1&sni=api.kermanshahi.org#All-%40V2rayAlpha--44vless://57ba2ab1-a283-42eb-82ee-dc3561a805b8@104.21.3.219:8443?path=%2F57ba2ab1&security=tls&encryption=none&host=ovhwuxian.pai50288.uk&fp=chrome&type=ws&sni=ovhwuxian.pai50288.uk#All-%40V2rayAlpha--45
+hysteria2://b4bd0613-ff7c-4f2f-954d-185915e6ddad@77.90.41.197:35000?security=tls&obfs=salamander&obfs-password=%40JavidnamanIran-Javid-SHAH-KingRezaPahlavi&insecure=1&sni=api.kermanshahi.org#All--%40V2rayAlpha-0ss://Y2hhY2hhMjAtaWV0Zi1wb2x5MTMwNTpkQUhNMXBtOGFnN0tkbHJVeWxRaTZ0@promo18v.bystrivpn.ru:443#All--%40V2rayAlpha-1
 hysteria2://b4bd0613-ff7c-4f2f-954d-185915e6ddad@77.90.41.197:35000?security=tls&obfs=salamander&obfs-password=%40JavidnamanIran-Javid-SHAH-KingRezaPahlavi&insecure=1&sni=api.kermanshahi.org#All_4--%40V2rayAlpha
 hysteria2://b4bd0613-ff7c-4f2f-954d-185915e6ddad@77.90.41.197:35000?security=tls&obfs=salamander&obfs-password=%40JavidnamanIran-Javid-SHAH-KingRezaPahlavi&insecure=1&sni=api.kermanshahi.org#All_6--%40V2rayAlpha
 hysteria2://b4bd0613-ff7c-4f2f-954d-185915e6ddad@77.90.41.197:35000?security=tls&obfs=salamander&obfs-password=%40JavidnamanIran-Javid-SHAH-KingRezaPahlavi&insecure=1&sni=api.kermanshahi.org#Dr-Anv%20%F0%9F%87%A9%F0%9F%87%AA
@@ -531,6 +533,7 @@ hysteria2://dongtaiwang.com@51.159.111.32:5355?security=tls&insecure=1&sni=www.b
 hysteria2://dongtaiwang.com@51.159.111.32:5355?security=tls&insecure=1&sni=www.bing.com#@Hddify
 hysteria2://dongtaiwang.com@[2001:bc8:1203:209::60]:33880?security=tls&insecure=1&sni=apple.com#%F0%9F%9F%A33%40ConfigV2RayNG
 hysteria2://dongtaiwang.com@[2001:bc8:1203:209::60]:33880?security=tls&insecure=1&sni=apple.com#All_1--%40V2rayAlpha
+hysteria2://dongtaiwang.com@[2001:bc8:1203:209::60]:33880?security=tls&insecure=1&sni=apple.com#All_1--%40V2rayAlphatrojan://9BbIGN.nF%3DgztO-iq7ETmxdJ@80.240.17.154:13448?security=tls&headerType=none&type=tcp&sni=ads.x5.ru#All_2--%40V2rayAlpha
 hysteria2://dongtaiwang.com@[2001:bc8:1203:209::60]:33880?security=tls&insecure=1&sni=apple.com#All_1--@V2rayAlpha
 hysteria2://dongtaiwang.com@[2001:bc8:32d7:302::11]:20088?security=tls&insecure=1#14%F0%9F%94%B5%40ConfigV2RayNG
 hysteria2://dongtaiwang.com@[2001:bc8:32d7:302::11]:20088?security=tls&insecure=1&sni=%F0%9F%94%92#%F0%9F%8E%A819%40ConfigV2RayNG
@@ -564,7 +567,6 @@ hysteria2://freehomesvpnmahsa3@donate1.mahsa.homes:16396?insecure=1&sni=www.bing
 hysteria2://freehomesvpnmahsa3@donate1.mahsa.homes:16396?security=tls&obfs=salamander&obfs-password=%26O%2328YB5qK%215t%23U&insecure=1&sni=www.google.com#%E2%9A%9B%EF%B8%8F81%40ConfigV2RayNG
 hysteria2://linux.do@[2a01:4f9:4b:f378::1]:13599?security=tls&insecure=1&sni=www.bing.com#%F0%9F%94%B547%40ConfigV2RayNG
 hysteria2://linux.do@[2a01:4f9:4b:f378::1]:13599?security=tls&insecure=1&sni=www.bing.com#All-%40V2rayAlpha--39
-hysteria2://linux.do@[2a01:4f9:4b:f378::1]:13599?security=tls&insecure=1&sni=www.bing.com#All--%40V2rayAlpha--28
 hysteria2://linux.do@[2a01:4f9:4b:f378::1]:13599?security=tls&insecure=1&sni=www.bing.com#All--%40V2rayAlpha--28vmess://eyJhZGQiOiIyMDAxOmJjODozMmQ3OjMwMjo6MTAiLCJhaWQiOiIwIiwiYWxwbiI6IiIsImZwIjoiIiwiaG9zdCI6IiIsImlkIjoiOGUzNGUxNzAtMTNhZS00ODkyLTlkMjAtMDU5NjJhY2M5Zjg0IiwibmV0Ijoid3MiLCJwYXRoIjoiLyIsInBvcnQiOiI0NDU3OSIsInBzIjoiQWxsLS1AVjJyYXlBbHBoYS0tMjkiLCJzY3kiOiJhdXRvIiwic25pIjoiIiwidGxzIjoiIiwidHlwZSI6Ii0tLSIsInYiOiIyIn0=vmess://eyJhZGQiOiI4LjIxMC4xMzQuMTgzIiwiYWlkIjoiMCIsImFscG4iOiIiLCJmcCI6IiIsImhvc3QiOiIiLCJpZCI6ImU3MmY1YzZiLTIyMGYtNDBiMy1hMTE1LTJkODE0NzM0NThjZiIsIm5ldCI6IndzIiwicGF0aCI6IiIsInBvcnQiOiIzNzIxIiwicHMiOiJBbGwtLUBWMnJheUFscGhhLS0zMCIsInNjeSI6ImF1dG8iLCJzbmkiOiIiLCJ0bHMiOiIiLCJ0eXBlIjoiLS0tIiwidiI6IjIifQ==
 hysteria2://linux.do@[2a01:4f9:4b:f378::1]:13599?security=tls&insecure=1&sni=www.bing.com#All--@V2rayAlpha--28
 hysteria2://linux.do@[2a01:4f9:4b:f378::1]:13599?security=tls&insecure=1&sni=www.bing.com#All-@V2rayAlpha--1

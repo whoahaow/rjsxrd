@@ -207,10 +207,17 @@ def prepare_config_content(content: str) -> List[str]:
     # Add newlines before known protocol prefixes that might be glued to previous lines
     content = re.sub(r'(vmess|vless|trojan|ss|ssr|tuic|hysteria|hysteria2|hy2)://', r'\n\1://', content)
     lines = content.splitlines()
-    # Filter out empty lines and comments
+    # Filter out empty lines, comments, and non-VPN config lines
     configs = []
     for line in lines:
         line = line.strip()
-        if line and not line.startswith('#'):
+        if line and not line.startswith('#') and is_valid_vpn_config_url(line):
             configs.append(line)
     return configs
+
+
+def is_valid_vpn_config_url(line: str) -> bool:
+    """Check if a line is a valid VPN config URL by verifying it starts with a known protocol followed by ://"""
+    line = line.strip()
+    # Check if the line starts with one of the known VPN protocols followed by ://
+    return bool(re.match(r'^(vmess|vless|trojan|ss|ssr|tuic|hysteria|hysteria2|hy2)://', line, re.IGNORECASE))

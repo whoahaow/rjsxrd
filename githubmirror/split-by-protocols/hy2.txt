@@ -69,11 +69,19 @@ hy2://605d52db-3d29-406f-bf6d-daeb1cd84f09@dg.jgpyjc.top:443/?mport=40000-40050&
 hy2://537d7098-fdbe-11ef-8ebc-f23c93141fad@eca509d2-t56dc0-tcjtj6-d70y.la.shifen.uk:443/?mport=20000-50000&sni=eca509d2-t56dc0-tcjtj6-d70y.la.shifen.uk#%F0%9F%87%BD%F0%9F%87%BDXX%28AzadNet.t.me%29%20%281845%29
 hy2://6286105c-fb6d-11ef-be96-f23c93136cb3@cc65f71a-t4v9c0-t5waci-4550.la.shifen.uk:1743/?sni=cc65f71a-t4v9c0-t5waci-4550.la.shifen.uk#%F0%9F%87%BD%F0%9F%87%BDXX%28AzadNet.t.me%29%20%281846%29
 hy2://78c2bad7-f5f3-41f2-88cc-81de9d05040b@xg1.mangshe.xyz:2056/?insecure=1#%F0%9F%87%BD%F0%9F%87%BDXX%28AzadNet.t.me%29%20%281847%29
-hy2://Yet-Another-Public-Config-1@yapc-1.adamhayward.co.uk:36300?obfs=salamander&obfs-password=Yet-Another-Public-Config-1&insecure=1&sni=YAPC-1.afshin.ir#037 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
-hy2://dongtaiwang.com@51.159.111.32:5355?insecure=1&sni=www.bing.com#038 ✂️-🇺🇸US-last 14(@GheychiAmoozesh)
-hy2://Yet-Another-Public-Config-1@yapc-1.adamhayward.co.uk:35000?obfs=salamander&obfs-password=Yet-Another-Public-Config-1&sni=YAPC-1.afshin.ir&insecure=1#075 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
-hy2://879cf33f-d0ea-4eda-9d80-b9db942fd628@rb1.xiaohuolongjc.top:37771?sni=rb1.xiaohuolongjc.top&insecure=1#152 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
-hy2://c6cc43a9-20a4-43c3-aa26-758cd31161c7@xg1.xiaohuolongjc.top:37771?sni=xg1.xiaohuolongjc.top&insecure=1#167 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
+hy2://Yet-Another-Public-Config-1@[2a14:3f87:f001:13::a]:36400?obfs=salamander&obfs-password=Yet-Another-Public-Config-1&insecure=1&sni=YAPC-1.afshin.ir#016 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
+hy2://557f3ab9-6783-460c-87ba-c65e8c4423f4@xjp.foldjc.top:37012?insecure=1&sni=xjp.foldjc.top#033 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
+hy2://8d80603a-d7d7-4bcd-ad88-aaf1cf70b8c6@fd0017-co.9966661.xyz:3000?sni=fd0017-co.9966661.xyz&insecure=1#035 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
+hy2://04a24f06-17fa-464b-a799-90600783499f@hg1.xiaohuolongjc.top:37771?insecure=1&sni=hg1.xiaohuolongjc.top#053 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
+hy2://94e7bd30-1321-47a8-bc2f-250a3bb1f5c7@els2.dimoyun.top:40001?insecure=1&sni=els1.dimoyun.top#057 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
+hy2://8864aa9f-7517-4fd5-aef1-32050eb3095d@net2025.afsharidempire.uk:30205?obfs=salamander&obfs-password=GdQ4bgvT8RFwuWi2&insecure=1&sni=net2025.afsharidempire.uk#070 ✂️-🇻🇳VN-last 14(@GheychiAmoozesh)
+hy2://879cf33f-d0ea-4eda-9d80-b9db942fd628@rb1.xiaohuolongjc.top:37771#101 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
+hy2://8d80603a-d7d7-4bcd-ad88-aaf1cf70b8c6@5f6a56-20-co.9966661.xyz:3000?sni=5f6a56-20-co.9966661.xyz&insecure=1#107 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
+hy2://f7aa7526-3d8e-4e63-a135-1bcf9f4751fd@hk.xilucloud.top:14558?insecure=1&sni=hk.xilucloud.top#111 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
+hy2://5CBqBh6MeDq6GajcilBiDg==@192-227-152-86.nip.io:61001?insecure=1&sni=192-227-152-86.nip.io#118 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
+hy2://879cf33f-d0ea-4eda-9d80-b9db942fd628@mg1.xiaohuolongjc.top:37771?sni=mg1.xiaohuolongjc.top&insecure=1#124 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
+hy2://03871437-6838-4ff4-9c6c-8f078d98039b@jphub.xg-hub.icu:25781?obfs=salamander&obfs-password=ZDQxZDhjZDk4ZjAwYjIwNA==&insecure=1&sni=jphub.xg-hub.icu#148 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
+hy2://0cb561b7-73bd-4c66-8d3d-08fccae297c1@tw.foldjc.top:37013?insecure=1&sni=tw.foldjc.top#161 ✂️-🇺🇳UN-last 14(@GheychiAmoozesh)
 hy2://16955d72-1794-11f0-a035-f23c95b6f51d@107.167.18.123:1743/?sni=
 hy2://17cdeb6c-f046-11ee-bdac-f23c93141fad@6adab57e-t53wg0-tdvgqe-2gok.la.shifen.uk:1743/?sni=
 hy2://17cdeb6c-f046-11ee-bdac-f23c93141fad@c37b0be5-t3kyo0-t3lvgh-2gok.la.shifen.uk:1743/?sni=
@@ -265,6 +273,7 @@ hy2://17cdeb6c-f046-11ee-bdac-f23c93141fad@c37b0be5-t3kyo0-t3lvgh-2gok.la.shifen
 hy2://17cdeb6c-f046-11ee-bdac-f23c93141fad@c37b0be5n-t3kyo0-t3lvgh-2gok.la.shifen.uk:1743/?sni=🔒
 hy2://2e42c1ee-aaaa-11ec-bb74-f23c9164ca5d@107.167.18.108:443/?insecure=1&sni=🔒
 hy2://308d37dc-cfe1-4d81-a095-d576f90cf581@85.237.206.207:29854/?insecure=1&sni=🔒
+hy2://36097cf0-8f15-4697-8825-b21e6ec9e551@185.181.10.186:443/?insecure=1&obfs=salamander&obfs-password=NDhhNmY5YTY0MGYzOTgxYQ%3D%3D#%E2%9D%84%EF%B8%8F11%40oneclickvpnkeys
 hy2://3e3201b3-8d9a-4007-a7db-fcf00833e947@107.173.37.104:55518/?insecure=1&sni=🔒
 hy2://3e3201b3-8d9a-4007-a7db-fcf00833e947@107.174.79.134:55518/?insecure=1&sni=🔒
 hy2://3e3201b3-8d9a-4007-a7db-fcf00833e947@112.120.105.216:55518/?insecure=1&sni=🔒
@@ -282,6 +291,7 @@ hy2://71504eaf-29ac-4190-89d1-dd9ce2c9ee14@[2001:bc8:1640:50eb:dc00:ff:fe57:dd6f
 hy2://77238c49bd20e407f05e0c073ad08fdb@dd.openaccessnode.com:989/?sni=🔒
 hy2://94931862-1484-11f0-9ab7-f23c95b6f51d@98f4acfe-t4un40-tdini3-cdfn.la.shifen.uk:1743/?sni=🔒
 hy2://SNItest@37.18.14.169:443/?insecure=1&sni=🔒
+hy2://Telegram--%3E%40Ln2Ray@206.71.158.23:45000/?insecure=1&sni=gavazn.55994421.xyz&obfs=salamander&obfs-password=Telegram--%3E%40Ln2Ray#%E2%9D%84%EF%B8%8F32%40oneclickvpnkeys
 hy2://Telegram--%3E%40Ln2Ray@206.71.158.23:45000/?insecure=1&sni=🔒
 hy2://Telegram--%3E%40Ln2Ray@[2a14:3f87:f001:9::a]:45000/?insecure=1&sni=🔒
 hy2://Telegram--%3E%40Ln2Ray@gavazn.lnmarketplace.net:45000/?insecure=1&sni=🔒
@@ -302,8 +312,8 @@ hy2://be8cc8f6-0c6a-11f0-a5a3-f23c93141fad@ea9466bf-t3dk00-t3i5yp-b4pt.la.shifen
 hy2://c232f411-96b5-4b07-b2f7-66a434725ffb@108.165.213.197:23891/?insecure=1&sni=🔒
 hy2://df7bed3c-06eb-11f0-8ebc-f23c93141fad@9edb1f6e-t56dc0-t9lxaa-1glq.la.shifen.uk:443/?mport=20000-50000&sni=🔒
 hy2://df7bed3c-06eb-11f0-8ebc-f23c93141fad@e10829f0-t4un40-t9lb2a-1glq.la.shifen.uk:1743/?sni=🔒
-hy2://dongtaiwang.com@62.210.99.49:40088/?insecure=1&sni=apple.com#France🇫🇷
 hy2://dongtaiwang.com@[2001:bc8:1203:209::60]:33880/?insecure=1&sni=🔒
+hy2://dongtaiwang.com@[2001:bc8:32d7:302::11]:20088/?insecure=1&sni=apple.com#%F0%9F%8E%B276%40oneclickvpnkeys
 hy2://dongtaiwang.com@[2001:bc8:32d7:302::11]:20088/?insecure=1&sni=🔒
 hy2://e6499c55-5a54-4a2b-a1f8-725a17b4ae85@85.209.53.170:80/?insecure=1&obfs=salamander&obfs-password=NDhhNmY5YTY0MGYzOTgxYQ==&note=@freeOnlineVPN#🇩🇪
 hy2://freehomesvpnchannel3@channel2.saghetalaie.homes:46914/?insecure=1&sni=🔒
@@ -1063,11 +1073,4 @@ hy2://7008iSe44g5ddtr4a5621r32o@88.99.86.235:443?obfs=salamander&obfs-password=i
 hy2://7008iSe44g5ddtr4a5621r32o@[2a01:4f8:c012:1ec6::1]:443?obfs=salamander&obfs-password=i35Se47g78ar98o&insecure=1#%F0%9F%87%A9%F0%9F%87%AA%20Germany%20-%20Falkenstein%20%F0%9F%8C%8D%20HY2-UDP-TLS%206%E2%83%A3
 hy2://738377dc-e149-4f81-e6a2-96c5afca1577@136.243.200.189:5844?insecure=1#%F0%9F%87%A9%F0%9F%87%AA%20Germany%20-%20Falkenstein%20%F0%9F%8C%8D%20HY2-UDP-TLS%204%E2%83%A3
 hy2://01aa59a6-d375-4319-b948-14f515db2e50@103.184.112.35:55228?insecure=1#%F0%9F%87%BB%F0%9F%87%B3%20Vietnam%20-%20NA%20%F0%9F%8C%8F%20HY2-UDP-TLS%204%E2%83%A3
-hy2://Yet-Another-Public-Config-1@206.71.158.37:35000?sni=YAPC-1.afshin.ir&path=%2f&obfs=salamander&obfs-password=Yet-Another-Public-Config-1&allow_insecure=1#%f0%9f%87%b3%f0%9f%87%b1%20NL%2011
-hy2://b4bd0613-ff7c-4f2f-954d-185915e6ddad@206.71.158.40:35000?sni=api.kermanshahi.org&path=%2f&obfs=salamander&obfs-password=%40JavidnamanIran-Javid-SHAH-KingRezaPahlavi&allow_insecure=1#%f0%9f%87%b3%f0%9f%87%b1%20NL%2012
-hy2://b4bd0613-ff7c-4f2f-954d-185915e6ddad@206.71.158.41:35000?sni=api.kermanshahi.org&path=%2f&obfs=salamander&obfs-password=%40JavidnamanIran-Javid-SHAH-KingRezaPahlavi&allow_insecure=1#%f0%9f%87%b3%f0%9f%87%b1%20NL%2013
-hy2://Yet-Another-Public-Config-1@yapc-1.adamhayward.co.uk:35200?sni=YAPC-1.afshin.ir&path=%2f&obfs=salamander&obfs-password=Yet-Another-Public-Config-1#%f0%9f%87%b3%f0%9f%87%b1%20NL%2016
-hy2://b4bd0613-ff7c-4f2f-954d-185915e6ddad@77.90.41.197:35000?sni=api.kermanshahi.org&path=%2f&obfs=salamander&obfs-password=%40JavidnamanIran-Javid-SHAH-KingRezaPahlavi&allow_insecure=1#%f0%9f%87%a9%f0%9f%87%aa%20DE%204
-hy2://dongtaiwang.com@208.87.243.187:22222?sni=www.bing.com&path=%2f&allow_insecure=1#%f0%9f%87%ba%f0%9f%87%b8%20US%201
-hy2://dongtaiwang.com@62.210.99.49:40088?sni=apple.com&path=%2f&allow_insecure=1#%f0%9f%87%ab%f0%9f%87%b7%20FR%201
 hy2://78c2bad7-f5f3-41f2-88cc-81de9d05040b@xg1.mangshe.xyz:2056?insecure=1#%F0%9F%87%AD%F0%9F%87%B0%20HK%20%7C%20%F0%9F%94%92%20HY2%20%7C%20%40v2ray_collector%20%5B8%5D

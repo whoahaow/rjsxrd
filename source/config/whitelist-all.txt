@@ -823,3 +823,7 @@ www.vkvideo.ru
 vk.ookcdn.ru
 mailru.ookcdn.ru
 m.vk.com
+ads.x5.ru
+tradingview.com
+ir-2.ozone.ru
+sun1-90.userapi.com

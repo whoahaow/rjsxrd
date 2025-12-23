@@ -106,3 +106,5 @@ https://raw.githubusercontent.com/vlesscollector/vlesscollector/refs/heads/main/
 https://raw.githubusercontent.com/STR97/STRUGOV/refs/heads/main/Vless#VLESS.BIG.STR.BYPASS%F0%9F%94%A5
 https://raw.githubusercontent.com/STR97/STRUGOV/refs/heads/main/STR#MEGA.STR.BYPASS%E2%9A%A1%EF%B8%8F
 https://raw.githubusercontent.com/STR97/STRUGOV/refs/heads/main/BYPASS#PROXY.STR.BYPASS%F0%9F%90%BA
+https://raw.githubusercontent.com/Kirillo4ka/vpn-configs-for-russia/refs/heads/main/Vless-Rus-Mobile-White-List.txt
+https://raw.githubusercontent.com/vsevjik/OBSpiskov/refs/heads/main/wwh

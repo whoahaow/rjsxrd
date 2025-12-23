@@ -1,76 +1,82 @@
-New servers (21.12.24)
+New servers (2024-12-22)
 
-🇪🇪EE | VLESS Reality [Vision]
-vless://8e2cc81d-7ac4-4352-a7b5-bbfcfa81e49e@est01-vlr01.tcp-reset-club.net:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=hls-svod.itunes.apple.com&fp=chrome&pbk=mLmBhbVFfNuo2eUgBh6r9-5Koz9mUCn3aSzlR6IejUg&sid=e499f276e7bd6420&spx=%2F&type=tcp&headerType=none#%F0%9F%87%AA%F0%9F%87%AAEE%20%7C%20VLESS%20Reality%20%5BVision%5D
+🇭🇰HK | VLESS Reality
+vless://45553a57-d94e-46bd-bea7-306eefab0d58@verahk1.uspn.io:8443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=xverahk1.uspn.io&fp=chrome&pbk=63yW4tl7SgDqIGhPc8pakSHJRi4yQpyePUEaoBPm5Fs&sid=dcedb9f230283db1&spx=%2F&type=tcp&headerType=none#%F0%9F%87%AD%F0%9F%87%B0%20%7C%20VLESS%20Reality
 
-🇦🇱AL | VLESS Reality [Vision]
-vless://9a5414b6-20b7-4313-8cd4-693d3c19ec05@al.cdn.stun.su:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=al.cdn.stun.su&fp=qq&pbk=su3dq3BDLDkX-jIjq3GyVUXwqzD7CNVYzKtOcO4HQ24&sid=bbfb4f7a53e22dd3&type=tcp&headerType=none#%F0%9F%87%A6%F0%9F%87%B1AL%20%7C%20VLESS%20Reality%20%5BVision%5D
+🇫🇮FI | VLESS Reality
+vless://a41550c8-daee-4f2c-b5a8-e66b314c99b1@45.144.53.166:443?encryption=none&security=reality&sni=hel1.hitori.cloud&fp=chrome&pbk=XnSTGadTQ3R3qGd5lk7l8gZMuZUQH7fu1tItRmH6CEY&sid=e9d19fd1ca5ca23c&type=grpc#%F0%9F%87%AB%F0%9F%87%AE%20%7C%20VLESS%20Reality
 
-🇫🇮FI | VLESS TLS [WS]
-vless://0a0d846f-8f54-4db4-940b-b373b1b02e4c@94.131.100.173:443?encryption=none&security=tls&sni=639010645287857140.accord-lmnxa.info&insecure=1&allowInsecure=1&type=ws&host=639010645287857140.accord-lmnxa.info&path=%2Fcoxzfsws#%F0%9F%87%AB%F0%9F%87%AEFI%20%7C%20VLESS%20TLS%20%5BWS%5D
+🇩🇪DE | VLESS WS TLS
+vless://e615a5ba-fce3-4ffa-9c86-b0327a8a107a@185.235.241.131:443?encryption=none&security=tls&insecure=1&allowInsecure=1&type=ws&path=%2Fhormoz#%F0%9F%87%A9%F0%9F%87%AA%20%7C%20VLESS%20WS%20TLS
 
-🇳🇱NL | VLESS Reality [XHTTP]
-vless://star_test1@77.238.225.248:8443?encryption=none&security=reality&sni=vk.com&fp=ios&pbk=7JkpzRPbu2zJcPNrwVsE72C_OIduEDy_e2G4Uh0g4ms&sid=21c75f62&spx=%2F&type=xhttp&path=%2F&mode=auto#%F0%9F%87%B3%F0%9F%87%B1NL%20%7C%20VLESS%20Reality%20%5BXHTTP%5D
+🇵🇱PL | VLESS Reality
+vless://787ae54e-40ad-4caf-899b-ad3a19ff1103@45.144.48.192:8443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=discordapp.com&fp=chrome&pbk=UBwue-cEE6w4gTS4dngQng5JEykNTR6d9f65p6RyA2w&sid=50c860b05993532d&type=tcp&headerType=none#%F0%9F%87%B5%F0%9F%87%B1%20%7C%20VLESS%20Reality
 
-🇨🇿CZ | VLESS Reality [Vision]
-vless://8e2cc81d-7ac4-4352-a7b5-bbfcfa81e49e@cze01-vlr01.tcp-reset-club.net:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=hls-svod.itunes.apple.com&fp=chrome&pbk=mLmBhbVFfNuo2eUgBh6r9-5Koz9mUCn3aSzlR6IejUg&sid=d3b13f31&spx=%2F&type=tcp&headerType=none#%F0%9F%87%A8%F0%9F%87%BFCZ%20%7C%20VLESS%20Reality%20%5BVision%5D
+🇬🇧GB | VLESS WS TLS
+vless://e615a5ba-fce3-4ffa-9c86-b0327a8a107a@146.19.230.221:443?encryption=none&security=tls&insecure=1&allowInsecure=1&type=ws&path=%2Fhormoz#%F0%9F%87%AC%F0%9F%87%A7%20%7C%20VLESS%20WS%20TLS
 
-🇩🇪DE | VLESS TLS [WS]
-vless://e615a5ba-fce3-4ffa-9c86-b0327a8a107a@185.235.241.137:443?encryption=none&security=tls&insecure=1&allowInsecure=1&type=ws&path=%2Fhormoz#%F0%9F%87%A9%F0%9F%87%AADE%20%7C%20VLESS%20TLS%20%5BWS%5D
+🇺🇸US | VLESS WS TLS
+vless://e615a5ba-fce3-4ffa-9c86-b0327a8a107a@85.209.195.105:443?encryption=none&security=tls&insecure=1&allowInsecure=1&type=ws&path=%2Fhormoz#%F0%9F%87%BA%F0%9F%87%B8%20%7C%20VLESS%20WS%20TLS
 
-🇬🇧GB | VLESS TLS [WS]
-vless://e615a5ba-fce3-4ffa-9c86-b0327a8a107a@185.138.164.6:443?encryption=none&security=tls&insecure=1&allowInsecure=1&type=ws&path=%2Fhormoz#%F0%9F%87%AC%F0%9F%87%A7GB%20%7C%20VLESS%20TLS%20%5BWS%5D
+🇳🇱NL | VLESS Reality
+vless://8e2cc81d-7ac4-4352-a7b5-bbfcfa81e49e@nl01-vlr01.tcp-reset-club.net:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=hls-svod.itunes.apple.com&fp=chrome&pbk=mLmBhbVFfNuo2eUgBh6r9-5Koz9mUCn3aSzlR6IejUg&sid=175d&spx=%2F&type=tcp&headerType=none#%F0%9F%87%B3%F0%9F%87%B1%20%7C%20VLESS%20Reality
 
-🇵🇱PL | VLESS Reality [Vision]
-vless://9a5414b6-20b7-4313-8cd4-693d3c19ec05@pl.jojack.ru:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=pl.jojack.ru&fp=qq&pbk=hSTtlpXKAYVVu5ybX3hQfq8dfsUrO_HoFVgfGGoCHVw&sid=0aca3ba84615eda9&type=tcp&headerType=none#%F0%9F%87%B5%F0%9F%87%B1PL%20%7C%20VLESS%20Reality%20%5BVision%5D
+🇬🇧GB | VLESS WS TLS
+vless://e615a5ba-fce3-4ffa-9c86-b0327a8a107a@146.19.230.83:443?encryption=none&security=tls&insecure=1&allowInsecure=1&type=ws&path=%2Fhormoz#%F0%9F%87%AC%F0%9F%87%A7%20%7C%20VLESS%20WS%20TLS
 
-🇬🇧GB | VLESS TLS [WS]
-vless://e615a5ba-fce3-4ffa-9c86-b0327a8a107a@185.218.3.64:443?encryption=none&security=tls&insecure=1&allowInsecure=1&type=ws&path=%2Fhormoz#%F0%9F%87%AC%F0%9F%87%A7GB%20%7C%20VLESS%20TLS%20%5BWS%5D
+🇺🇸US | VLESS Reality
+vless://9a5414b6-20b7-4313-8cd4-693d3c19ec05@us.cdn.stun.su:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=us.cdn.stun.su&fp=qq&pbk=u4S6MmhgEOkPjlLVZ6twDLy-V9JIpLtyj8vDobOVM0w&sid=6ce8c7121382ad5b&type=tcp&headerType=none#%F0%9F%87%BA%F0%9F%87%B8%20%7C%20VLESS%20Reality
 
-🇩🇪DE | VLESS Reality [Vision]
-vless://9a5414b6-20b7-4313-8cd4-693d3c19ec05@de.cdn.stun.su:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=de.cdn.stun.su&fp=qq&pbk=ca5sfJNcjkh3oNt51hRexXbGWgITAqCprGSU-YKCJBA&sid=dcd27eb15ebed5f2&type=tcp&headerType=none#%F0%9F%87%A9%F0%9F%87%AADE%20%7C%20VLESS%20Reality%20%5BVision%5D
+🇺🇸US | VLESS Reality
+vless://8e2cc81d-7ac4-4352-a7b5-bbfcfa81e49e@us01-vlr01-gmn03.vpnvezdehod.net:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=hls-svod.itunes.apple.com&fp=chrome&pbk=mLmBhbVFfNuo2eUgBh6r9-5Koz9mUCn3aSzlR6IejUg&sid=175d&spx=%2F&type=tcp&headerType=none#%F0%9F%87%BA%F0%9F%87%B8%20%7C%20VLESS%20Reality
 
-🇫🇮FI | VLESS Reality [gRPC]
-vless://a41550c8-daee-4f2c-b5a8-e66b314c99b1@45.144.53.166:443?encryption=none&security=reality&sni=hel1.hitori.cloud&fp=chrome&pbk=XnSTGadTQ3R3qGd5lk7l8gZMuZUQH7fu1tItRmH6CEY&sid=e9d19fd1ca5ca23c&type=grpc#%F0%9F%87%AB%F0%9F%87%AEFI%20%7C%20VLESS%20Reality%20%5BgRPC%5D
+🇬🇧GB | VLESS WS TLS
+vless://e615a5ba-fce3-4ffa-9c86-b0327a8a107a@185.218.3.65:443?encryption=none&security=tls&insecure=1&allowInsecure=1&type=ws&path=%2Fhormoz#%F0%9F%87%AC%F0%9F%87%A7%20%7C%20VLESS%20WS%20TLS
 
-🇫🇷FR | VLESS Reality [Vision]
-vless://8e2cc81d-7ac4-4352-a7b5-bbfcfa81e49e@swe01-vlr01.tcp-reset-club.net:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=hls-svod.itunes.apple.com&fp=chrome&pbk=mLmBhbVFfNuo2eUgBh6r9-5Koz9mUCn3aSzlR6IejUg&sid=86e999a2cdc2&spx=%2F&type=tcp&headerType=none#%F0%9F%87%AB%F0%9F%87%B7FR%20%7C%20VLESS%20Reality%20%5BVision%5D
+🇦🇪AE | VLESS Reality
+vless://eb162ab1-a006-4931-b1b3-8fc88a22b10e@38.180.27.102:8443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=eh.vk.com&pbk=CWeNg8bNNdCHYhjNl01BTevvPnHsXd736dymoBEsbBI&type=tcp&headerType=none#%F0%9F%87%A6%F0%9F%87%AA%20%7C%20VLESS%20Reality
 
-🇦🇪AE | VLESS Reality [Vision]
-vless://eb162ab1-a006-4931-b1b3-8fc88a22b10e@38.180.27.102:8443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=eh.vk.com&pbk=CWeNg8bNNdCHYhjNl01BTevvPnHsXd736dymoBEsbBI&type=tcp&headerType=none#%F0%9F%87%A6%F0%9F%87%AAAE%20%7C%20VLESS%20Reality%20%5BVision%5D
+🇪🇸ES | VLESS WS TLS
+vless://9b2bebaf-af9e-4a85-b4eb-f0421c6ec9fa@185.231.204.92:443?encryption=none&security=tls&insecure=1&allowInsecure=1&type=ws&path=%2Fhrwhdiws#%F0%9F%87%AA%F0%9F%87%B8%20%7C%20VLESS%20WS%20TLS
 
-🇹🇷TR | VLESS Reality [Vision]
-vless://8e2cc81d-7ac4-4352-a7b5-bbfcfa81e49e@tr01-vlr01.tcp-reset-club.net:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=hls-svod.itunes.apple.com&fp=chrome&pbk=mLmBhbVFfNuo2eUgBh6r9-5Koz9mUCn3aSzlR6IejUg&sid=86e999a2cdc2&spx=%2F&type=tcp&headerType=none#%F0%9F%87%B9%F0%9F%87%B7TR%20%7C%20VLESS%20Reality%20%5BVision%5D
+🇺🇸US | Hysteria2
+hysteria2://dongtaiwang.com@208.87.243.187:22222?sni=%F0%9F%94%92&insecure=1&allowInsecure=1#%F0%9F%87%BA%F0%9F%87%B8%20%7C%20Hysteria2
 
-🇩🇪DE | VLESS TLS [WS]
-vless://e615a5ba-fce3-4ffa-9c86-b0327a8a107a@185.235.241.79:443?encryption=none&security=tls&insecure=1&allowInsecure=1&type=ws&path=%2Fhormoz#%F0%9F%87%A9%F0%9F%87%AADE%20%7C%20VLESS%20TLS%20%5BWS%5D
+🇫🇷FR | Hysteria2
+hysteria2://dongtaiwang.com@62.210.99.49:40088?sni=apple.com&insecure=1&allowInsecure=1#%F0%9F%87%AB%F0%9F%87%B7%20%7C%20Hysteria2
 
-🇺🇸US | VLESS TLS [gRPC]
-vless://e4824193-4f54-453b-d037-88368e85ef0e@pqh19v2.carwashipdir.shop:443?encryption=none&security=tls&insecure=1&allowInsecure=1&type=grpc#%F0%9F%87%BA%F0%9F%87%B8US%20%7C%20VLESS%20TLS%20%5BgRPC%5D
+🇵🇱PL | Shadowsocks
+ss://Y2hhY2hhMjAtaWV0Zi1wb2x5MTMwNTpiLUVyQzhrU19xOEM4MFgwZFVRUFdkNGp3cTg2UVlZaA@pl.jojack.ru:58080?#%F0%9F%87%B5%F0%9F%87%B1%20%7C%20Shadowsocks
 
-🇺🇸US | VLESS Reality [Vision]
-vless://84494828-86ee-4d77-af65-907773ea2154@veraus1.uspn.io:8443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=xveraus1.uspn.io&fp=chrome&pbk=59zXsFDIbZPoqUvaWNvDgZ58VN6E2FxMcxIHWYyCS0w&sid=b741881e0912af91&spx=%2F&type=tcp&headerType=none#%F0%9F%87%BA%F0%9F%87%B8US%20%7C%20VLESS%20Reality%20%5BVision%5D
-
-🇺🇸US | Hysteria2 [SNI]
-hysteria2://dongtaiwang.com@208.87.243.187:22222?sni=sberbank.ru&insecure=1&allowInsecure=1#%F0%9F%87%BA%F0%9F%87%B8US%20%7C%20Hysteria2%20%5BSNI%5D
+🇺🇸US | Hysteria2
+hysteria2://dongtaiwang.com@208.87.243.187:22222?sni=sberbank.ru&insecure=1&allowInsecure=1#%F0%9F%87%BA%F0%9F%87%B8%20%7C%20Hysteria2
 
 🇳🇱NL | Shadowsocks
-ss://Y2hhY2hhMjAtaWV0Zi1wb2x5MTMwNTpvNW9zWmcyNjl2NXpIcFlqcjF4WTlz@151.242.251.137:8080?#%F0%9F%87%B3%F0%9F%87%B1NL%20%7C%20Shadowsocks
+ss://Y2hhY2hhMjAtaWV0Zi1wb2x5MTMwNTpvNW9zWmcyNjl2NXpIcFlqcjF4WTlz@151.242.251.137:8080?#%F0%9F%87%B3%F0%9F%87%B1%20%7C%20Shadowsocks
 
 🇳🇱NL | Shadowsocks
-ss://Y2hhY2hhMjAtaWV0Zi1wb2x5MTMwNTprMWRCT21PQjRvcWk3VW1wMzdhMWJR@82.38.31.208:8080?#%F0%9F%87%B3%F0%9F%87%B1NL%20%7C%20Shadowsocks
+ss://Y2hhY2hhMjAtaWV0Zi1wb2x5MTMwNTo0YTJyZml4b3BoZGpmZmE4S1ZBNEFh@193.29.139.157:8080?#%F0%9F%87%B3%F0%9F%87%B1%20%7C%20Shadowsocks
 
-🇱🇻LV | Shadowsocks
-ss://Y2hhY2hhMjAtaWV0Zi1wb2x5MTMwNTo2VkFjbGw0UDh4UFRVVlZ0SGVTVDNvblJtTG9WSUJTVQ@94.131.104.147:443?#%F0%9F%87%B1%F0%9F%BFLV%20%7C%20Shadowsocks
+🇨🇦CA | Trojan
+trojan://2otqt2j7stvorz49vrjy@64.74.163.69:58763?security=tls&insecure=1&allowInsecure=1&type=tcp&headerType=none#%F0%9F%87%A8%F0%9F%87%A6%20%7C%20Trojan%20TLS
 
-🇭🇰HK | Trojan TLS [WS]
-trojan://sMed9E7gA1@verahk1.uspn.io:443?security=tls&sni=verahk1.uspn.io&insecure=1&allowInsecure=1&type=ws&host=verahk1.uspn.io&path=%2Ftrojan#%F0%9F%87%AD%F0%9F%87%B0HK%20%7C%20Trojan%20TLS%20%5BWS%5D
+🇫🇮FI | VLESS Reality
+vless://a91e64f0-9295-499d-bf4a-661ad99d4938@217.16.24.170:8443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=api-maps.yandex.ru&fp=edge&pbk=8OsJx6xuHcpL_5e1w0U4bMBa-icevDgvvzNwPwZbORQ&sid=5540e44a53c3d01c&type=tcp&headerType=none#%F0%9F%87%AB%F0%9F%87%AE%20%7C%20VLESS%20Reality
 
-🇫🇷FR | Hysteria2 [SNI]
-hysteria2://dongtaiwang.com@62.210.99.49:40088?sni=apple.com&insecure=1&allowInsecure=1#%F0%9F%87%AB%F0%9F%87%B7FR%20%7C%20Hysteria2%20%5BSNI%5D
+🇷🇺RU | VLESS Reality
+vless://eb7c7631-6c7c-4f34-a65a-974b4565d01d@217.16.24.170:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=api-maps.yandex.ru&fp=ios&pbk=8OsJx6xuHcpL_5e1w0U4bMBa-icevDgvvzNwPwZbORQ&sid=5540e44a53c3d01c&type=tcp&headerType=none#%F0%9F%87%B7%F0%9F%87%BA%20%7C%20VLESS%20Reality
 
-🇺🇸US | Hysteria2 [SNI]
-hysteria2://dongtaiwang.com@208.87.243.187:22222?sni=www.bing.com&insecure=1&allowInsecure=1#%F0%9F%87%BA%F0%9F%87%B8US%20%7C%20Hysteria2%20%5BSNI%5D
+🇷🇺RU | Shadowsocks
+ss://Y2hhY2hhMjAtaWV0Zi1wb2x5MTMwNTpWVmxBZmY3N0NuQVU0M0FvYzVqMTVZ@90.156.203.62:5112?#%F0%9F%87%B7%F0%9F%87%BA%20%7C%20Shadowsocks
 
-🇳🇱NL | Trojan TLS [WS]
-trojan://870133af-bf3d-4ece-99a7-8a77bf2d3b40@veraams2.uspn.io:443?security=tls&sni=veraams2.uspn.io&insecure=1&allowInsecure=1&type=ws&host=veraams2.uspn.io&path=%2Ftrojan#%F0%9F%87%B3%F0%9F%87%B1NL%20%7C%20Trojan%20TLS%20%5BWS%5D
+🇷🇺RU | VLESS Reality
+vless://68459ad9-ec22-42f2-9927-1579a0e41b64@158.160.196.107:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=tradingview.com&fp=chrome&pbk=zr8_rtHm86s_G1gfRwNtunStGngYZSdYkA3PyBFXpDg&sid=48fccabc158a4c22&type=tcp&headerType=none#%F0%9F%87%B7%F0%9F%87%BA%20%7C%20VLESS%20Reality
+
+🇵🇹PT | Shadowsocks
+ss://Y2hhY2hhMjAtaWV0Zi1wb2x5MTMwNTpueGdzbUhrUDNKVTdoYlFrSmZ4Z3BYaDV0bHZYZTFlbg@45.83.142.237:443?#%F0%9F%87%B5%F0%9F%87%B9%20%7C%20Shadowsocks
+
+🇦🇺AU | Shadowsocks
+ss://Y2hhY2hhMjAtaWV0Zi1wb2x5MTMwNTpBUmd2R1p5d0ErZ2FjZ0dWMjZCdm11MDUrd1ptUlcvaitBZFUrWjhCdDQ0PQ@45.15.185.70:990?#%F0%9F%87%A6%F0%9F%87%BA%20%7C%20Shadowsocks
+
+🇷🇺RU | VLESS Reality
+vless://9a5414b6-20b7-4313-8cd4-693d3c19ec05@217.12.40.76:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=sun9-38.userapi.com&fp=qq&pbk=FkmYFobwxLMLEktYXywmjthuEYCZggITsxwPNasTKUg&sid=95ec618532fa065e&type=tcp&headerType=none#%F0%9F%87%B7%F0%9F%87%BA%20%7C%20VLESS%20Reality

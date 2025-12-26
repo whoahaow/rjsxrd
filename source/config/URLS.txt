@@ -108,3 +108,6 @@ https://raw.githubusercontent.com/STR97/STRUGOV/refs/heads/main/STR#MEGA.STR.BYP
 https://raw.githubusercontent.com/STR97/STRUGOV/refs/heads/main/BYPASS#PROXY.STR.BYPASS%F0%9F%90%BA
 https://raw.githubusercontent.com/Kirillo4ka/vpn-configs-for-russia/refs/heads/main/Vless-Rus-Mobile-White-List.txt
 https://raw.githubusercontent.com/vsevjik/OBSpiskov/refs/heads/main/wwh
+https://raw.githubusercontent.com/EtoNeYaProject/etoneyaproject.github.io/refs/heads/main/1
+https://raw.githubusercontent.com/EtoNeYaProject/etoneyaproject.github.io/refs/heads/main/2
+https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt

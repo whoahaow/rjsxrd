@@ -8,9 +8,11 @@
   - `settings.py` - общие настройки проекта
   - `URLS.txt` - список URL для основных конфигов
   - `URLS_base64.txt` - список URL для base64-кодированных подписок
+  - `URLS_yaml.txt` - список URL для YAML-конфигов
   - `whitelist-all.txt` - список доменов для фильтрации SNI обхода
   - `cidrwhitelist.txt` - список CIDR для фильтрации IP-адресов обхода
 - `fetchers/fetcher.py` - модуль загрузки конфигов
+- `fetchers/yaml_converter.py` - модуль конвертации YAML-конфигов в формат VPN URL
 - `processors/config_processor.py` - обработка и фильтрация конфигов
 - `utils/` - вспомогательные модули:
   - `logger.py` - логирование

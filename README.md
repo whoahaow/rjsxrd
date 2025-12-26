@@ -1,6 +1,6 @@
 # rjsxrd - Автоматически обновляемые VPN-конфиги
 
-tgc: t.me/rjsxrd
+tgc: [t.me/rjsxrd](https://t.me/rjsxrd)
 
 Автоматически обновляемая коллекция публичных VPN-конфигов (`V2Ray` / `VLESS` / `Trojan` / `VMess` / `Reality` / `Shadowsocks` / `Hysteria2` / `TUIC`) для быстрого обхода блокировок. Обход белых списков на мобильном интернете.
 

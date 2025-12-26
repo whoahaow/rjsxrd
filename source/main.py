@@ -10,7 +10,7 @@ from typing import List, Tuple, Optional
 # Add the source directory to the path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 
-from config.settings import URLS, URLS_BASE64, EXTRA_URLS_FOR_BYPASS, DEFAULT_MAX_WORKERS
+from config.settings import URLS, URLS_BASE64, URLS_YAML, EXTRA_URLS_FOR_BYPASS, DEFAULT_MAX_WORKERS
 from fetchers.fetcher import fetch_data, build_session
 from utils.file_utils import save_to_local_file, load_from_local_file, split_config_file
 from utils.logger import log
@@ -123,6 +123,52 @@ def download_and_save_extra(idx: int, output_dir: str = "../githubmirror") -> Op
         if len(short_msg) > 200:
             short_msg = short_msg[:200] + "…"
         log(f"Ошибка при скачивании extra {url}: {short_msg}")
+        return None
+
+
+def download_and_convert_yaml(idx: int, output_dir: str = "../githubmirror") -> Optional[Tuple[str, str]]:
+    """Downloads a YAML config file and converts it to proper VPN config format."""
+    from fetchers.yaml_converter import convert_yaml_to_vpn_configs
+
+    url = URLS_YAML[idx]
+    # Create default subdirectory if it doesn't exist
+    default_dir = f"{output_dir}/default"
+    os.makedirs(default_dir, exist_ok=True)
+    # Start numbering after regular, base64, and extra URLs
+    file_number = len(URLS) + len(URLS_BASE64) + len(EXTRA_URLS_FOR_BYPASS) + idx + 1
+    local_path = f"{default_dir}/{file_number}.txt"
+
+    try:
+        yaml_content = fetch_data(url)
+
+        # Convert YAML to VPN configs
+        vpn_configs = convert_yaml_to_vpn_configs(yaml_content)
+
+        if not vpn_configs:
+            log(f"Не найдено действительных VPN конфигов в YAML файле {url}")
+            return None
+
+        # Join configs with newlines
+        converted_content = "\n".join(vpn_configs)
+
+        # Check if content changed before saving
+        if os.path.exists(local_path):
+            try:
+                with open(local_path, "r", encoding="utf-8") as f_old:
+                    old_data = f_old.read()
+                if old_data == converted_content:
+                    log(f"Изменений для {local_path} нет (локально). Пропуск загрузки в GitHub.")
+                    return None
+            except Exception:
+                pass
+
+        save_to_local_file(local_path, converted_content)
+        return local_path, f"githubmirror/default/{file_number}.txt"
+    except Exception as e:
+        short_msg = str(e)
+        if len(short_msg) > 200:
+            short_msg = short_msg[:200] + "…"
+        log(f"Ошибка при скачивании или конвертации YAML {url}: {short_msg}")
         return None
 
 
@@ -395,6 +441,20 @@ def main(dry_run: bool = False, output_dir: str = "../githubmirror"):
             ]
 
             for future in concurrent.futures.as_completed(extra_futures):
+                result = future.result()
+                if result:
+                    file_pairs.append(result)
+
+    # Download and convert all YAML config files
+    if URLS_YAML:  # Only process if there are YAML URLs
+        max_workers_yaml = min(DEFAULT_MAX_WORKERS, max(1, len(URLS_YAML)))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers_yaml) as yaml_pool:
+            yaml_futures = [
+                yaml_pool.submit(download_and_convert_yaml, i, output_dir)
+                for i in range(len(URLS_YAML))
+            ]
+
+            for future in concurrent.futures.as_completed(yaml_futures):
                 result = future.result()
                 if result:
                     file_pairs.append(result)

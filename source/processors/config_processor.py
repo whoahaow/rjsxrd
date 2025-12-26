@@ -6,10 +6,97 @@ import base64
 import json
 import concurrent.futures
 from typing import List, Set
-from config.settings import SNI_DOMAINS, URLS, EXTRA_URLS_FOR_BYPASS, URLS_BASE64, MAX_SERVERS_PER_FILE
+from config.settings import SNI_DOMAINS, URLS, EXTRA_URLS_FOR_BYPASS, URLS_BASE64, URLS_YAML, MAX_SERVERS_PER_FILE
 from fetchers.fetcher import fetch_data
 from utils.file_utils import extract_host_port, deduplicate_configs, prepare_config_content, filter_secure_configs, load_cidr_whitelist, is_ip_in_cidr_whitelist, extract_ip_from_config
 from utils.logger import log
+
+
+def _load_yaml_configs(url: str, sni_regex, cidr_whitelist, filter_secure: bool = True) -> List[str]:
+    """Load configs from YAML file and apply SNI/CIDR filtering."""
+    try:
+        from fetchers.yaml_converter import convert_yaml_to_vpn_configs
+        yaml_content = fetch_data(url)
+
+        # Convert YAML to VPN configs
+        vpn_configs = convert_yaml_to_vpn_configs(yaml_content)
+
+        if not vpn_configs:
+            log(f"Не найдено действительных VPN конфигов в YAML файле {url}")
+            return []
+
+        # Apply SNI filtering (same logic as in _process_file_filtering)
+        filtered_configs = []
+        for config in vpn_configs:
+            config = config.strip()
+            if not config:
+                continue
+            # Apply SNI filtering
+            if sni_regex.search(config):
+                # Only add the config if it's a valid VPN config URL
+                if is_valid_vpn_config_url(config):
+                    filtered_configs.append(config)
+            # Check for CIDR matching
+            elif cidr_whitelist:
+                ip = extract_ip_from_config(config)
+                if ip and is_ip_in_cidr_whitelist(ip, cidr_whitelist):
+                    # Only add the config if it's a valid VPN config URL
+                    if is_valid_vpn_config_url(config):
+                        filtered_configs.append(config)
+
+        # Filter based on security settings
+        if filter_secure:
+            return filter_secure_configs(filtered_configs)
+        else:
+            return filtered_configs
+    except Exception as e:
+        short_msg = str(e)
+        if len(short_msg) > 200:
+            short_msg = short_msg[:200] + "…"
+        log(f"Ошибка при загрузке YAML-саба {url}: {short_msg}")
+        return []
+
+
+def _load_yaml_configs_unsecure(url: str, sni_regex, cidr_whitelist) -> List[str]:
+    """Load configs from YAML file and apply SNI/CIDR filtering without secure filtering."""
+    try:
+        from fetchers.yaml_converter import convert_yaml_to_vpn_configs
+        yaml_content = fetch_data(url)
+
+        # Convert YAML to VPN configs
+        vpn_configs = convert_yaml_to_vpn_configs(yaml_content)
+
+        if not vpn_configs:
+            log(f"Не найдено действительных VPN конфигов в YAML файле {url}")
+            return []
+
+        # Apply SNI filtering (same logic as in _process_file_filtering_unsecure)
+        filtered_configs = []
+        for config in vpn_configs:
+            config = config.strip()
+            if not config:
+                continue
+            # Apply SNI filtering
+            if sni_regex.search(config):
+                # Only add the config if it's a valid VPN config URL
+                if is_valid_vpn_config_url(config):
+                    filtered_configs.append(config)
+            # Check for CIDR matching
+            elif cidr_whitelist:
+                ip = extract_ip_from_config(config)
+                if ip and is_ip_in_cidr_whitelist(ip, cidr_whitelist):
+                    # Only add the config if it's a valid VPN config URL
+                    if is_valid_vpn_config_url(config):
+                        filtered_configs.append(config)
+
+        # DO NOT filter out insecure configs from YAML sources - return all
+        return filtered_configs
+    except Exception as e:
+        short_msg = str(e)
+        if len(short_msg) > 200:
+            short_msg = short_msg[:200] + "…"
+        log(f"Ошибка при загрузке unsecure YAML-саба {url}: {short_msg}")
+        return []
 
 
 def is_valid_vpn_config_url(line: str) -> bool:
@@ -177,6 +264,15 @@ def create_filtered_configs(output_dir: str = "../githubmirror") -> List[str]:
             base64_configs.extend(future.result())
 
     all_configs.extend(base64_configs)
+
+    # Load configs from YAML files
+    yaml_configs = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(4, len(URLS_YAML))) as executor:
+        futures = [executor.submit(_load_yaml_configs, url, sni_regex, cidr_whitelist, filter_secure=True) for url in URLS_YAML]
+        for future in concurrent.futures.as_completed(futures):
+            yaml_configs.extend(future.result())
+
+    all_configs.extend(yaml_configs)
 
     # Filter out configs with insecure settings for bypass configs
     secure_configs = filter_secure_configs(all_configs)
@@ -380,6 +476,15 @@ def create_unsecure_filtered_configs(output_dir: str = "../githubmirror") -> Lis
             base64_configs.extend(future.result())
 
     all_configs.extend(base64_configs)
+
+    # Load configs from YAML files
+    yaml_configs = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(4, len(URLS_YAML))) as executor:
+        futures = [executor.submit(_load_yaml_configs_unsecure, url, sni_regex, cidr_whitelist) for url in URLS_YAML]
+        for future in concurrent.futures.as_completed(futures):
+            yaml_configs.extend(future.result())
+
+    all_configs.extend(yaml_configs)
 
     # DO NOT filter out configs with insecure settings - keep all configs
     unsecure_configs = all_configs

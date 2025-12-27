@@ -125,7 +125,6 @@ hysteria://62.210.253.147:11120?upmbps=300&downmbps=300&auth=4c6723&insecure=1&p
 hysteria://64.31.55.72:55661?upmbps=5&downmbps=20&auth=dongtaiwang.com&insecure=1&peer=bing.com&alpn=h3#%F0%9F%87%BA%F0%9F%87%B8%20United%20States%20-%20Los%20Angeles%20%F0%9F%8C%8E%20HY1-UDP-TLS%204%E2%83%A3
 hysteria://72.52.178.23:11223?upmbps=50&downmbps=80&auth=O5tQQiW2xKf5&alpn=h3#%F0%9F%87%BA%F0%9F%87%B8%20United%20States%20-%20NA%20%F0%9F%8C%8E%20HY1-UDP-TLS%204%E2%83%A3
 hysteria://72.52.178.23:15566?upmbps=50&downmbps=80&auth=jQrGpwSqp34P&alpn=h3#%F0%9F%87%BA%F0%9F%87%B8%20United%20States%20-%20NA%20%F0%9F%8C%8E%20HY1-UDP-TLS%204%E2%83%A3
-hysteria://208.87.243.187:15823?upmbps=100&downmbps=100&auth=dongtaiwang.com&insecure=1&peer=apple.com&alpn=h3#081 ✂️-🇺🇸US-last 14(@GheychiAmoozesh)
 hysteria://62.210.127.217:40099?upmbps=100&downmbps=100&auth=dongtaiwang.com&insecure=1&peer=apple.com&alpn=h3#%F0%9F%87%AB%F0%9F%87%B7%20France%20-%20Paris%20%F0%9F%8C%8D%20HY1-UDP-TLS%204%E2%83%A3
 hysteria://195.154.200.40:15010?upmbps=100&downmbps=100&auth=dongtaiwang.com&insecure=1&peer=apple.com&alpn=h3#%F0%9F%87%AB%F0%9F%87%B7%20France%20-%20Paris%20%F0%9F%8C%8D%20HY1-UDP-TLS%204%E2%83%A3
 hysteria://51.159.226.1:49003?upmbps=11&downmbps=55&auth=dongtaiwang.com&insecure=1&peer=apple.com&alpn=h3#%F0%9F%87%B3%F0%9F%87%B1%20Netherlands%20-%20Haarlem%20%F0%9F%8C%8D%20HY1-UDP-TLS%204%E2%83%A3

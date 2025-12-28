@@ -22,6 +22,7 @@ hy2://605d52db-3d29-406f-bf6d-daeb1cd84f09@dg.jgpyjc.top:443/?mport=40000-40050&
 hy2://537d7098-fdbe-11ef-8ebc-f23c93141fad@eca509d2-t56dc0-tcjtj6-d70y.la.shifen.uk:443/?mport=20000-50000&sni=eca509d2-t56dc0-tcjtj6-d70y.la.shifen.uk#%F0%9F%87%BD%F0%9F%87%BDXX%28AzadNet.t.me%29%20%281845%29
 hy2://6286105c-fb6d-11ef-be96-f23c93136cb3@cc65f71a-t4v9c0-t5waci-4550.la.shifen.uk:1743/?sni=cc65f71a-t4v9c0-t5waci-4550.la.shifen.uk#%F0%9F%87%BD%F0%9F%87%BDXX%28AzadNet.t.me%29%20%281846%29
 hy2://b4bd0613-ff7c-4f2f-954d-185915e6ddad@206.71.158.40:35000/?sni=api.kermanshahi.org&obfs=salamander&obfs-password=@JavidnamanIran-Javid-SHAH-KingRezaPahlavi#🟩20@oneclickvpnkeys
+hy2://b4bd0613-ff7c-4f2f-954d-185915e6ddad@206.71.158.40:35000/?sni=api.kermanshahi.org&obfs=salamander&obfs-password=%40JavidnamanIran-Javid-SHAH-KingRezaPahlavi#%F0%9F%9F%A920%40oneclickvpnkeys
 hy2://a305ac08-d136-11ee-b6db-f23c91cfbbc9@ffc60249-t53wg0-t92wi1-1qkeg.hk2.hyhuawei.com:443/?sni=ffc60249-t53wg0-t92wi1-1qkeg.hk2.hyhuawei.com#🇭🇰 HK
 hy2://b4bd0613-ff7c-4f2f-954d-185915e6ddad@206.71.158.40:35000/?sni=api.kermanshahi.org&amp;obfs=salamander&amp;obfs-password=@JavidnamanIran-Javid-SHAH-KingRezaPahlavi#🇺🇸US(AzadNet.t.me) (280)
 hy2://b4bd0613-ff7c-4f2f-954d-185915e6ddad@206.71.158.41:35000/?sni=api.kermanshahi.org&amp;obfs=salamander&amp;obfs-password=@JavidnamanIran-Javid-SHAH-KingRezaPahlavi#🇺🇸US(AzadNet.t.me) (281)

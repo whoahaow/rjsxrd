@@ -177,8 +177,21 @@ def _run_pipeline_and_upload(
     """
     upload_fn = None
     github_handler = None
+    updater = None
 
-    if not dry_run and not use_git:
+    if not dry_run and use_git:
+        from utils.git_updater import GitUpdater
+        updater = GitUpdater()
+        def upload_fn(local_path: str, remote_path: str) -> None:
+            """Commit + push file progressively so it appears on GitHub live,
+            mid-verification. These auto commits are squashed at the end by
+            commit_and_push_files."""
+            try:
+                filename = remote_path.split("/")[-1]
+                updater.commit_and_push_single(local_path, f"auto: update {filename}")
+            except Exception as e:
+                log(f"Warning: progressive push failed for {local_path}: {e}")
+    elif not dry_run:
         github_handler = GitHubHandler()
         def upload_fn(local_path: str, remote_path: str) -> None:
             github_handler.upload_file(local_path, remote_path)
@@ -192,8 +205,9 @@ def _run_pipeline_and_upload(
     pipeline_ok = False
     if not dry_run and file_pairs:
         if use_git:
-            from utils.git_updater import GitUpdater
-            updater = GitUpdater()
+            assert updater is not None
+            # Progressively staged files are already in the index.
+            # commit_and_push_files handles commit + push with auto-cleanup.
             success = updater.commit_and_push_files(file_pairs)
             if not success:
                 log("ERROR: Git update failed")

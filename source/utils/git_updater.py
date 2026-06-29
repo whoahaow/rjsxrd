@@ -98,6 +98,14 @@ class GitUpdater:
         self._run_git("add", "source/config/servers.txt", check=False)
 
         log("Staging complete")
+
+    def stage_file(self, local_path: str) -> None:
+        """Stage a single file for progressive upload during verification.
+
+        Args:
+            local_path: Path relative to repo root (e.g. 'githubmirror/bypass/bypass-1.txt').
+        """
+        self._run_git("add", local_path, check=False)
     
     def has_changes(self) -> bool:
         """Check if there are staged changes."""
@@ -117,7 +125,7 @@ class GitUpdater:
         self._run_git("commit", "-m", message)
         return True
     
-    def push(self, branch: Optional[str] = None, force: bool = False) -> None:
+    def push(self, branch: Optional[str] = None, force: bool = False, force_lease: bool = False) -> None:
         """Push commits to remote."""
         if branch is None:
             result = self._run_git("rev-parse", "--abbrev-ref", "HEAD")
@@ -125,13 +133,29 @@ class GitUpdater:
         
         log(f"Pushing to origin/{branch}...")
         
-        if force:
+        if force_lease:
+            self._run_git("push", "--force-with-lease", "origin", branch)
+        elif force:
             self._run_git("push", "-f", "origin", branch)
         else:
             self._run_git("push", "origin", branch)
         
         log("Push successful")
-    
+
+    def commit_and_push_single(self, local_path: str, message: str) -> None:
+        """Commit and push a single file progressively during pipeline.
+
+        Used by upload_fn in git mode so files appear on GitHub live,
+        before the final commit-and-push squashes them.
+
+        Args:
+            local_path: Path relative to repo root.
+            message: Commit message (e.g. 'auto: update bypass-1.txt').
+        """
+        self._run_git("add", local_path, check=False)
+        self._run_git("commit", "--allow-empty", "-m", message)
+        self.push()
+
     def commit_and_push_files(self, file_pairs: List[Tuple[str, str]], 
                                commit_message: str = "auto: update configs",
                                max_retries: int = 3) -> bool:
@@ -154,8 +178,16 @@ class GitUpdater:
                 log(f"[auto-clean] squashed {squashed} old auto commits, "
                     f"next commit will replace them")
 
-            # Skip pull in GitHub Actions - repo is already up-to-date from checkout
-            
+            # Pull latest from remote before running.
+            # In GitHub Actions the checkout action already has fresh code,
+            # but on VPS (systemd timer) the repo can drift behind if other
+            # machines push. Pull --rebase keeps history linear.
+            if not os.environ.get("GITHUB_ACTIONS"):
+                try:
+                    self.pull()
+                except Exception:
+                    log("Warning: pull failed, continuing with local state")
+
             self.stage_files(file_pairs)
             
             if not self.has_changes():
@@ -166,7 +198,11 @@ class GitUpdater:
             for attempt in range(max_retries):
                 if self.commit(full_message):
                     try:
-                        self.push()
+                        # force_lease needed because squash_auto_commits rewrote
+                        # local history (removed progressive auto commits that
+                        # were already pushed). --force-with-lease is safe when
+                        # only one machine pushes.
+                        self.push(force_lease=True)
                         log("Git workflow completed successfully")
                         return True
                     except subprocess.CalledProcessError as e:

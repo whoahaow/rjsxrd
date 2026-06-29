@@ -73,22 +73,28 @@ read_secret() {
     local prompt="$1"
     local secret="" char
     printf '%s' "$prompt"
-    stty -echo
-    trap 'stty echo 2>/dev/null; printf "\n"; exit 1' INT TERM
-    while IFS= read -r -s -n1 char 2>/dev/null; do
-        case "${char:-}" in
-            ''|$'\n'|$'\r') printf '\n'; break;;
-            $'\b'|$'\177')
-                if [ -n "$secret" ]; then
-                    secret="${secret%?}"
-                    printf '\b \b'
-                fi
-                ;;
-            *) secret="$secret$char"; printf '*';;
-        esac
-    done
-    stty echo 2>/dev/null
-    trap - INT TERM
+    # Try interactive terminal via /dev/tty first (works even inside $() subshells)
+    if ( : <>/dev/tty ) 2>/dev/null; then
+        stty -echo <>/dev/tty
+        trap 'stty echo <>/dev/tty 2>/dev/null; printf "\n" >/dev/tty; exit 1' INT TERM
+        while IFS= read -r -s -n1 char <> /dev/tty 2>/dev/null; do
+            case "${char:-}" in
+                ''|$'\n'|$'\r') printf '\n' >/dev/tty; break;;
+                $'\b'|$'\177')
+                    if [ -n "$secret" ]; then
+                        secret="${secret%?}"
+                        printf '\b \b' >/dev/tty
+                    fi
+                    ;;
+                *) secret="$secret$char"; printf '*' >/dev/tty;;
+            esac
+        done
+        stty echo <>/dev/tty 2>/dev/null
+        trap - INT TERM
+    else
+        # Non-interactive (cron, pipe) — silent read, no asterisks
+        IFS= read -r -s secret
+    fi
     echo "$secret"
 }
 
@@ -150,19 +156,6 @@ main() {
             log_warning "No token entered — will run in dry-run mode instead"
             PUSH_MODE="none"
             unset GITHUB_TOKEN
-        else
-            if [[ ! "$GITHUB_TOKEN" =~ ^(ghp_|github_pat_) ]]; then
-                log_warning "Token doesn't start with 'ghp_' or 'github_pat_' — make sure it's correct"
-                read -p "Continue anyway? (y/n): " -n 1 -r
-                echo
-                if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-                    PUSH_MODE="none"
-                    unset GITHUB_TOKEN
-                fi
-            fi
-            if [ -n "$GITHUB_TOKEN" ]; then
-                log_success "Token received"
-            fi
         fi
     else
         log_info "Dry-run mode — no GitHub token needed"
@@ -440,7 +433,7 @@ SYSCTL
     log_info "Step 8: Creating Environment Configuration"
     
     # Derive REPO_NAME (owner/repo) from repo URL for GitHub API pushes
-    if [ -n "$REPO_URL" ]; then
+    if [ -n "${REPO_URL:-}" ]; then
         REPO_NAME=$(echo "$REPO_URL" | sed 's|https://github.com/||' | sed 's|\.git$||')
     else
         REPO_NAME="whoahaow/rjsxrd"
@@ -934,7 +927,7 @@ FAIL2BAN
 
     # Copy SSH key from the connecting user so key auth works
     # after password auth is disabled
-    if [ -n "$SUDO_USER" ] && [ -d "/home/$SUDO_USER/.ssh" ]; then
+    if [ -n "${SUDO_USER:-}" ] && [ -d "/home/$SUDO_USER/.ssh" ]; then
         mkdir -p "$APP_DIR/.ssh"
         cp "/home/$SUDO_USER/.ssh/authorized_keys" "$APP_DIR/.ssh/authorized_keys" 2>/dev/null || true
         chown -R rjsxrd:rjsxrd "$APP_DIR/.ssh"

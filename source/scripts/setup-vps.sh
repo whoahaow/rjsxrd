@@ -18,7 +18,7 @@
 #        sudo ./setup-vps.sh
 #===============================================================================
 
-set -e  # Exit on error
+set -euo pipefail  # Exit on error, undefined vars, pipe failures
 
 #-------------------------------------------------------------------------------
 # Colors for output
@@ -64,6 +64,32 @@ check_os() {
             exit 1
         fi
     fi
+}
+
+#-------------------------------------------------------------------------------
+# Read secret with asterisk feedback. Usage: VAR=$(read_secret "prompt: ")
+#-------------------------------------------------------------------------------
+read_secret() {
+    local prompt="$1"
+    local secret="" char
+    printf '%s' "$prompt"
+    stty -echo
+    trap 'stty echo 2>/dev/null; printf "\n"; exit 1' INT TERM
+    while IFS= read -r -s -n1 char 2>/dev/null; do
+        case "${char:-}" in
+            ''|$'\n'|$'\r') printf '\n'; break;;
+            $'\b'|$'\177')
+                if [ -n "$secret" ]; then
+                    secret="${secret%?}"
+                    printf '\b \b'
+                fi
+                ;;
+            *) secret="$secret$char"; printf '*';;
+        esac
+    done
+    stty echo 2>/dev/null
+    trap - INT TERM
+    echo "$secret"
 }
 
 #-------------------------------------------------------------------------------
@@ -118,8 +144,7 @@ main() {
         echo "  - Repository access: ONLY your rjsxrd fork"
         echo "  - Permissions: Contents (Read and write) ONLY"
         echo ""
-        read -sp "GitHub Token: " GITHUB_TOKEN
-        echo ""
+        GITHUB_TOKEN=$(read_secret "GitHub Token: ")
         
         if [ -z "$GITHUB_TOKEN" ]; then
             log_warning "No token entered — will run in dry-run mode instead"
@@ -207,7 +232,7 @@ main() {
     
     apt update -qq
     
-    PACKAGES="python3 python3-pip python3-venv git curl cron logrotate fail2ban ufw auditd unattended-upgrades"
+    PACKAGES="python3 python3-pip python3-venv git curl cron logrotate fail2ban ufw auditd unattended-upgrades earlyoom zram-tools aide rkhunter chkrootkit lynis"
     
     for pkg in $PACKAGES; do
         if dpkg -l | grep -q "^ii  $pkg "; then
@@ -240,10 +265,30 @@ main() {
         fi
         # Lower swappiness — only swap under real pressure
         if [ -d /etc/sysctl.d ]; then
-            echo 'vm.swappiness=10' > /etc/sysctl.d/99-vps.conf
+            cat > /etc/sysctl.d/99-vps.conf << 'SYSCTL'
+# VPS memory tuning — keep swap as emergency only
+vm.swappiness = 10
+vm.vfs_cache_pressure = 50
+vm.dirty_ratio = 10
+vm.dirty_background_ratio = 5
+vm.overcommit_memory = 1
+vm.dirty_expire_centisecs = 3000
+vm.dirty_writeback_centisecs = 500
+SYSCTL
             sysctl -p /etc/sysctl.d/99-vps.conf >/dev/null 2>&1
         fi
-        log_success "  Swap created (2GB, swappiness=10)"
+        log_success "  Swap created (2GB, swappiness=10, memory tuning applied)"
+    fi
+
+    # zRAM — compressed in-memory swap (2:1 compression, huge win on 1GB VPS)
+    if command -v zramctl &>/dev/null && ! zramctl 2>/dev/null | grep -q "^/dev"; then
+        log_info "  Configuring zRAM compressed swap..."
+        echo "ALGO=zstd" > /etc/default/zramswap
+        echo "PERCENT=50" >> /etc/default/zramswap
+        systemctl enable --now zramswap 2>/dev/null || systemctl restart zramswap 2>/dev/null || true
+        log_success "  zRAM enabled (50% RAM, zstd compression)"
+    else
+        log_info "  zRAM already active or unavailable"
     fi
 
     # earlyoom — kills the heaviest process before the kernel OOM killer
@@ -304,11 +349,18 @@ main() {
 
             if [ -n "$GITHUB_TOKEN" ] && [ "$REPO_URL" != "$MAIN_REPO" ]; then
                 log_info "  Cloning fork with token authentication..."
-                AUTH_REPO_URL="https://${GITHUB_TOKEN}@${REPO_URL#https://}"
-                if git clone "$AUTH_REPO_URL" . 2>/dev/null; then
+                # Use git credential file to avoid leaking token in ps aux
+                GIT_CRED_FILE=$(mktemp)
+                echo "https://***@github.com" > "$GIT_CRED_FILE"
+                trap 'rm -f "$GIT_CRED_FILE"' EXIT
+                if git clone "$REPO_URL" --config credential.helper="store --file $GIT_CRED_FILE" . 2>/dev/null; then
                     git remote set-url origin "$REPO_URL" 2>/dev/null || true
+                    rm -f "$GIT_CRED_FILE"
+                    trap - EXIT
                     log_success "Fork cloned (git mode)"
                 else
+                    rm -f "$GIT_CRED_FILE"
+                    trap - EXIT
                     log_error "Failed to clone fork. Check URL and token permissions."
                     exit 1
                 fi
@@ -332,7 +384,11 @@ main() {
 
             log_info "  Downloading from: $ARCHIVE_BASE"
             if [ -n "$GITHUB_TOKEN" ]; then
-                curl -sL -u "token:$GITHUB_TOKEN" "$ARCHIVE_URL" | tar xz --strip-components=1 2>/dev/null
+                # Use netrc file to avoid leaking token in ps aux
+                NETRC_FILE=$(mktemp)
+                echo "machine github.com login token:$GITHUB_TOKEN" > "$NETRC_FILE"
+                curl -sL --netrc-file "$NETRC_FILE" "$ARCHIVE_URL" | tar xz --strip-components=1 2>/dev/null
+                rm -f "$NETRC_FILE"
             else
                 curl -sL "$ARCHIVE_URL" | tar xz --strip-components=1 2>/dev/null
             fi
@@ -476,8 +532,7 @@ EOF
         echo "     Your ID is the 'chat' → 'id' number"
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo ""
-        read -p "Bot token: " TELEGRAM_BOT_TOKEN
-        echo ""
+        TELEGRAM_BOT_TOKEN=$(read_secret "Bot token: ")
         if [ -n "$TELEGRAM_BOT_TOKEN" ]; then
             read -p "Your Telegram user ID (digits only): " TELEGRAM_CHAT_ID
             echo ""
@@ -722,6 +777,72 @@ EOF
 
     log_info "  Firewall enabled (SSH rate-limited)"
 
+    # ── CPU governor ─────────────────────────────────────────────
+    log_info "  Setting CPU governor to performance..."
+    if command -v cpupower &>/dev/null; then
+        cpupower frequency-set -g performance 2>/dev/null || true
+    elif [ -f /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor ]; then
+        for gov in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+            echo performance > "$gov" 2>/dev/null || true
+        done
+    fi
+    log_info "  CPU governor set to performance"
+
+    # ── Network tuning (BBR + TCP) ────────────────────────────────
+    log_info "  Applying network stack tuning..."
+    cat > /etc/sysctl.d/99-rjsxrd-network.conf << 'NETSYSCTL'
+# BBR congestion control for better throughput
+net.core.default_qdisc = fq
+net.ipv4.tcp_congestion_control = bbr
+# TCP tuning
+net.core.somaxconn = 1024
+net.core.netdev_max_backlog = 2048
+net.ipv4.tcp_fin_timeout = 15
+net.ipv4.tcp_keepalive_time = 300
+net.ipv4.tcp_tw_reuse = 1
+net.ipv4.ip_local_port_range = 1024 65535
+NETSYSCTL
+    sysctl -p /etc/sysctl.d/99-rjsxrd-network.conf >/dev/null 2>&1 || true
+    modprobe tcp_bbr 2>/dev/null || true
+    log_info "  Network tuning applied (BBR + TCP optimizations)"
+
+    # ── Journald limits ──────────────────────────────────────────
+    log_info "  Capping journald size..."
+    if [ ! -f /etc/systemd/journald.conf.d/00-rjsxrd-limit.conf ]; then
+        mkdir -p /etc/systemd/journald.conf.d
+        cat > /etc/systemd/journald.conf.d/00-rjsxrd-limit.conf << 'JOURNAL'
+[Journal]
+SystemMaxUse=200M
+SystemKeepFree=500M
+RuntimeMaxUse=50M
+MaxFileSec=2weeks
+ForwardToSyslog=no
+JOURNAL
+        systemctl restart systemd-journald 2>/dev/null || true
+        log_info "  Journald capped at 200MB"
+    fi
+
+    # ── Disable unnecessary services ──────────────────────────────
+    for svc in snapd whoopsie apport avahi-daemon ModemManager; do
+        if systemctl is-enabled "$svc" 2>/dev/null | grep -q "enabled"; then
+            systemctl stop "$svc" 2>/dev/null || true
+            systemctl disable "$svc" 2>/dev/null || true
+            systemctl mask "$svc" 2>/dev/null || true
+        fi
+    done
+    log_info "  Unnecessary services disabled (snapd, whoopsie, avahi, ModemManager)"
+
+    # ── noatime on root ──────────────────────────────────────────
+    if mount | grep " / " | grep -v noatime | grep -q "ext4\|ext3\|xfs"; then
+        sed -i 's/\(^UUID=.* \)\(/ .*\)\(defaults\)/\1\2defaults,noatime/' /etc/fstab 2>/dev/null || true
+        mount -o remount / 2>/dev/null || true
+        log_info "  noatime enabled on root filesystem"
+    fi
+
+    # ── SSD TRIM ─────────────────────────────────────────────────
+    systemctl enable --now fstrim.timer 2>/dev/null || true
+    log_info "  Weekly SSD TRIM enabled"
+
     # ── Kernel hardening ────────────────────────────────────────────
     log_info "  Applying kernel hardening..."
     cat > /etc/sysctl.d/99-rjsxrd-security.conf << 'SYSCTL'
@@ -782,6 +903,7 @@ UF
 bantime = 3600
 findtime = 600
 maxretry = 3
+backend = systemd
 
 [sshd]
 enabled = true
@@ -790,6 +912,7 @@ filter = sshd
 logpath = /var/log/auth.log
 maxretry = 3
 bantime = 3600
+backend = systemd
 
 [sshd-ddos]
 enabled = true
@@ -798,6 +921,7 @@ filter = sshd-ddos
 logpath = /var/log/auth.log
 maxretry = 5
 bantime = 3600
+backend = systemd
 FAIL2BAN
 
     systemctl enable fail2ban 2>/dev/null || true
@@ -898,6 +1022,10 @@ FAIL2BAN
 
     # Validate and restart
     if sshd -t 2>/dev/null; then
+        # Ubuntu 24.04+ uses socket activation — stop socket and enable service
+        systemctl stop ssh.socket 2>/dev/null || true
+        systemctl disable ssh.socket 2>/dev/null || true
+        systemctl enable ssh 2>/dev/null || systemctl enable sshd 2>/dev/null || true
         systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null || true
         log_info "  sshd hardened and restarted"
     else

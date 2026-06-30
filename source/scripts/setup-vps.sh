@@ -395,10 +395,24 @@ SYSCTL
                     exit 1
                 }
             fi
-            tar xzf "$TAR_FILE" --strip-components=1 2>/dev/null || {
-                log_error "Failed to extract archive"
+            tar tzf "$TAR_FILE" >/dev/null 2>&1 || {
+                log_error "Downloaded file is not a valid archive (corrupt or wrong URL)"
                 rm -f "$TAR_FILE"
                 exit 1
+            }
+            tar xzf "$TAR_FILE" --strip-components=1 2>&1 || {
+                # Fallback: try without strip-components (repo might have single-file root)
+                log_info "Extraction with strip-components failed, trying without..."
+                tar xzf "$TAR_FILE" -C "$APP_DIR" 2>/dev/null || {
+                    log_error "Failed to extract archive"
+                    rm -f "$TAR_FILE"
+                    exit 1
+                }
+                # Move files up if they're nested in a single directory
+                if [ -d "$APP_DIR/rjsxrd-main" ]; then
+                    mv "$APP_DIR/rjsxrd-main"/* "$APP_DIR/" 2>/dev/null || true
+                    mv "$APP_DIR/rjsxrd-main"/.* "$APP_DIR/" 2>/dev/null || true
+                fi
             }
             rm -f "$TAR_FILE"
             trap - EXIT

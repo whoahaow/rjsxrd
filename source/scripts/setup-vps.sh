@@ -371,30 +371,23 @@ SYSCTL
             cd "$APP_DIR"
 
             # Convert repo URL to tarball archive URL
-            # https://github.com/user/rjsxrd.git → https://github.com/user/rjsxrd/archive/refs/heads/main.tar.gz
+            # https://github.com/user/rjsxrd.git → https://github.com/user/rjsxrd/archive/main.tar.gz
             ARCHIVE_BASE=$(echo "$REPO_URL" | sed 's|\.git$||')
-            ARCHIVE_URL="$ARCHIVE_BASE/archive/refs/heads/main.tar.gz"
+            ARCHIVE_URL="$ARCHIVE_BASE/archive/main.tar.gz"
 
             log_info "  Downloading from: $ARCHIVE_BASE"
             TAR_FILE=$(mktemp)
-            trap 'rm -f "$TAR_FILE" "${NETRC_FILE:-}"' EXIT
-            if [ -n "$GITHUB_TOKEN" ]; then
-                # Use netrc file to avoid leaking token in ps aux
-                NETRC_FILE=$(mktemp)
-                echo "machine github.com login token:$GITHUB_TOKEN" > "$NETRC_FILE"
-                curl -sL --netrc-file "$NETRC_FILE" -o "$TAR_FILE" "$ARCHIVE_URL" || {
-                    log_error "Failed to download source from $ARCHIVE_BASE"
-                    rm -f "$TAR_FILE" "$NETRC_FILE"
-                    exit 1
-                }
-                rm -f "$NETRC_FILE"
-            else
+            trap 'rm -f "$TAR_FILE"' EXIT
+            curl -sL -o "$TAR_FILE" "$ARCHIVE_URL" || {
+                # Fallback: try refs/heads/ prefix (older GitHub format)
+                log_info "Trying alternative archive URL..."
+                ARCHIVE_URL="$ARCHIVE_BASE/archive/refs/heads/main.tar.gz"
                 curl -sL -o "$TAR_FILE" "$ARCHIVE_URL" || {
                     log_error "Failed to download source from $ARCHIVE_BASE"
                     rm -f "$TAR_FILE"
                     exit 1
                 }
-            fi
+            }
             tar tzf "$TAR_FILE" >/dev/null 2>&1 || {
                 log_error "Downloaded file is not a valid archive (corrupt or wrong URL)"
                 rm -f "$TAR_FILE"

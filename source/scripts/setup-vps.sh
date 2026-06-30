@@ -72,7 +72,7 @@ check_os() {
 read_secret() {
     local prompt="$1"
     local secret="" char
-    printf '%s' "$prompt"
+    printf '%s' "$prompt" >&2
     # Try interactive terminal via /dev/tty first (works even inside $() subshells)
     if ( : <>/dev/tty ) 2>/dev/null; then
         stty -echo <>/dev/tty

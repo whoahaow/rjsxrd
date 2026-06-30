@@ -376,15 +376,32 @@ SYSCTL
             ARCHIVE_URL="$ARCHIVE_BASE/archive/refs/heads/main.tar.gz"
 
             log_info "  Downloading from: $ARCHIVE_BASE"
+            TAR_FILE=$(mktemp)
+            trap 'rm -f "$TAR_FILE" "${NETRC_FILE:-}"' EXIT
             if [ -n "$GITHUB_TOKEN" ]; then
                 # Use netrc file to avoid leaking token in ps aux
                 NETRC_FILE=$(mktemp)
                 echo "machine github.com login token:$GITHUB_TOKEN" > "$NETRC_FILE"
-                curl -sL --netrc-file "$NETRC_FILE" "$ARCHIVE_URL" | tar xz --strip-components=1 2>/dev/null
+                curl -sL --netrc-file "$NETRC_FILE" -o "$TAR_FILE" "$ARCHIVE_URL" || {
+                    log_error "Failed to download source from $ARCHIVE_BASE"
+                    rm -f "$TAR_FILE" "$NETRC_FILE"
+                    exit 1
+                }
                 rm -f "$NETRC_FILE"
             else
-                curl -sL "$ARCHIVE_URL" | tar xz --strip-components=1 2>/dev/null
+                curl -sL -o "$TAR_FILE" "$ARCHIVE_URL" || {
+                    log_error "Failed to download source from $ARCHIVE_BASE"
+                    rm -f "$TAR_FILE"
+                    exit 1
+                }
             fi
+            tar xzf "$TAR_FILE" --strip-components=1 2>/dev/null || {
+                log_error "Failed to extract archive"
+                rm -f "$TAR_FILE"
+                exit 1
+            }
+            rm -f "$TAR_FILE"
+            trap - EXIT
 
             if [ -f "$APP_DIR/source/main.py" ]; then
                 log_success "Source code downloaded (no .git folder)"

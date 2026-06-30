@@ -74,7 +74,8 @@ class GitUpdater:
             # Pop stash if it was created
             self._run_git("stash", "pop", check=False)
         except subprocess.CalledProcessError as e:
-            if e.stderr and ("cannot pull with rebase" in e.stderr.lower() or "unstaged changes" in e.stderr.lower()):
+            err_msg = (e.stderr or "").lower()
+            if "cannot pull with rebase" in err_msg or "unstaged changes" in err_msg:
                 # Force reset to clean state
                 log("Warning: Had unstaged changes, resetting to clean state...")
                 self._run_git("reset", "--hard", "HEAD", check=False)
@@ -83,7 +84,14 @@ class GitUpdater:
                 self._run_git("pull", "--rebase", "origin", branch)
                 log("Pull successful after reset")
             else:
-                raise
+                # Rebase conflict or other failure — likely caused by force-push
+                # squashing auto commits on remote. Since this machine only ever
+                # creates auto commits, it's safe to reset to remote state.
+                log(f"Pull/rebase failed ({e.stderr.strip()[-200:]}) — "
+                    f"resetting to origin/{branch} (safe — only auto commits lost)")
+                self._run_git("fetch", "origin", check=False)
+                self._run_git("reset", "--hard", f"origin/{branch}", check=False)
+                log(f"Reset to origin/{branch}")
     
     def stage_files(self, file_pairs: List[Tuple[str, str]]) -> None:
         """Stage generated config files and updated source configs."""

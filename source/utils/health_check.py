@@ -3,21 +3,48 @@
 import os
 import socket
 import shutil
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 from utils.logger import log
+
+# DNS servers for internet connectivity check, tried in order.
+# Cloudflare (1.1.1.1) is primary — low-latency, privacy-focused.
+# Google (8.8.8.8, 8.8.4.4) as fallbacks — widely available.
+# Yandex DNS (77.88.8.8) for lower latency in RU regions.
+# AdGuard (94.140.14.14) and OpenDNS (208.67.222.222) as extra safety.
+DNS_SERVERS: List[Tuple[str, int]] = [
+    ("1.1.1.1", 53),
+    ("8.8.8.8", 53),
+    ("8.8.4.4", 53),
+    ("77.88.8.8", 53),
+    ("94.140.14.14", 53),
+    ("208.67.222.222", 53),
+]
+
+CHECK_INTERNET_TIMEOUT: float = 2.0
 
 
 def check_internet_connectivity() -> bool:
-    """Check if internet is accessible.
+    """Check if internet is accessible by probing DNS servers.
+    
+    Tries each server in DNS_SERVERS with a short timeout. Returns True
+    on the first successful connection. Returns False only if ALL servers
+    are unreachable. Logs which servers failed for diagnostics.
     
     Returns:
-        True if internet is reachable, False otherwise
+        True if any DNS server is reachable, False otherwise
     """
-    try:
-        socket.create_connection(("8.8.8.8", 53), timeout=2)
-        return True
-    except OSError:
-        return False
+    last_error = None
+    for host, port in DNS_SERVERS:
+        try:
+            socket.create_connection((host, port), timeout=CHECK_INTERNET_TIMEOUT)
+            return True
+        except OSError as e:
+            log(f"    DNS probe {host}:{port} failed: {e}")
+            last_error = e
+    
+    if last_error is not None:
+        log(f"  All DNS servers unreachable — last error: {last_error}")
+    return False
 
 
 def check_disk_space(path: str = ".", required_mb: float = 100.0) -> Tuple[bool, float]:

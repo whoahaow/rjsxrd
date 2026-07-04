@@ -269,8 +269,8 @@ def main(
     print_health_report(health_results)
 
     if not health_results.get('internet'):
-        log("ERROR: No internet connectivity, cannot continue")
-        sys.exit(1)
+        log("WARNING: No internet connectivity detected — upload will fail, generating configs anyway")
+        log("  Check DNS servers (DNS_SERVERS in health_check.py) if this is unexpected")
 
     # Start resource monitoring
     start_monitoring(sample_interval=2.0)

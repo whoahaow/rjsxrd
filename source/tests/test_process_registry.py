@@ -364,27 +364,32 @@ class TestInstallSignalHandler:
         and the cleanup would run multiple times (harmless but wasteful).
         """
         import signal as _signal
+        import utils.process_registry as _pr
         original = _signal.getsignal(_signal.SIGINT)
         try:
             install_signal_handler()
             install_signal_handler()
             # The point is that we don't crash; the guard is internal
         finally:
+            _pr._signal_handler_installed = False
             _signal.signal(_signal.SIGINT, original)
 
     def test_registers_handler_when_default(self):
         """install_signal_handler must register when SIGINT is still the
         default handler (no other module has claimed it yet)."""
         import signal as _signal
+        import utils.process_registry as _pr
         if _signal.getsignal(_signal.SIGINT) != _signal.default_int_handler:
             # Another test already installed a handler — can't test this
             return
         try:
+            _pr._signal_handler_installed = False  # reset in case prior test left it set
             install_signal_handler()
             handler = _signal.getsignal(_signal.SIGINT)
             assert handler is not None
             assert handler != _signal.default_int_handler
         finally:
+            _pr._signal_handler_installed = False
             _signal.signal(_signal.SIGINT, _signal.default_int_handler)
 
 class TestDefaultRegistrySingleton:

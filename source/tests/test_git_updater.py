@@ -258,7 +258,7 @@ class TestCommitAndPushFiles:
                 return _make_result(1)  # has changes
             if cmd == ["git", "rev-parse", "--abbrev-ref", "HEAD"]:
                 return _make_result(0, stdout="main\n")
-            if cmd[:3] == ["git", "push", "origin"]:
+            if len(cmd) > 1 and cmd[0] == "git" and cmd[1] == "push":
                 push_count[0] += 1
                 if push_count[0] == 1:
                     raise subprocess.CalledProcessError(
@@ -276,7 +276,7 @@ class TestCommitAndPushFiles:
             c for c in mock_subprocess_run.call_args_list
             if c.args[0][:3] == ["git", "pull", "--rebase"]
         ]
-        assert len(pull_calls) == 1
+        assert len(pull_calls) == 2  # initial pull + retry pull after failed push
 
     def test_fails_after_max_retries(self, mock_subprocess_run, updater):
         """All push attempts fail."""
@@ -285,7 +285,7 @@ class TestCommitAndPushFiles:
                 return _make_result(1)
             if cmd == ["git", "rev-parse", "--abbrev-ref", "HEAD"]:
                 return _make_result(0, stdout="main\n")
-            if cmd[:3] == ["git", "push", "origin"]:
+            if len(cmd) > 1 and cmd[0] == "git" and cmd[1] == "push":
                 raise subprocess.CalledProcessError(
                     1, cmd, stderr="! [rejected] non-fast-forward"
                 )

@@ -39,8 +39,8 @@ def _get_optimal_workers(default: int = 8, label: str = "generic") -> int:
     elif specs.total_ram_mb < 2048:
         return max(4, min(default, 16))
 
-    # Enough RAM: use default (it's already reasonable)
-    return default
+    # Enough RAM: use default (it's already reasonable, floor at 2)
+    return max(2, default)
 
 
 class ExecutorCache:

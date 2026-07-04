@@ -119,6 +119,7 @@ rjsxrd/
 │   │   ├── test_vpn_config.py     # VPNConfig typed dataclass tests
 │   │   ├── test_github_handler.py # 22 GitHub handler tests (adapter pattern)
 │   │   ├── test_git_updater.py    # 26 GitUpdater workflow tests
+│   │   ├── test_health_check.py  # 21 health check tests (DNS fallback, disk, memory)
 │   │   ├── test_xray_tester.py    # Xray tester + security edge case tests
 │   │   ├── test_yaml_converter.py # 28 YAML converter tests
 │   │   └── README.md
@@ -511,7 +512,7 @@ pytest -n auto                      # Parallel execution
 **Fixtures** (`source/tests/conftest.py`): sample VLESS/VMess/Trojan/SS configs, MTProto/SOCKS5 proxies, temp files, mock logger.
 
 ### Test Coverage
-- **556 passing tests** across 24 test files (full suite in ~35s)
+- **640 passing tests** across 25 test files (full suite in ~40s)
 - `test_fetcher.py` - 16 tests
 - `test_file_utils.py` - 26+ file utils tests
 - `test_url_stats.py` - 11+ URL stats tests
@@ -533,6 +534,7 @@ pytest -n auto                      # Parallel execution
 - `test_vpn_config.py` - VPNConfig typed dataclass tests
 - `test_github_handler.py` - 22 GitHub handler tests (adapter pattern)
 - `test_git_updater.py` - 26 GitUpdater tests (init, pull, commit, push, retry)
+- `test_health_check.py` - 21 health check tests (DNS fallback, disk, memory, GitHub token)
 - `test_xray_tester.py` - Xray tester + security edge case tests
 - `test_yaml_converter.py` - 28 tests
 

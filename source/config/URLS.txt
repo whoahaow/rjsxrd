@@ -2824,6 +2824,11 @@ https://www.dropbox.com/scl/fi/sk6i6etx9mmx5xm98xu36/VLESS.txt?rlkey=utvnt1nbv07
 https://translate.yandex.ru/translate?url=https://raw.githubusercontent.com/v0id9/vpn-configs/refs/heads/main/vpn.txt
 https://app.proxy-slon.shop/v1/service/sub/eb73dd50-2e6d-447b-baa9-ed6efc81940c
 https://raw.githubusercontent.com/sakha1370/OpenRay/refs/heads/main/output/all_valid_proxies.txt
+https://github.com/ssavnayt/AWCFG-CONFIG-LIST/raw/refs/heads/main/MahsaLeaks/26.06.2026/configs_mng_part1.txt
+https://github.com/ssavnayt/AWCFG-CONFIG-LIST/raw/refs/heads/main/MahsaLeaks/26.06.2026/configs_mng_part2.txt
+https://github.com/ssavnayt/AWCFG-CONFIG-LIST/raw/refs/heads/main/MahsaLeaks/26.06.2026/configs_mng_part3.txt
+https://github.com/ssavnayt/AWCFG-CONFIG-LIST/raw/refs/heads/main/MahsaLeaks/26.06.2026/configs_mng_part4.txt
+https://github.com/ssavnayt/AWCFG-CONFIG-LIST/raw/refs/heads/main/MahsaLeaks/26.06.2026/configs_mng_part5.txt
 
 
 

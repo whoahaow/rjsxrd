@@ -1,0 +1,6 @@
+#profile-title: bypass-unsecure-all t.me/rjsxrd
+#profile-update-interval: 48
+#support-url: https://t.me/rjsxrd
+#announce: t.me/rjsxrd
+#subscription-userinfo: upload=0; download=0; total=0; expire=0
+

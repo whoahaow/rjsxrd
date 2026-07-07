@@ -3,7 +3,7 @@
 
 Only checks URLs pointing to raw.githubusercontent.com or github.com.
 Uses GitHub API (authenticated recommended — 5000 req/hr vs 60 req/hr).
-Sequential with 1s delay between requests to avoid secondary rate limits.
+Paces requests dynamically based on auth status.
 
 Usage:
     cd source
@@ -28,13 +28,18 @@ PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 URLS_FILE = os.path.join(PROJECT_ROOT, "config", "URLS.txt")
 CACHE_PATH = os.path.join(PROJECT_ROOT, "data", "stale_urls_cache.json")
 
+# Load .env from project root (parent of source/)
+from dotenv import load_dotenv
+_env_path = os.path.join(os.path.dirname(PROJECT_ROOT), ".env")
+if os.path.exists(_env_path):
+    load_dotenv(_env_path)
+
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN") or os.environ.get("MY_TOKEN")
 
 # Rate limiting: GitHub allows 5000 req/hr authenticated, 60 req/hr unauthenticated.
-# We pace ourselves to stay well under limits.
-_REQUEST_DELAY = 1.2  # seconds between requests
-_REQUESTS_PER_HOUR = 5000 if GITHUB_TOKEN else 60
-_MAX_CONCURRENT = 1  # no parallelism — avoids secondary rate limits
+# Delay between requests is paced dynamically in run() based on auth status.
+_REQUEST_DELAY = 1.2 if GITHUB_TOKEN else 65.0  # 1.2s/auth (~3000/hr) vs 65s/unauth (~55/hr)
+_MAX_RETRIES = 3
 
 
 def parse_github_url(url: str) -> Optional[Tuple[str, str, str, str]]:
@@ -73,7 +78,9 @@ def parse_github_url(url: str) -> Optional[Tuple[str, str, str, str]]:
 
 
 def make_cache_key(parsed: Tuple[str, str, str, str]) -> str:
-    return f"{parsed[0]}/{parsed[1]}/{parsed[3]}"
+    """Cache key includes owner/repo/branch/path so same file on
+    different branches doesn't share a cache entry."""
+    return f"{parsed[0]}/{parsed[1]}/{parsed[2]}/{parsed[3]}"
 
 
 def build_session() -> requests.Session:
@@ -97,8 +104,11 @@ def check_rate_limit(session: requests.Session) -> Tuple[int, int]:
     return 0, 0
 
 
-def wait_if_needed(headers: Any) -> None:
-    """Parse rate limit headers and sleep if we're close to the limit."""
+def wait_if_needed(headers: Any) -> bool:
+    """Parse rate limit headers and sleep if we're close to the limit.
+
+    Returns True if we waited, False if no wait needed.
+    """
     remaining = headers.get("X-RateLimit-Remaining")
     reset_at = headers.get("X-RateLimit-Reset")
     retry_after = headers.get("Retry-After")
@@ -111,7 +121,7 @@ def wait_if_needed(headers: Any) -> None:
         wait = int(retry_after) + 2
         print(f"  secondary rate limit hit, sleeping {wait}s...", flush=True)
         time.sleep(wait)
-        return
+        return True
 
     # Primary rate limit running low
     if remaining is not None and reset_at is not None and remaining < 10:
@@ -121,42 +131,88 @@ def wait_if_needed(headers: Any) -> None:
             wait = min(reset_ts - now + 2, 300)
             print(f"  rate limit nearly exhausted ({remaining} left), sleeping {wait:.0f}s until reset...", flush=True)
             time.sleep(wait)
+            return True
+
+    return False
 
 
-def get_last_commit_date(session: requests.Session, owner: str, repo: str, path: str, branch: str) -> Optional[str]:
-    """Return ISO date string of the last commit touching a file, or None.
+def get_last_commit_date(
+    session: requests.Session, owner: str, repo: str, path: str, branch: str
+) -> Tuple[Optional[str], bool]:
+    """Check the last commit date for a file via GitHub Commits API.
 
-    Handles primary and secondary GitHub rate limits with proper backoff.
+    Returns:
+        (date_string or None, is_error)
+        - (iso_date, False): file found, last commit date known
+        - (None, False): file doesn't exist or branch not found (404/422) — remove
+        - (None, True): API error (timeout, rate limit, server error) — keep URL
     """
     api_url = f"https://api.github.com/repos/{owner}/{repo}/commits"
     params = {"path": path, "per_page": 1, "sha": branch}
 
-    for attempt in range(3):
+    for attempt in range(_MAX_RETRIES):
         try:
             resp = session.get(api_url, params=params, timeout=15)
 
-            if resp.status_code == 204:
-                return None
-            if resp.status_code in (404, 409, 422):
-                return None
-            if resp.status_code == 403:
-                wait_if_needed(resp.headers)
-                continue  # retry after backoff
+            # Success
             if resp.status_code == 200:
                 data = resp.json()
                 if data:
-                    return data[0]["commit"]["committer"]["date"].replace("Z", "+00:00")
-                return None
+                    date_str = data[0]["commit"]["committer"]["date"].replace("Z", "+00:00")
+                    return date_str, False
+                return None, False  # empty response — no commits for this file
 
-            return None
+            # File/branch definitively doesn't exist — safe to remove
+            if resp.status_code in (404, 422):
+                return None, False
 
-        except requests.RequestException:
-            if attempt < 2:
+            # Repository access issues — treat as not found, safe to remove
+            if resp.status_code == 409:
+                return None, False
+
+            # Empty response, no content
+            if resp.status_code == 204:
+                return None, False
+
+            # Rate limited
+            if resp.status_code in (403, 429):
+                waited = wait_if_needed(resp.headers)
+                if waited:
+                    continue  # retry after backoff
+                # No Retry-After header — wait exponentially
+                if attempt < _MAX_RETRIES - 1:
+                    backoff = 2 ** (attempt + 1) * 5
+                    print(f"  rate limited (status {resp.status_code}), retrying in {backoff}s...", flush=True)
+                    time.sleep(backoff)
+                    continue
+                return None, True  # can't recover — uncertain
+
+            # Server error — transient, retry
+            if 500 <= resp.status_code < 600:
+                if attempt < _MAX_RETRIES - 1:
+                    time.sleep(2 ** attempt * 2)
+                    continue
+                return None, True  # server error after retries — uncertain
+
+            # Unexpected status
+            print(f"  unexpected status {resp.status_code} for {owner}/{repo}/{path}, skipping", flush=True)
+            return None, True
+
+        except requests.Timeout:
+            if attempt < _MAX_RETRIES - 1:
+                print(f"  timeout, retrying ({attempt + 1}/{_MAX_RETRIES})...", flush=True)
+                time.sleep(2 ** attempt * 2)
+                continue
+            return None, True
+
+        except requests.RequestException as e:
+            if attempt < _MAX_RETRIES - 1:
+                print(f"  request error: {e}, retrying ({attempt + 1}/{_MAX_RETRIES})...", flush=True)
                 time.sleep(2)
                 continue
-            return None
+            return None, True
 
-    return None
+    return None, True
 
 
 def collect_github_urls() -> List[Tuple[int, str, Tuple[str, str, str, str]]]:
@@ -214,10 +270,12 @@ def run(dry_run: bool, stale_days: int) -> None:
     print(f"rate limit: {remaining}/{limit} remaining")
     print(f"mode: {'DRY RUN (no changes)' if dry_run else 'APPLY (will remove stale URLs)'}")
 
-    if remaining < len(entries):
-        print(f"warning: only {remaining} requests available, need {len(entries)}. run with a token or increase --days.")
-        if remaining <= 0:
-            print("rate limit exhausted. try again later.")
+    if GITHUB_TOKEN and remaining < len(entries):
+        print(f"warning: only {remaining} requests available, need {len(entries)}.")
+    elif not GITHUB_TOKEN:
+        print(f"note: pacing at {_REQUEST_DELAY:.0f}s/request (~{int(3600/_REQUEST_DELAY)} req/hr) for unauthenticated access")
+        if remaining < 5:
+            print("  rate limit nearly exhausted. try again later or set GITHUB_TOKEN.")
             return
 
     print()
@@ -227,6 +285,7 @@ def run(dry_run: bool, stale_days: int) -> None:
     fresh_count = 0
     stale_count = 0
     error_count = 0
+    skipped_count = 0
 
     for entry in entries:
         idx, url, parsed = entry
@@ -244,14 +303,26 @@ def run(dry_run: bool, stale_days: int) -> None:
                 fresh_count += 1
             done += 1
             if done % 100 == 0 or done == len(entries) or done == 1:
-                print(f"  progress: {done}/{len(entries)} (cached: {done - (error_count + stale_count + fresh_count) + fresh_count + stale_count}, fresh={fresh_count}, stale={stale_count}, errors={error_count})")
+                print(f"  progress: {done}/{len(entries)} (cached, fresh={fresh_count}, stale={stale_count}, errors={error_count}, skipped={skipped_count})")
+            continue
+
+        # Cache hit with error marker — keep URL (uncertain last time, still uncertain)
+        if cached and cached.get("error"):
+            fresh_count += 1
+            results.append((url, None, False))
+            done += 1
             continue
 
         # Make API call
-        date_str = get_last_commit_date(session, *parsed)
+        date_str, is_error = get_last_commit_date(session, *parsed)
         time.sleep(_REQUEST_DELAY)  # pace ourselves
 
-        if date_str:
+        if is_error:
+            # API error — uncertain, keep URL
+            results.append((url, None, False))
+            skipped_count += 1
+            cache[cache_key] = {"date": None, "error": True}
+        elif date_str:
             dt = datetime.fromisoformat(date_str)
             is_stale = (now - dt) > threshold
             results.append((url, date_str, is_stale))
@@ -259,29 +330,17 @@ def run(dry_run: bool, stale_days: int) -> None:
                 stale_count += 1
             else:
                 fresh_count += 1
+            cache[cache_key] = {"date": date_str, "stale": is_stale}
         else:
-            is_stale = True
+            # File not found (404/422) — definitely stale
             results.append((url, None, True))
-            error_count += 1
             stale_count += 1
-
-        # Update cache
-        cache_key_final = make_cache_key(parsed)
-        cache[cache_key_final] = {"date": date_str, "stale": is_stale}
+            cache[cache_key] = {"date": None, "stale": True}
 
         done += 1
         if done % 100 == 0 or done == len(entries) or done == 1:
-            print(f"  progress: {done}/{len(entries)} (fresh={fresh_count}, stale={stale_count}, errors={error_count})")
+            print(f"  progress: {done}/{len(entries)} (fresh={fresh_count}, stale={stale_count}, errors={error_count}, skipped={skipped_count})")
             save_cache(cache)
-
-        # Check rate limit every 100 requests
-        if done % 100 == 0:
-            rem, _ = check_rate_limit(session)
-            if rem < 10:
-                print(f"  warning: only {rem} rate limit requests remaining")
-                if rem <= 0:
-                    print("  rate limit exhausted, stopping early")
-                    break
 
     # Save final cache
     save_cache(cache)
@@ -290,11 +349,18 @@ def run(dry_run: bool, stale_days: int) -> None:
     fresh_urls = [(url, d) for url, d, s in results if not s and d]
 
     print()
-    print(f"results: {len(fresh_urls)} fresh, {len(stale_urls)} stale, {error_count} errors")
+    fresh_print = fresh_count
+    stale_print = stale_count
+    print(f"results: {fresh_print} fresh, {stale_print} stale, {error_count} errors, {skipped_count} skipped (API error, kept)")
 
     if stale_urls:
-        stale_with_age = [(datetime.now(timezone.utc) - datetime.fromisoformat(d)).days if d else -1 for _, d in stale_urls]
-        aged = list(zip(stale_with_age, [u for u, _ in stale_urls], [d for _, d in stale_urls]))
+        aged = []
+        for url, date_str in stale_urls:
+            if date_str:
+                age = (now - datetime.fromisoformat(date_str)).days
+            else:
+                age = -1
+            aged.append((age, url, date_str))
         aged.sort(key=lambda x: -x[0])
 
         print()
@@ -335,7 +401,9 @@ def run(dry_run: bool, stale_days: int) -> None:
             continue
         new_lines.append(line)
 
-    backup = URLS_FILE + ".stale.backup"
+    # Backup with timestamp to avoid overwriting previous backups
+    ts = now.strftime("%Y%m%d_%H%M%S")
+    backup = f"{URLS_FILE}.stale.{ts}.backup"
     with open(backup, "w", encoding="utf-8") as f:
         f.writelines(all_lines)
     with open(URLS_FILE, "w", encoding="utf-8") as f:

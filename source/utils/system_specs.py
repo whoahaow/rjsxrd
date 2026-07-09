@@ -79,6 +79,15 @@ class SystemSpecs:
             return min(6, self.cpu_count * 6)
         return min(20, self.cpu_count * 10)
 
+    def safe_fetch_workers(self) -> int:
+        """Parallel fetch workers — CPU-bound TLS handshakes limit concurrency.
+        
+        Returns workers count based on CPU cores, clamped to [20, 50].
+        1 core → 20, 2 cores → 30, 4+ cores → 50.
+        """
+        cpu_based = self.cpu_count * 10 + 10
+        return max(20, min(50, cpu_based))
+
     def safe_tcp_workers(self) -> int:
         """TCP ping is very light (~5 MB per worker). Can be generous."""
         if self.total_ram_mb < 1024:

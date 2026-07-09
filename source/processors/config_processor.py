@@ -41,6 +41,7 @@ from utils.security_filter import filter_secure_configs, has_insecure_setting
 from utils.logger import log
 from utils.url_stats import URLStats
 from utils.executor_cache import ExecutorCache
+from utils.system_specs import get_specs
 from utils.file_writer import (
     get_subscription_header, write_configs_file, stream_write_configs_file,
     _write_config_chunk, split_configs_to_files, append_remark_suffix,
@@ -85,7 +86,7 @@ def _fetch_and_process_urls(
     if not urls:
         return
     log(f"Fetching {len(urls)} {label} in parallel...")
-    executor = ExecutorCache.get('url_fetch', max_workers=min(DEFAULT_MAX_WORKERS, max(1, len(urls))))
+    executor = ExecutorCache.get('url_fetch', max_workers=min(get_specs().safe_fetch_workers(), max(1, len(urls))))
     future_to_url = {executor.submit(fetch_data, url, token=token): url for url in urls}
     for future in concurrent.futures.as_completed(future_to_url):
         result = future.result()

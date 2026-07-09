@@ -29,7 +29,8 @@ from config.settings import (URLS, URLS_EXTRA_BYPASS, URLS_YAML, MANUAL_SERVERS,
     VALIDATION_TCP_TIMEOUT, VALIDATION_HTTP_TIMEOUT, DAILY_DATE_PATTERNS,
     ENABLE_DEFAULT_FILES, ENABLE_BYPASS_UNSECURE, ENABLE_PROTOCOL_SPLIT,
     ENABLE_TG_PROXY, PUBLISH_RAW_FILES,
-    MAX_FILE_SIZE_MB, MAX_CONFIGS_PER_FILE, MAX_NUMBERED_DEFAULT_FILES)
+    MAX_FILE_SIZE_MB, MAX_CONFIGS_PER_FILE, MAX_NUMBERED_DEFAULT_FILES,
+    GITHUB_TOKEN)
 from fetchers.fetcher import fetch_data
 from fetchers.daily_repo_fetcher import fetch_configs_from_daily_repo
 from fetchers.sstap_scraper import scrape_sstap_configs
@@ -65,6 +66,7 @@ def _fetch_and_process_urls(
     add_to_all: bool = True,
     add_to_extra: bool = False,
     tagger=None,
+    token: Optional[str] = None,
 ) -> None:
     """Fetch URLs in parallel, dedup in-memory (set), dispatch to lists.
 
@@ -75,12 +77,16 @@ def _fetch_and_process_urls(
       - global_seen — populated with seen config hashes for dedup
 
     Returns None — all results communicated via mutation.
+
+    Args:
+        urls: URLs to fetch
+        token: Optional Bearer token for GitHub-authenticated requests.
     """
     if not urls:
         return
     log(f"Fetching {len(urls)} {label} in parallel...")
     executor = ExecutorCache.get('url_fetch', max_workers=min(DEFAULT_MAX_WORKERS, max(1, len(urls))))
-    future_to_url = {executor.submit(fetch_data, url): url for url in urls}
+    future_to_url = {executor.submit(fetch_data, url, token=token): url for url in urls}
     for future in concurrent.futures.as_completed(future_to_url):
         result = future.result()
         corresponding_url = future_to_url[future]
@@ -165,13 +171,17 @@ def download_all_configs(output_dir: str = "../githubmirror",
     from fetchers.telegram_proxy_scraper import TelegramProxyScraper
     scraper = TelegramProxyScraper() if scan_for_telegram_proxies else None
 
+    # Prepare GitHub token for authenticated requests (reduces rate limiting)
+    _fetch_token = GITHUB_TOKEN if GITHUB_TOKEN else None
+
     _fetch_and_process_urls(
         URLS, target_all=all_configs, target_extra=extra_bypass_configs,
         numbered_configs_with_urls=numbered_configs_with_urls,
         all_mtproto=all_mtproto_proxies, all_socks5=all_socks5_proxies,
         global_seen=global_seen, global_seen_lock=global_seen_lock,
         stats=stats, scraper=scraper, label="URLs",
-        add_to_all=True, add_to_extra=False, tagger=tagger)
+        add_to_all=True, add_to_extra=False, tagger=tagger,
+        token=_fetch_token)
 
     _fetch_and_process_urls(
         URLS_EXTRA_BYPASS, target_all=all_configs, target_extra=extra_bypass_configs,
@@ -179,7 +189,8 @@ def download_all_configs(output_dir: str = "../githubmirror",
         all_mtproto=all_mtproto_proxies, all_socks5=all_socks5_proxies,
         global_seen=global_seen, global_seen_lock=global_seen_lock,
         stats=stats, scraper=scraper, label="extra bypass URLs",
-        add_to_all=False, add_to_extra=True, tagger=tagger)
+        add_to_all=False, add_to_extra=True, tagger=tagger,
+        token=_fetch_token)
 
     if URLS_YAML:
         from fetchers.yaml_converter import convert_yaml_to_vpn_configs
@@ -190,7 +201,8 @@ def download_all_configs(output_dir: str = "../githubmirror",
             global_seen=global_seen, global_seen_lock=global_seen_lock,
             stats=stats, scraper=scraper,
             yaml_converter=convert_yaml_to_vpn_configs, label="YAML URLs",
-            add_to_all=True, add_to_extra=False, tagger=tagger)
+            add_to_all=True, add_to_extra=False, tagger=tagger,
+            token=_fetch_token)
 
     try:
         daily_configs = fetch_configs_from_daily_repo(patterns=DAILY_DATE_PATTERNS, seen=global_seen, seen_lock=global_seen_lock)

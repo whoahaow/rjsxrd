@@ -197,7 +197,7 @@ SNI_DOMAINS = get_sni_domains()
 # Other settings
 DEFAULT_MAX_WORKERS = _validate_int_env("MAX_WORKERS", 50, 1, 200)
 FETCH_TIMEOUT = _validate_int_env("FETCH_TIMEOUT", 5, 3, 30)
-FETCH_MAX_ATTEMPTS = _validate_int_env("FETCH_MAX_ATTEMPTS", 2, 1, 5)
+FETCH_MAX_ATTEMPTS = _validate_int_env("FETCH_MAX_ATTEMPTS", 3, 1, 5)
 
 # Validation concurrency settings
 VALIDATION_TCP_CONCURRENCY = _validate_int_env("VALIDATION_TCP_CONCURRENCY", 300, 10, 500)

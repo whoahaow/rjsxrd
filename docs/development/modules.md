@@ -49,8 +49,9 @@
 - `FetchResult` — dataclass с полями `text`, `status_code`, `error`, `success`. Функция `fetch_data()` **никогда не выбрасывает исключений** — всегда проверяйте `.success` перед использованием
 - использует curl_cffi Session с Chrome 124 impersonation — в 2-3x быстрее requests, обходит анти-бот системы
 - `build_session()` — создаёт сессию с прокси из `--proxy` или `HTTPS_PROXY`/`HTTP_PROXY`/`ALL_PROXY` окружения
-- retry: до 2 попыток (по умолчанию), таймаут 5 с (настраивается через `FETCH_TIMEOUT`/`FETCH_MAX_ATTEMPTS`)
-- `_extract_status(exc)` — извлекает HTTP-статус из разных типов исключений
+|- retry: до 3 попыток (по умолчанию) с 1s wait между попытками. Стратегия: attempt 1 — `verify=True`, attempt 2 — `verify=False` (SSL skip), attempt 3 — HTTPS→HTTP downgrade. Таймаут 5 с (настраивается через `FETCH_TIMEOUT`/`FETCH_MAX_ATTEMPTS`)
+|- `fetch_data()` принимает `token` — если передан и URL содержит `github.com`/`raw.githubusercontent.com`, в сессию добавляется заголовок `Authorization: Bearer <token>`. Это повышает лимиты GitHub с ~60/ч до 5000/ч
+|- `_extract_status(exc)` — извлекает HTTP-статус из разных типов исключений
 
 ### daily_repo_fetcher.py — ежедневные репозитории
 

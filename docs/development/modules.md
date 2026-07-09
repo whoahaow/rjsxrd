@@ -210,6 +210,7 @@
 **Методы:**
 - `safe_xray_workers()` — RAM-based: `(total - 200) / 24`, capped at `cpu * 40`.
 - `safe_url_workers()` — I/O-bound, generous: до 20.
+- `safe_fetch_workers()` — CPU-bound (TLS handshake), auto-detect: `cpu * 10 + 10`, clamped [20, 50].
 - `safe_tcp_workers()` — очень лёгкий: до 150.
 - `safe_http_workers()` — умеренный: до 20.
 - `summary()` — однострочный отчёт (`"956 MB RAM, 1 CPU cores (container)"`).

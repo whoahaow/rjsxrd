@@ -198,7 +198,7 @@ main() {
         log_info "Setting up: $REPO_DISPLAY"
         echo ""
     else
-        log_info "Step 2/11: Repository (skipped — using existing files)"
+        log_info "Step 2/12: Repository (skipped — using existing files)"
         echo ""
     fi
     
@@ -240,9 +240,62 @@ main() {
     echo ""
 
     #---------------------------------------------------------------------------
-    # Step 4: Swap + earlyoom (safe memory buffer for 1GB VPS)
+    # Step 4: DNS — Cloudflare (fast, stable, optimal for CDN resolution)
     #---------------------------------------------------------------------------
-    log_info "Step 4: Setting Up Swap and earlyoom"
+    log_info "Step 4: Setting Up Cloudflare DNS"
+
+    # Detect main network interface (the one with the default route)
+    MAIN_IFACE=$(ip -4 route show default | grep -Po '(?<=dev )[^ ]+' | head -1)
+
+    if command -v resolvectl &>/dev/null && [ -n "$MAIN_IFACE" ]; then
+        # Modern systemd-resolved (Ubuntu 18.04+, Debian 11+)
+        resolvectl dns "$MAIN_IFACE" 1.1.1.1 1.0.0.1
+        resolvectl domain "$MAIN_IFACE" "~."
+        log_info "  Cloudflare DNS (1.1.1.1, 1.0.0.1) set via resolvectl on $MAIN_IFACE"
+
+        # Make persistent across reboots
+        mkdir -p /etc/systemd
+        cat > /etc/systemd/resolved.conf << 'RESOLVED'
+[Resolve]
+DNS=1.1.1.1 1.0.0.1
+Domains=~.
+RESOLVED
+        systemctl restart systemd-resolved 2>/dev/null || true
+        log_info "  Persistent DNS config written to /etc/systemd/resolved.conf"
+
+    elif command -v systemd-resolve &>/dev/null && [ -n "$MAIN_IFACE" ]; then
+        # Older systemd (systemd-resolve before the rename to resolvectl)
+        systemd-resolve --set-dns=1.1.1.1 --set-dns=1.0.0.1 --interface="$MAIN_IFACE"
+        log_info "  Cloudflare DNS set via systemd-resolve on $MAIN_IFACE"
+
+    else
+        # Fallback: write /etc/resolv.conf directly
+        if [ -L /etc/resolv.conf ]; then
+            rm -f /etc/resolv.conf
+        fi
+        cat > /etc/resolv.conf << 'EOF'
+nameserver 1.1.1.1
+nameserver 1.0.0.1
+options timeout:1 attempts:1
+EOF
+        log_info "  Cloudflare DNS written directly to /etc/resolv.conf"
+    fi
+
+    # Verify DNS resolution works for our main target
+    if command -v host &>/dev/null; then
+        host raw.githubusercontent.com 1.1.1.1 &>/dev/null && \
+            log_info "  DNS verified: raw.githubusercontent.com resolves via 1.1.1.1" || \
+            log_warning "  DNS verification failed — check connectivity"
+    elif python3 -c "import socket; socket.getaddrinfo('raw.githubusercontent.com', 443)" 2>/dev/null; then
+        log_info "  DNS verified: raw.githubusercontent.com resolves"
+    fi
+
+    echo ""
+
+    #---------------------------------------------------------------------------
+    # Step 5: Swap + earlyoom (safe memory buffer for 1GB VPS)
+    #---------------------------------------------------------------------------
+    log_info "Step 5: Setting Up Swap and earlyoom"
 
     # 2GB swap file
     if swapon --show | grep -q "/swapfile"; then
@@ -298,9 +351,9 @@ SYSCTL
     echo ""
 
     #---------------------------------------------------------------------------
-    # Step 5: Create Application Directory
+    # Step 6: Create Application Directory
     #---------------------------------------------------------------------------
-    log_info "Step 5: Setting Up Application Directory"
+    log_info "Step 6: Setting Up Application Directory"
 
     if [ "$SKIP_CLONE" = false ]; then
         if [ -d "$APP_DIR" ]; then
@@ -337,7 +390,7 @@ SYSCTL
         # For git mode: clone with git (includes .git folder)
         # For api/none mode: download tarball (no .git folder, saves ~5MB)
         if [ "$PUSH_MODE" = "git" ]; then
-            log_info "Step 6a: Cloning Repository (git mode)"
+            log_info "Step 7a: Cloning Repository (git mode)"
             cd "$APP_DIR"
 
             if [ -n "$GITHUB_TOKEN" ] && [ "$REPO_URL" != "$MAIN_REPO" ]; then
@@ -367,7 +420,7 @@ SYSCTL
                 fi
             fi
         else
-            log_info "Step 6b: Downloading Source Code (API/dry-run mode)"
+            log_info "Step 7b: Downloading Source Code (API/dry-run mode)"
             cd "$APP_DIR"
 
             # Convert repo URL to tarball archive URL
@@ -422,15 +475,15 @@ SYSCTL
         chown -R rjsxrd:rjsxrd "$APP_DIR"
         echo ""
     else
-        log_info "Step 6: Download Source (skipped — files already exist)"
+        log_info "Step 7: Download Source (skipped — files already exist)"
         # Still fix ownership on existing files
         chown -R rjsxrd:rjsxrd "$APP_DIR" 2>/dev/null || true
     fi
     
     #---------------------------------------------------------------------------
-    # Step 7: Create Virtual Environment
+    # Step 8: Create Virtual Environment
     #---------------------------------------------------------------------------
-    log_info "Step 7: Creating Python Virtual Environment"
+    log_info "Step 8: Creating Python Virtual Environment"
     
     cd "$APP_DIR/source"
     python3 -m venv "$VENV_DIR"
@@ -452,9 +505,9 @@ SYSCTL
     echo ""
     
     #---------------------------------------------------------------------------
-    # Step 8: Create Environment File
+    # Step 9: Create Environment File
     #---------------------------------------------------------------------------
-    log_info "Step 8: Creating Environment Configuration"
+    log_info "Step 9: Creating Environment Configuration"
     
     # Derive REPO_NAME (owner/repo) from repo URL for GitHub API pushes
     if [ -n "${REPO_URL:-}" ]; then
@@ -527,7 +580,7 @@ EOF
     #---------------------------------------------------------------------------
     # Telegram Bot Setup (stored in .env, secured at 600)
     #---------------------------------------------------------------------------
-    log_info "Step 9: Telegram Bot Notifications"
+    log_info "Step 10: Telegram Bot Notifications"
     echo ""
     echo "  [yes] — bot sends you a message when pipeline starts/finishes"
     echo "  [no]  — no notifications"
@@ -575,9 +628,9 @@ EOF
     echo ""
     
     #---------------------------------------------------------------------------
-    # Step 10: Create Run Scripts
+    # Step 11: Create Run Scripts
     #---------------------------------------------------------------------------
-    log_info "Step 10: Creating Run Scripts"
+    log_info "Step 11: Creating Run Scripts"
     
     # Create run script
     cat > "$RUN_SCRIPT" << 'RUNSCRIPT'
@@ -690,9 +743,9 @@ HEALTHSCRIPT
     echo ""
     
     #---------------------------------------------------------------------------
-    # Step 11: Create Systemd Service
+    # Step 12: Create Systemd Service
     #---------------------------------------------------------------------------
-    log_info "Step 11: Systemd Service and Security"
+    log_info "Step 12: Systemd Service and Security"
 
     # Create systemd service (always — needed for manual systemctl start)
     cat > /etc/systemd/system/rjsxrd.service << 'SYSTEMD'

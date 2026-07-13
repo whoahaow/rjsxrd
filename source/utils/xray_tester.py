@@ -45,7 +45,8 @@ from config.settings import (
     XRAY_PERSISTENT_PORT_START, XRAY_PORT_MAX_ATTEMPTS, XRAY_STARTUP_TIMEOUT,
     XRAY_PROCESS_KILL_TIMEOUT, XRAY_PROCESS_FORCE_KILL_TIMEOUT,
     LOG_ERROR_SAMPLE_LENGTH, LOG_XRAY_ERROR_LENGTH, MIN_CHAIN_HOPS,
-    CHAIN_TRANSPORT_WHITELIST, CHAIN_SECURITY_REQUIRED
+    CHAIN_TRANSPORT_WHITELIST, CHAIN_SECURITY_REQUIRED,
+    TEST_PING_URLS,
 )
 
 # tqdm progress bar. Single source of truth is utils/progress.py.
@@ -86,9 +87,7 @@ class XrayTester:
     - Speed-based sorting (fastest configs first)
     """
     
-    TEST_URLS = [
-        "https://www.gstatic.com/generate_204",
-    ]
+    TEST_URLS = TEST_PING_URLS
     DEFAULT_TIMEOUT = 5.0
     BASE_PORT = XRAY_BASE_PORT
     BATCH_PORT_END = XRAY_BATCH_PORT_END

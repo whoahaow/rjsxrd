@@ -208,6 +208,16 @@ VALIDATION_MAX_WORKERS = _validate_int_env("VALIDATION_MAX_WORKERS", 200, 50, 10
 VALIDATION_TCP_TIMEOUT = float(_validate_int_env("VALIDATION_TCP_TIMEOUT", 3, 1, 30))
 VALIDATION_HTTP_TIMEOUT = float(_validate_int_env("VALIDATION_HTTP_TIMEOUT", 5, 2, 60))
 
+# Test URL(s) for Xray ping verification.
+# Comma-separated list. Default: single URL for speed.
+# Other commonly-used test URLs (for reference):
+#   https://www.google.com/generate_204
+#   https://www.youtube.com/generate_204
+#   https://cp.cloudflare.com/
+#   http://www.msftconnecttest.com/connecttest.txt
+_TEST_PING_URLS_RAW = os.environ.get("TEST_PING_URLS", "https://www.gstatic.com/generate_204")
+TEST_PING_URLS = [u.strip() for u in _TEST_PING_URLS_RAW.split(",") if u.strip()]
+
 CHROME_UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "

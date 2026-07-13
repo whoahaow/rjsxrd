@@ -658,6 +658,13 @@ Edit `source/config/settings.py` or use env vars:
 - `FETCH_MAX_ATTEMPTS` - Retry attempts per URL (default: 2, env overridable)
 - `VALIDATION_TCP_TIMEOUT` - TCP ping timeout (default: 3s)
 - `VALIDATION_HTTP_TIMEOUT` - Xray HTTP test timeout (default: 5s)
+- `TEST_PING_URLS` - Test URL(s) for Xray ping (default: gstatic/generate_204, comma-separated)
+- `TLS_FINGERPRINT` - TLS fingerprint (default: chrome, options: firefox/safari/edge/randomized)
+- `ENABLE_FRAGMENT` - TLS fragment stealth (default: true)
+- `FRAGMENT_PACKETS` - Fragment packet type (default: tlshello)
+- `FRAGMENT_LENGTH` - Fragment packet length range (default: 100-200)
+- `FRAGMENT_INTERVAL` - Fragment packet interval range (default: 10-20)
+- `XRAY_STARTUP_TIMEOUT` - Max seconds to wait for xray to bind port (default: 3)
 - Environment overrides: `ASYNC_CONCURRENCY_LINUX=100 FETCH_TIMEOUT=4 python3 main.py`
 
 ### Change Update Frequency

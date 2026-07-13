@@ -14,14 +14,16 @@ cd rjsxrd/source
 python -m pip install -r requirements.txt
 ```
 
-## Базовая конфигурация
+## Настройка
 
-Настройки задаются через `.env` файл в корне проекта. Скопируйте шаблон и заполните:
+Настройки задаются через `.env` файл в корне проекта (необязательно — все параметры имеют разумные значения по умолчанию). Скопируйте шаблон и заполните:
 
 ```bash
 cp .env.example ../.env   # .env в корне проекта
 nano ../.env              # укажите GITHUB_TOKEN и REPO_NAME
 ```
+
+Полный список переменных и их значения по умолчанию — в `source/config/settings.py`.
 
 ### Основные переменные
 
@@ -31,6 +33,18 @@ nano ../.env              # укажите GITHUB_TOKEN и REPO_NAME
 | `REPO_NAME` | да | Репозиторий в формате `owner/repo` |
 | `TELEGRAM_BOT_TOKEN` | нет | Токен бота для уведомлений |
 | `TELEGRAM_CHAT_ID` | нет | ID чата для уведомлений |
+
+### Xray верификация
+
+| Переменная | По умолчанию | Описание |
+|------------|-------------|----------|
+| `TEST_PING_URLS` | gstatic/generate_204 | URL(ы) для ping-теста (через запятую) |
+| `TLS_FINGERPRINT` | chrome | Отпечаток TLS (chrome/firefox/safari/edge/randomized) |
+| `ENABLE_FRAGMENT` | true | TLS fragment (stealth) — защита от DPI |
+| `FRAGMENT_PACKETS` | tlshello | Тип пакетов для фрагментации |
+| `FRAGMENT_LENGTH` | 100-200 | Диапазон длины фрагментов |
+| `FRAGMENT_INTERVAL` | 10-20 | Диапазон интервала фрагментов |
+| `XRAY_STARTUP_TIMEOUT` | 3 | Таймаут запуска Xray-core (сек) |
 
 ## Запуск
 

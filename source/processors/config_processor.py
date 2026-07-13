@@ -87,51 +87,55 @@ def _fetch_and_process_urls(
         return
     log(f"Fetching {len(urls)} {label} in parallel...")
 
-    # Create a shared curl_cffi session for all fetches in this batch.
-    # Reusing one session avoids repeated TLS profile loading and enables
-    # HTTP keep-alive, which is the single biggest perf win for fetching.
-    # Token auth is sent per-request, so the shared session is safe for
-    # both authenticated and unauthenticated URLs.
-    sess = build_session()
-    try:
-        executor = ExecutorCache.get('url_fetch', max_workers=min(get_specs().safe_fetch_workers(), max(1, len(urls))))
-        future_to_url = {executor.submit(fetch_data, url, session=sess, token=token): url for url in urls}
-        for future in concurrent.futures.as_completed(future_to_url):
-            result = future.result()
-            corresponding_url = future_to_url[future]
-            if stats:
-                stats.record_fetch(corresponding_url, result.success, result.status_code, result.error)
+    # Thread-local curl_cffi sessions: each worker thread creates ONE session
+    # and reuses it across all URLs it handles. This eliminates the overhead
+    # of creating a new session per URL while avoiding thread-safety issues
+    # of sharing a single session across threads.
+    _thread_local = threading.local()
 
-            if not result.success:
-                log(f"Failed fetch {corresponding_url[:80]}: {result.error[:80]}")
-                continue
+    def _fetch_with_session(url: str) -> FetchResult:
+        if not hasattr(_thread_local, "session"):
+            _thread_local.session = build_session()
+        return fetch_data(url, session=_thread_local.session, token=token)
 
-            if yaml_converter is not None:
-                vpn_configs = yaml_converter(result.text)
-                configs = vpn_configs if vpn_configs else []
-            else:
-                configs = prepare_config_content(result.text)
-                if not configs:
-                    decoded_content = try_decode_base64_content(result.text)
-                    if decoded_content:
-                        log(f"Auto-detected base64 format for {corresponding_url[:80]}...")
-                        configs = prepare_config_content(decoded_content)
+    executor = ExecutorCache.get('url_fetch', max_workers=min(get_specs().safe_fetch_workers(), max(1, len(urls))))
+    future_to_url = {executor.submit(_fetch_with_session, url): url for url in urls}
+    for future in concurrent.futures.as_completed(future_to_url):
+        result = future.result()
+        corresponding_url = future_to_url[future]
+        if stats:
+            stats.record_fetch(corresponding_url, result.success, result.status_code, result.error)
 
-            unique_configs: List[str] = []
-            added = add_unique(configs, unique_configs, global_seen, global_seen_lock)
-            if added < len(configs):
-                log(f"  {corresponding_url[:60]}: {added}/{len(configs)} new (rest already seen)")
+        if not result.success:
+            log(f"Failed fetch {corresponding_url[:80]}: {result.error[:80]}")
+            continue
 
-            if stats:
-                stats.record_config_yield(corresponding_url, raw=len(unique_configs))
+        if yaml_converter is not None:
+            vpn_configs = yaml_converter(result.text)
+            configs = vpn_configs if vpn_configs else []
+        else:
+            configs = prepare_config_content(result.text)
+            if not configs:
+                decoded_content = try_decode_base64_content(result.text)
+                if decoded_content:
+                    log(f"Auto-detected base64 format for {corresponding_url[:80]}...")
+                    configs = prepare_config_content(decoded_content)
 
-            if not unique_configs:
-                result.text = ""
-                continue
+        unique_configs: List[str] = []
+        added = add_unique(configs, unique_configs, global_seen, global_seen_lock)
+        if added < len(configs):
+            log(f"  {corresponding_url[:60]}: {added}/{len(configs)} new (rest already seen)")
 
-            if tagger is not None:
-                source_label = label if label == corresponding_url else f"{label}:{corresponding_url[:60]}"
-                tagger.tag_batch(unique_configs, source=source_label)
+        if stats:
+            stats.record_config_yield(corresponding_url, raw=len(unique_configs))
+
+        if not unique_configs:
+            result.text = ""
+            continue
+
+        if tagger is not None:
+            source_label = label if label == corresponding_url else f"{label}:{corresponding_url[:60]}"
+            tagger.tag_batch(unique_configs, source=source_label)
 
         if add_to_all:
             target_all.extend(unique_configs)
@@ -148,12 +152,6 @@ def _fetch_and_process_urls(
                 log(f"  telegram scrape failed for {corresponding_url[:60]}: {type(e).__name__}: {str(e)[:80]}")
 
         result.text = ""
-
-    finally:
-        try:
-            sess.close()
-        except Exception:
-            pass
 
 
 def download_all_configs(output_dir: str = "../githubmirror",

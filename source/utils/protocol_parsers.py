@@ -25,6 +25,7 @@ import re
 from typing import Dict, Optional, Tuple
 from urllib.parse import urlparse, parse_qs, unquote
 
+from config.settings import TLS_FINGERPRINT
 from utils.logger import log
 from utils.security_filter import SS_WEAK_CIPHERS
 from utils.vpn_config import parse_url as vpn_parse_url
@@ -74,12 +75,12 @@ def _parse_user_host_port(base_part: str) -> Optional[Tuple[str, str, int]]:
     return user, hostname, port
 
 
-def _make_tls_settings(sni: str, fp: str = 'chrome') -> dict:
+def _make_tls_settings(sni: str, fp: str = None) -> dict:
     """Build tlsSettings dict."""
-    return {"serverName": sni, "fingerprint": fp}
+    return {"serverName": sni, "fingerprint": fp or TLS_FINGERPRINT}
 
 
-def _make_reality_settings(sni: str, pbk: str, fp: str = 'chrome', sid: str = '') -> Optional[dict]:
+def _make_reality_settings(sni: str, pbk: str, fp: str = None, sid: str = '') -> Optional[dict]:
     """Build realitySettings dict. Returns None if sni or pbk is missing."""
     sni = sni.strip()
     pbk = pbk.strip()
@@ -116,12 +117,14 @@ def _make_stream_settings(
         sni = params.get('sni', [default_host])[0]
         if not sni:
             sni = default_host
-        stream["tlsSettings"] = _make_tls_settings(sni, params.get('fp', ['chrome'])[0])
+        fp_from_url = params.get('fp', [None])[0] or None
+        stream["tlsSettings"] = _make_tls_settings(sni, fp_from_url)
     elif security == 'reality':
+        fp_from_url = params.get('fp', [None])[0] or None
         reality = _make_reality_settings(
             params.get('sni', [''])[0],
             params.get('pbk', [''])[0],
-            params.get('fp', ['chrome'])[0],
+            fp_from_url,
             params.get('sid', [''])[0],
         )
         if reality is None:

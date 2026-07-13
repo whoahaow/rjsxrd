@@ -36,37 +36,32 @@ def _get_env_proxy() -> Optional[str]:
     return os.environ.get('HTTPS_PROXY') or os.environ.get('HTTP_PROXY') or os.environ.get('ALL_PROXY')
 
 
-def build_session(max_pool_size: int = 4, proxy_url: Optional[str] = None, token: Optional[str] = None) -> Session:
-    """Builds a curl_cffi session with proper proxy support and optional auth.
-    
+def build_session(max_pool_size: int = 4, proxy_url: Optional[str] = None) -> Session:
+    """Builds a curl_cffi session with proper proxy support.
+
     Args:
         max_pool_size: Connection pool size (used for compatibility, curl_cffi handles pooling internally)
         proxy_url: Optional proxy URL (e.g., 'socks5h://127.0.0.1:10808').
                     If not provided, checks environment variables.
-        token: Optional Bearer token for authenticated requests (e.g., GitHub token).
-    
+
     Note: Uses curl_cffi for better performance and TLS fingerprinting.
     """
     # Use provided proxy or fall back to environment variable
     effective_proxy = proxy_url or _get_env_proxy()
-    
+
     # Create curl_cffi session with Chrome impersonation
     session = Session(impersonate="chrome124")
-    
+
     # Configure proxy if present
     if effective_proxy:
         session.proxies = {
             'http': effective_proxy,
             'https': effective_proxy,
         }
-    
+
     # Set user agent
     session.headers.update({"User-Agent": CHROME_UA})
-    
-    # Add auth token if provided
-    if token:
-        session.headers.update({"Authorization": f"Bearer {token}"})
-    
+
     return session
 
 
@@ -79,7 +74,9 @@ def fetch_data(url: str, timeout: int = 5, max_attempts: int = 3, session=None, 
         url: URL to fetch
         timeout: Request timeout in seconds (default: 5)
         max_attempts: Number of retry attempts (default: 3)
-        session: Optional existing session
+        session: Optional shared session. When provided, reuses it instead of
+                 creating a new one. Reduces TLS handshake overhead across
+                 multiple fetches. Token is sent per-request, not on the session.
         proxy_url: Optional proxy URL for routing request.
                   If not provided, uses environment variable (set by --proxy arg).
         token: Optional Bearer token. Only sent for GitHub URLs (github.com / raw.githubusercontent.com).
@@ -93,17 +90,28 @@ def fetch_data(url: str, timeout: int = 5, max_attempts: int = 3, session=None, 
     """
     # Use provided proxy or fall back to environment
     effective_proxy = proxy_url or _get_env_proxy()
-    
+
     # Only pass token for GitHub URLs — avoids leaking auth to random hosts
     effective_token = token if token and ('github.com' in url or 'raw.githubusercontent.com' in url) else None
-    
-    sess = session or build_session(max_pool_size=4, proxy_url=effective_proxy, token=effective_token)
-    
+
+    # Create or reuse session. When reusing, token is passed per-request
+    # instead of being baked into the session, so a shared session is safe
+    # for both authenticated and non-authenticated URLs.
+    sess = session
+    if sess is None:
+        sess = build_session(max_pool_size=4, proxy_url=effective_proxy)
+
+    # Per-request auth header (not on session, to avoid leaking to
+    # non-GitHub hosts when using a shared session)
+    extra_headers = {}
+    if effective_token:
+        extra_headers["Authorization"] = f"Bearer {effective_token}"
+
     for attempt in range(1, max_attempts + 1):
         try:
             modified_url = url
             verify = True
-            
+
             if attempt == 2:
                 verify = False
             elif attempt == 3:
@@ -112,16 +120,17 @@ def fetch_data(url: str, timeout: int = 5, max_attempts: int = 3, session=None, 
                 if parsed.scheme == "https":
                     modified_url = parsed._replace(scheme="http").geturl()
                 verify = False
-            
+
             response = sess.get(
                 modified_url,
                 timeout=timeout,
                 verify=verify,
                 allow_redirects=True,
+                headers=extra_headers or None,
             )
             response.raise_for_status()
             return FetchResult(text=response.text, status_code=response.status_code)
-            
+
         except (requests.RequestException, OSError, ValueError, TypeError) as exc:
             if attempt < max_attempts:
                 time.sleep(1)

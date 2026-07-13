@@ -25,7 +25,6 @@ import re
 from typing import Dict, Optional, Tuple
 from urllib.parse import urlparse, parse_qs, unquote
 
-from config.settings import TLS_FINGERPRINT
 from utils.logger import log
 from utils.security_filter import SS_WEAK_CIPHERS
 from utils.vpn_config import parse_url as vpn_parse_url
@@ -77,11 +76,13 @@ def _parse_user_host_port(base_part: str) -> Optional[Tuple[str, str, int]]:
 
 def _make_tls_settings(sni: str, fp: str = None) -> dict:
     """Build tlsSettings dict."""
+    from config.settings import TLS_FINGERPRINT
     return {"serverName": sni, "fingerprint": fp or TLS_FINGERPRINT}
 
 
 def _make_reality_settings(sni: str, pbk: str, fp: str = None, sid: str = '') -> Optional[dict]:
     """Build realitySettings dict. Returns None if sni or pbk is missing."""
+    from config.settings import TLS_FINGERPRINT
     sni = sni.strip()
     pbk = pbk.strip()
     if not sni or not pbk:

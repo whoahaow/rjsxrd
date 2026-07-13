@@ -19,7 +19,6 @@ from urllib.parse import urlparse, parse_qs
 import json
 import base64
 from utils.security_filter import SS_WEAK_CIPHERS
-from config.settings import TLS_FINGERPRINT
 
 
 # ── Base class ──────────────────────────────────────────────────────────
@@ -416,6 +415,7 @@ def _add_stream_settings(outbound: Dict[str, Any], cfg: VPNConfig,
         ss["security"] = "none"
 
     if ss.get("security") == "tls" or (cfg.tls and not security_override):
+        from config.settings import TLS_FINGERPRINT
         tls_settings: Dict[str, Any] = {
             "serverName": cfg.sni or cfg.host,
             "fingerprint": TLS_FINGERPRINT,

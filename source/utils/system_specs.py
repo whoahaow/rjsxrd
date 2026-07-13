@@ -81,10 +81,12 @@ class SystemSpecs:
 
     def safe_fetch_workers(self) -> int:
         """Parallel fetch workers — CPU-bound TLS handshakes limit concurrency.
-        
-        Returns workers count based on CPU cores, clamped to [20, 50].
-        1 core → 20, 2 cores → 30, 4+ cores → 50.
+
+        Returns workers count based on CPU cores.
+        Low-CPU systems get lower concurrency to avoid TLS handshake contention.
         """
+        if self.cpu_count <= 2:
+            return max(10, self.cpu_count * 4 + 4)
         cpu_based = self.cpu_count * 10 + 10
         return max(20, min(50, cpu_based))
 

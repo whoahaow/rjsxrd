@@ -47,6 +47,7 @@ from config.settings import (
     LOG_ERROR_SAMPLE_LENGTH, LOG_XRAY_ERROR_LENGTH, MIN_CHAIN_HOPS,
     CHAIN_TRANSPORT_WHITELIST, CHAIN_SECURITY_REQUIRED,
     TEST_PING_URLS,
+    ENABLE_FRAGMENT, FRAGMENT_PACKETS, FRAGMENT_LENGTH, FRAGMENT_INTERVAL,
 )
 
 # tqdm progress bar. Single source of truth is utils/progress.py.
@@ -209,7 +210,8 @@ class XrayTester:
         outbound = self._url_to_outbound(url, "proxy")
         if not outbound:
             return None
-        
+        self._apply_fragment(outbound)
+
         return {
             "log": {"loglevel": "error", "access": "", "error": ""},
             "inbounds": [{
@@ -293,7 +295,8 @@ class XrayTester:
             if not outbound:
                 log(f"Failed to parse proxy URL at position {len(proxy_urls)-i} (reversed index {i+1})")
                 return None
-            
+            self._apply_fragment(outbound)
+
             if i < len(reversed_urls) - 1:
                 # All hops except the last one need dialerProxy
                 if "streamSettings" not in outbound:
@@ -425,7 +428,8 @@ class XrayTester:
             if not outbound:
                 skipped_urls.append((url, "Failed to parse outbound"))
                 continue
-            
+            self._apply_fragment(outbound)
+
             # VALIDATE: Check for common config errors BEFORE adding to batch
             try:
                 protocol = outbound.get("protocol", "")
@@ -779,6 +783,18 @@ class XrayTester:
         if 'generate_204' in test_url:
             return len(body.strip()) == 0
         return bool(body.strip())
+
+    @staticmethod
+    def _apply_fragment(outbound: Dict) -> None:
+        """Add TLS fragment to outbound streamSettings if enabled in settings."""
+        if not ENABLE_FRAGMENT:
+            return
+        stream = outbound.setdefault("streamSettings", {})
+        stream["fragment"] = {
+            "packets": FRAGMENT_PACKETS,
+            "length": FRAGMENT_LENGTH,
+            "interval": FRAGMENT_INTERVAL,
+        }
 
     async def _tcp_ping(self, host: str, port: int, timeout: float = 1.5) -> bool:
         """Quick async TCP connect. Returns True if port is reachable."""

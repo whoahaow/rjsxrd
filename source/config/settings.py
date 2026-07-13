@@ -218,6 +218,17 @@ VALIDATION_HTTP_TIMEOUT = float(_validate_int_env("VALIDATION_HTTP_TIMEOUT", 5, 
 _TEST_PING_URLS_RAW = os.environ.get("TEST_PING_URLS", "https://www.gstatic.com/generate_204")
 TEST_PING_URLS = [u.strip() for u in _TEST_PING_URLS_RAW.split(",") if u.strip()]
 
+# TLS fingerprint for Xray outbound connections.
+# Options: chrome, firefox, safari, edge, randomized, iCloud, ...
+TLS_FINGERPRINT = os.environ.get("TLS_FINGERPRINT", "chrome")
+
+# TLS fragment (stealth) — splits TLS Client Hello into small TCP segments
+# to evade Deep Packet Inspection. Enabled by default for better test reliability.
+ENABLE_FRAGMENT = os.environ.get("ENABLE_FRAGMENT", "true").lower() in ("true", "1", "yes")
+FRAGMENT_PACKETS = os.environ.get("FRAGMENT_PACKETS", "tlshello")
+FRAGMENT_LENGTH = os.environ.get("FRAGMENT_LENGTH", "100-200")
+FRAGMENT_INTERVAL = os.environ.get("FRAGMENT_INTERVAL", "10-20")
+
 CHROME_UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "

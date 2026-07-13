@@ -296,6 +296,7 @@ XRAY_PERSISTENT_PORT_START = XRAY_PORTS["persistent_start"]
 XRAY_PORT_MAX_ATTEMPTS = _validate_int_env("XRAY_PORT_MAX_ATTEMPTS", 10, 1, 100)
 
 # === Xray process lifecycle (env-overridable) ===
+# XRAY_STARTUP_TIMEOUT: max seconds to wait for xray to bind SOCKS port (default 3)
 XRAY_LIFECYCLE = {
     "startup_timeout": float(_validate_int_env("XRAY_STARTUP_TIMEOUT", 3, 1, 30)),
     "kill_timeout": _validate_int_env("XRAY_PROCESS_KILL_TIMEOUT", 3, 1, 30),

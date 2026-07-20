@@ -454,7 +454,7 @@ Batch mode drastically reduces RAM when testing 1000+ configs. Instead of spawni
 | Ports used | 1000 | 300 (100 × 3 safety margin per chunk) |
 
 **Settings** (all env-overridable, see `source/config/settings.py`):
-- `XRAY_BATCH_MODE` — `"batch"` (default) or `"single"`. Controls which test path is used.
+- `XRAY_BATCH_MODE` — `"single"` (default) or `"batch"`. Controls which test path is used.
 - `XRAY_BATCH_SIZE` — max configs per shared xray (default 1000, range 50-2000). v2rayN uses 1000.
 - `XRAY_BATCH_PROCESSES` — concurrent xray processes (default 1, must be 1 for stable operation).
 - `XRAY_BATCH_STARTUP_DELAY_MS` — delay after xray start before pinging (default 1000ms, range 50-5000).

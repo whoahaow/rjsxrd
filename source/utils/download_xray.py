@@ -70,10 +70,15 @@ def get_current_xray_version(xray_path: Path) -> Optional[str]:
 
 
 def fetch_latest_xray_version() -> Optional[str]:
-    """Fetch the latest xray-core release version from GitHub API.
+    """Fetch the latest xray-core release version from GitHub.
 
-    Returns version string like 'v26.4.1' or None on failure.
+    Tries two methods:
+      1. GitHub API (api.github.com) — fast but may be rate-limited or blocked
+      2. Releases page redirect — follows /releases/latest → /releases/tag/vX.Y.Z
+
+    Returns version string like '26.4.1' or None if all methods fail.
     """
+    # Method 1: GitHub API
     try:
         req = urllib.request.Request(
             GITHUB_API_URL,
@@ -84,9 +89,32 @@ def fetch_latest_xray_version() -> Optional[str]:
             tag = data.get("tag_name", "")
             if tag:
                 return tag.lstrip("vV")
-        return None
     except (urllib.error.URLError, json.JSONDecodeError, OSError, ValueError):
-        return None
+        pass
+
+    # Method 2: Follow /releases/latest redirect to get version from URL
+    try:
+        req = urllib.request.Request(
+            "https://github.com/XTLS/Xray-core/releases/latest",
+            headers={"User-Agent": "rjsxrd/1.0"},
+            method="HEAD",
+        )
+        # Don't follow redirect — we want the redirect URL to parse the version
+        class _NoRedirect(urllib.request.HTTPRedirectHandler):
+            def redirect_request(self, req, fp, code, msg, headers, newurl):
+                return None  # stop at redirect, return it as response
+
+        opener = urllib.request.build_opener(_NoRedirect)
+        with opener.open(req, timeout=10) as resp:
+            redirect_url = resp.headers.get("Location", "")
+            # URL format: /XTLS/Xray-core/releases/tag/v26.4.1
+            match = re.search(r"/tag/v?(\d+\.\d+\.\d+)", redirect_url)
+            if match:
+                return match.group(1)
+    except (urllib.error.URLError, OSError, ValueError):
+        pass
+
+    return None
 
 
 def get_platform_info() -> tuple[Optional[str], Optional[str], Optional[str]]:

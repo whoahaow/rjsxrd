@@ -383,6 +383,16 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--no-publish-raw-files", dest="publish_raw_files", action="store_false",
                         default=None, help="Override PUBLISH_RAW_FILES=False (skip uploading /raw/ subfolders)")
 
+    # Batch mode override.
+    # --batch-mode overrides XRAY_BATCH_MODE to "batch" for this run.
+    # --single-mode overrides XRAY_BATCH_MODE to "single" for this run.
+    # If neither is passed, uses the value from settings.py / env var.
+    # Mutually exclusive — last one wins if both are passed.
+    parser.add_argument("--batch-mode", dest="batch_mode", action="store_true",
+                        default=None, help="Force batch mode: one xray per N configs (shared xray, less RAM)")
+    parser.add_argument("--single-mode", dest="single_mode", action="store_true",
+                        default=None, help="Force single mode: one xray per config (more isolation)")
+
     return parser.parse_args()
 
 
@@ -400,6 +410,14 @@ if __name__ == "__main__":
             'PUBLISH_RAW_FILES': args.publish_raw_files,
         }.items() if v is not None
     }
+
+    # Apply batch mode CLI override (must be set before main() calls any test methods)
+    if args.batch_mode:
+        import config.settings as _settings
+        _settings.BATCH_MODE_OVERRIDE = "batch"
+    elif args.single_mode:
+        import config.settings as _settings
+        _settings.BATCH_MODE_OVERRIDE = "single"
 
     main(
         dry_run=args.dry_run,

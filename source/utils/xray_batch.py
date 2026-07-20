@@ -18,7 +18,7 @@ import requests
 from utils.logger import log
 from utils.executor_cache import ExecutorCache
 from utils.smart_eta import SmartETA
-from config.settings import XRAY_STARTUP_TIMEOUT, MAX_CONFIGS_PER_FILE
+from config.settings import XRAY_STARTUP_TIMEOUT, MAX_CONFIGS_PER_FILE, XRAY_BASE_PORT, XRAY_BATCH_PORT_RANGE_SIZE
 from utils.progress import get_async_pbar, get_sync_pbar as _tqdm_sync
 
 from utils.curl_import import CurlSession, AsyncSession, CURL_CFFI_AVAILABLE
@@ -86,6 +86,185 @@ class BatchRunner:
 
         return (url, False, 0.0, last_error)
 
+    def _process_single_chunk(
+        self, chunk_urls: List[str], chunk_idx: int,
+        timeout: float, concurrency: int, verbose: bool,
+        startup_delay: float,
+    ) -> List[Tuple[str, bool, float]]:
+        """Process one chunk: build shared config, start xray, test, cleanup.
+
+        Runs a single chunk end-to-end: creates one xray config with N
+        SOCKS inbounds, starts xray, waits for port binding, tests all
+        profiles concurrently, kills xray. Returns results for this chunk.
+
+        Designed to run in a worker thread (parallel chunks).
+        """
+        from config.settings import XRAY_BASE_PORT, XRAY_BATCH_PORT_RANGE_SIZE
+
+        chunk_port_base = XRAY_BASE_PORT + chunk_idx * XRAY_BATCH_PORT_RANGE_SIZE
+
+        # Build one config with N inbounds
+        config, port_map = self.tester.create_multi_config(chunk_urls, chunk_port_base)
+        if not config or not port_map:
+            # All configs in this chunk failed to parse
+            return [(url, False, 0.0) for url in chunk_urls]
+
+        # Track parse failures — URLs that create_multi_config couldn't handle
+        tested_urls = set(port_map.values())
+        failed_results = [(url, False, 0.0) for url in chunk_urls if url not in tested_urls]
+
+        # Start xray — poll the first allocated port
+        first_port = min(port_map.keys())
+        success, process, error = self.tester.start_xray_instance(config, first_port)
+        if not success:
+            log(f"Chunk {chunk_idx + 1}: xray failed to start on port {first_port}: {error or 'unknown'}")
+            return failed_results + [(url, False, 0.0) for _port, url in port_map.items()]
+
+        # Wait for port binding (port poll in start_xray_instance already waited,
+        # this extra delay ensures all inbounds are registered in xray's event loop)
+        if startup_delay > 0:
+            time.sleep(startup_delay)
+
+        try:
+            chunk_workers = min(concurrency, max(len(port_map), 1))
+            chunk_results = self._test_batch_concurrent(
+                port_map, timeout, chunk_workers, verbose,
+                executor_name=f'batch_chunk_{chunk_idx}',
+            )
+            return failed_results + chunk_results
+        finally:
+            self.tester.stop_xray_process(process)
+
+    def _test_batch_shared_xray(
+        self, urls: List[str], concurrency: int = None, timeout: float = None,
+        verbose: bool = False,
+        progress_callback: Optional[callable] = None,
+    ) -> List[Tuple[str, bool, float]]:
+        """Batch mode: parallel chunks with shared xray per chunk (v2rayN-style).
+
+        Chunks profiles by XRAY_BATCH_SIZE. Runs up to XRAY_BATCH_PROCESSES
+        chunks IN PARALLEL via ThreadPoolExecutor. Each chunk:
+          - Builds ONE xray config with N SOCKS inbounds
+          - Starts ONE xray, waits for port binding
+          - Tests all profiles concurrently through their assigned SOCKS ports
+          - Kills the xray
+
+        Parallel chunks drastically reduce total time vs sequential:
+        - 1000 configs, batch_size=100, processes=10 → 10 chunks in parallel
+        - Each chunk takes ~2.5s (200ms startup + 2s ping)
+        - Total time: ~2.5s (not 25s sequential!)
+        - RAM: 10 xrays × 50MB = 500MB peak
+
+        Returns:
+            List of (url, success, latency) sorted by latency (working first).
+        """
+        from config.settings import (
+            XRAY_BATCH_SIZE, XRAY_BATCH_PROCESSES,
+            XRAY_BATCH_STARTUP_DELAY_MS,
+            VALIDATION_HTTP_TIMEOUT, ASYNC_CONCURRENCY_WIN32, ASYNC_CONCURRENCY_LINUX,
+        )
+        if not urls:
+            return []
+
+        default_timeout = timeout or VALIDATION_HTTP_TIMEOUT
+        if concurrency is None:
+            from utils.system_specs import get_specs
+            specs = get_specs()
+            concurrency = specs.safe_xray_workers()
+
+        if sys.platform == "win32":
+            concurrency = min(concurrency, ASYNC_CONCURRENCY_WIN32)
+        else:
+            concurrency = min(concurrency, ASYNC_CONCURRENCY_LINUX)
+
+        batch_size = XRAY_BATCH_SIZE
+        max_processes = XRAY_BATCH_PROCESSES
+        startup_delay = XRAY_BATCH_STARTUP_DELAY_MS / 1000.0
+        # Divide global concurrency fairly among parallel chunks
+        per_chunk_concurrency = max(10, concurrency // max_processes)
+
+        log(
+            f"Batch mode (parallel): {len(urls)} configs, "
+            f"batch_size={batch_size}, processes={max_processes}, "
+            f"per_chunk_concurrency={per_chunk_concurrency}, "
+            f"startup_delay={startup_delay}s, timeout={default_timeout}s"
+        )
+
+        # Chunk urls — each chunk gets its own xray with N inbounds
+        chunks = [urls[i:i + batch_size] for i in range(0, len(urls), batch_size)]
+        num_chunks = len(chunks)
+
+        log(
+            f"Split into {num_chunks} chunk(s), processing up to "
+            f"{max_processes} in parallel"
+        )
+
+        all_results: List[Tuple[str, bool, float]] = []
+        results_lock = threading.Lock()
+        working_count = [0]
+        last_callback_file = [0]
+
+        def _run_chunk(chunk_urls: List[str], chunk_idx: int) -> List[Tuple[str, bool, float]]:
+            """Wrapper that processes a chunk and updates shared progress state."""
+            chunk_results = self._process_single_chunk(
+                chunk_urls, chunk_idx, default_timeout,
+                per_chunk_concurrency, verbose, startup_delay,
+            )
+
+            with results_lock:
+                all_results.extend(chunk_results)
+                for _url, success, _latency in chunk_results:
+                    if success:
+                        working_count[0] += 1
+                        if progress_callback:
+                            wc = working_count[0]
+                            if wc // MAX_CONFIGS_PER_FILE > last_callback_file[0]:
+                                last_callback_file[0] = wc // MAX_CONFIGS_PER_FILE
+                                sorted_working = [
+                                    u for u, _s, _l in sorted(
+                                        [(u, s, l) for u, s, l in all_results if s],
+                                        key=lambda x: x[1],
+                                    )
+                                ]
+                                progress_callback(sorted_working, len(all_results))
+
+            log(
+                f"Chunk {chunk_idx + 1}/{num_chunks} done: "
+                f"{sum(1 for _, s, _ in chunk_results if s)}/"
+                f"{len(chunk_results)} working"
+            )
+            return chunk_results
+
+        # Process chunks in parallel using ThreadPoolExecutor
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_processes) as executor:
+            future_to_idx = {
+                executor.submit(_run_chunk, chunks[i], i): i
+                for i in range(num_chunks)
+            }
+            for future in concurrent.futures.as_completed(future_to_idx):
+                idx = future_to_idx[future]
+                try:
+                    future.result(timeout=default_timeout + 30)
+                except concurrent.futures.TimeoutError:
+                    log(f"Chunk {idx + 1}: timed out after {default_timeout + 30}s")
+                except Exception as e:
+                    log(f"Chunk {idx + 1}: failed with {type(e).__name__}: {e}")
+
+        # Sort final results: working first (by latency), failed last
+        working = [(url, s, l) for url, s, l in all_results if s]
+        working.sort(key=lambda x: x[2])
+        failed = [(url, s, l) for url, s, l in all_results if not s]
+        sorted_results = working + failed
+
+        success_rate = len(working) / len(urls) * 100 if urls else 0
+        log(
+            f"Batch mode complete: {len(working)}/{len(urls)} working "
+            f"({success_rate:.1f}%) across {num_chunks} parallel chunk(s)"
+        )
+        self.tester._print_error_summary()
+
+        return sorted_results
+
     def test_batch(self, urls: List[str], concurrency: int = None, timeout: float = None,
                    verbose: bool = False,
                    progress_callback: Optional[callable] = None) -> List[Tuple[str, bool, float]]:
@@ -99,6 +278,12 @@ class BatchRunner:
         """
         if not urls:
             return []
+
+        # Check batch mode — short-circuit to shared xray if enabled
+        from config.settings import XRAY_BATCH_MODE, BATCH_MODE_OVERRIDE
+        batch_mode = BATCH_MODE_OVERRIDE if BATCH_MODE_OVERRIDE is not None else XRAY_BATCH_MODE
+        if batch_mode == "batch":
+            return self._test_batch_shared_xray(urls, concurrency, timeout, verbose, progress_callback)
 
         try:
             from config.settings import VALIDATION_HTTP_TIMEOUT, ASYNC_CONCURRENCY_WIN32, ASYNC_CONCURRENCY_LINUX
@@ -546,8 +731,15 @@ class BatchRunner:
         return working
 
     def _test_batch_concurrent(self, port_map: Dict[int, str], timeout: float, concurrency: int,
-                                verbose: bool = False) -> List[Tuple[str, bool, float]]:
-        """Test all configs in batch concurrently through different ports."""
+                                verbose: bool = False,
+                                executor_name: Optional[str] = None) -> List[Tuple[str, bool, float]]:
+        """Test all configs in batch concurrently through different ports.
+
+        Args:
+            executor_name: Unique name for ExecutorCache to avoid cross-caller
+                contention on the same thread pool. Each parallel chunk should
+                use its own name (e.g. 'batch_chunk_0', 'batch_chunk_1').
+        """
         results = []
         failed_ports = []
 
@@ -564,7 +756,8 @@ class BatchRunner:
                 failed_ports.append(port)
                 return (url, False, 0.0)
 
-        executor = ExecutorCache.get('xray_test', max_workers=concurrency)
+        exec_name = executor_name or 'xray_test'
+        executor = ExecutorCache.get(exec_name, max_workers=concurrency)
         futures = {executor.submit(test_port, port): port for port in port_map.keys()}
         for future in concurrent.futures.as_completed(futures):
             try:

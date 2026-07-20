@@ -49,7 +49,7 @@ tgc: [t.me/rjsxrd](https://t.me/rjsxrd)
 
 ## Документация
 
-Полная документация — **[docs/index.md](docs/index.md)**. Быстрый переход:
+Полная документация — **[docs/readme.md](docs/readme.md)**. Быстрый переход:
 
 | Раздел | Описание |
 |--------|----------|
@@ -451,7 +451,7 @@ source/              - исходный код генератора
   └─ README.md - документация по тестам
  .github/workflows/   - CI/CD (авто-обновление ежедневно)
  README.md            - этот файл
- docs/                - документация проекта (см. docs/index.md)
+ docs/                - документация проекта (см. docs/readme.md)
 ```
 
 ---
@@ -505,6 +505,12 @@ python main.py --skip-xray
 **TCP пинг вместо Xray (быстрее, но менее точно):**
 ```bash
 python main.py --tcp-ping
+```
+
+**Batch-режим (shared Xray, экономия RAM для тысяч конфигов):**
+```bash
+python main.py --batch-mode              # через CLI-флаг
+XRAY_BATCH_MODE=batch python main.py     # через переменную окружения
 ```
 
 **Использовать один прокси:**

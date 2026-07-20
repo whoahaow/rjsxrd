@@ -124,7 +124,7 @@ rjsxrd/
 │   │   ├── test_yaml_converter.py # 28 YAML converter tests
 │   │   └── README.md
 │   └── requirements.txt
-├── docs/                   # Documentation (user, operation, development — see docs/index.md)
+├── docs/                   # Documentation (user, operation, development — see docs/readme.md)
 ├── .github/workflows/
 │   └── frequent_update.yml # GitHub Actions (every 2 days)
 ├── pyproject.toml          # Project config (ruff, mypy, black, pytest)
@@ -440,6 +440,37 @@ python main.py --proxy-chain="vless://hop1,vless://hop2,vless://hop3"
 - **Concurrent Xray testing** (Linux: 300, Windows: 50 — each xray ~50MB RAM, swap+earlyoom safety net)
 - **Platform-aware concurrency** (higher on Linux due to lower process overhead)
 
+### Batch Mode (Shared Xray)
+Batch mode drastically reduces RAM when testing 1000+ configs. Instead of spawning one xray per config (each 50MB), it spawns one xray per N configs with N SOCKS inbounds — **v2rayN-style**.
+
+**Chunks run in parallel** via ThreadPoolExecutor, up to `XRAY_BATCH_PROCESSES` at once.
+
+| Metric | Single mode (per config) | Batch mode (parallel chunks) |
+|--------|------------------------|------------------------------|
+| Xray instances for 1000 configs | 1000 (at concurrency cap) | 10 (at 100 configs/xray, 10 parallel) |
+| RAM at peak | 50MB × concurrency cap = 15GB at 300 | 50MB × processes = 500MB at 10 |
+| Time for 1000 configs | ~10s (at 300 concurrency, OOM risk) | ~2.5s (10 parallel chunks) |
+| Config file writes | 1000 | 10 |
+| Ports used | 1000 | 300 (100 × 3 safety margin per chunk) |
+
+**Settings** (all env-overridable, see `source/config/settings.py`):
+- `XRAY_BATCH_MODE` — `"single"` (default) or `"batch"`. Controls which test path is used.
+- `XRAY_BATCH_SIZE` — max configs per shared xray (default 100, range 10-500). v2rayN uses ~100.
+- `XRAY_BATCH_PROCESSES` — max concurrent xray processes in batch mode (default 2, range 1-16). Each ≈50MB.
+- `XRAY_BATCH_STARTUP_DELAY_MS` — delay after xray start before pinging (default 1000ms, range 200-5000). v2rayN uses 1000ms.
+- `XRAY_BATCH_PORT_RANGE_SIZE` — port range per chunk (default 200, range 20-1000). Must be ≥ XRAY_BATCH_SIZE.
+
+**CLI override**: `--batch-mode` / `--single-mode` forces the mode for one run without changing the env var or settings file.
+
+**Architecture (parallel chunks):**
+1. Configs are chunked by `XRAY_BATCH_SIZE`
+2. Up to `XRAY_BATCH_PROCESSES` chunks run **in parallel** via ThreadPoolExecutor
+3. Each chunk builds ONE xray config with N SOCKS inbounds (`create_multi_config()`)
+4. Each chunk starts ONE xray, waits `XRAY_BATCH_STARTUP_DELAY_MS` for port binding
+5. Each chunk tests all its profiles concurrently through their assigned SOCKS ports
+6. Each chunk kills its xray when done
+7. Results are aggregated from all chunks, sorted by latency
+
 ### Caching
 - **DNS cache** with 60s TTL (lock-free, aiodns resolver)
 - **Host/port extraction cache** to avoid reparsing
@@ -453,7 +484,7 @@ python main.py --proxy-chain="vless://hop1,vless://hop2,vless://hop3"
 - **Environment proxy** support (HTTPS_PROXY/HTTP_PROXY/ALL_PROXY)
 
 ### Resource Management
-- **Dynamic port allocation** (BASE_PORT=20000, ranges: batch 20k-22k, chains 22k-24k, persistent 24k-25k)
+- **Dynamic port allocation** (BASE_PORT=20000, ranges: batch 20k-22k, chains 22k-24k, persistent 24k-25k). In batch mode, ports are allocated per chunk: `base_port + chunk_idx * XRAY_BATCH_PORT_RANGE_SIZE` to prevent collisions across concurrent chunks.
 - **Process cleanup** with signal handlers + atexit hooks + psutil fallback
 - **ResourceMonitor** background thread for CPU/RAM/network sampling with end-of-run report
 - **ProxyMonitor** background thread for proxy health checks (30s interval) with `_active_proxy_monitors` global registry
@@ -477,6 +508,8 @@ Options:
   --proxy=<url>              Single proxy URL to use (vless://, socks5://, etc.)
   --proxy-chain=<urls>       Comma-separated proxy chain (proxy1,proxy2) for chained routing
   --verbose                  Enable verbose logging (skipped config details, etc.)
+  --batch-mode               Force batch mode: one xray per N configs (shared xray, less RAM). Overrides XRAY_BATCH_MODE env/setting.
+  --single-mode              Force single mode: one xray per config (more isolation). Overrides XRAY_BATCH_MODE env/setting.
 
 Feature flag overrides (override config/settings.py values for this run):
   --enable-default-files     Override ENABLE_DEFAULT_FILES=True
@@ -800,7 +833,13 @@ SS_WEAK_CIPHERS = {...}    # Слабые шифры (отвергаются) �
 - Maximum compatibility (no cross-config interference)
 - Accurate latency measurement
 - Easier debugging (isolated failures)
-- Matches v2rayN approach
+- **Default mode** (`XRAY_BATCH_MODE=single`) — uses one xray per config
+
+### Why batch mode (shared Xray)?
+- **v2rayN-style** — one xray with N SOCKS inbounds handles N configs simultaneously
+- **~50x less RAM** at high concurrency: 2 xrays × 50MB vs 100 xrays × 50MB
+- **Switchable** via `XRAY_BATCH_MODE=batch` or `--batch-mode` CLI flag
+- See [Batch Mode](#batch-mode-shared-xray) section for full details
 
 ### Why two-tier file system (raw + verified)?
 - Transparency (users see untested configs)

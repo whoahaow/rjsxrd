@@ -45,6 +45,11 @@ nano ../.env              # укажите GITHUB_TOKEN и REPO_NAME
 | `FRAGMENT_LENGTH` | 100-200 | Диапазон длины фрагментов |
 | `FRAGMENT_INTERVAL` | 10-20 | Диапазон интервала фрагментов |
 | `XRAY_STARTUP_TIMEOUT` | 3 | Таймаут запуска Xray-core (сек) |
+| `XRAY_BATCH_MODE` | single | Режим тестирования: single или batch |
+| `XRAY_BATCH_SIZE` | 100 | Конфигов на один Xray в batch-режиме |
+| `XRAY_BATCH_PROCESSES` | 10 | Параллельных Xray процессов в batch-режиме |
+| `XRAY_BATCH_STARTUP_DELAY_MS` | 200 | Задержка перед пингом (мс) |
+| `XRAY_BATCH_PORT_RANGE_SIZE` | 300 | Диапазон портов на chunk |
 
 ## Запуск
 

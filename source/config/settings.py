@@ -310,6 +310,43 @@ XRAY_PROCESS_FORCE_KILL_TIMEOUT = XRAY_LIFECYCLE["force_kill_timeout"]
 # xray-core takes ~15-30MB idle, spikes to ~50MB during TLS handshake
 _ESTIMATED_MEM_PER_XRAY_MB = 50
 
+# === Batch mode testing (shared xray, N inbounds per process) ===
+# XRAY_BATCH_MODE controls how configs are tested:
+#   "single" — one xray process per config (current default, max isolation)
+#   "batch"  — one xray process handles N configs via N SOCKS inbounds
+#             (v2rayN-style, far less RAM at high concurrency)
+XRAY_BATCH_MODE = os.environ.get("XRAY_BATCH_MODE", "single")
+if XRAY_BATCH_MODE not in ("single", "batch"):
+    log(f"Warning: XRAY_BATCH_MODE='{XRAY_BATCH_MODE}' invalid, falling back to 'single'")
+    XRAY_BATCH_MODE = "single"
+
+# Max configs per shared xray instance (inbounds per config).
+# v2rayN default: 100. Higher = fewer xray spawns but bigger config files.
+# xray-core handles ~100-150 inbounds reliably; beyond that crashes increase.
+XRAY_BATCH_SIZE = _validate_int_env("XRAY_BATCH_SIZE", 100, 10, 500)
+
+# Max concurrent xray processes in batch mode (env XRAY_BATCH_PROCESSES, default 10, range 1-64).
+# These run IN PARALLEL across chunks. Each processes XRAY_BATCH_SIZE configs.
+# EXAMPLE: with batch_size=100 and processes=10: 1000 configs tested in one parallel sweep.
+# RAM: each xray ≈ 50MB. At 10 parallel xrays ≈ 500MB peak. Tune down on low-RAM systems.
+XRAY_BATCH_PROCESSES = _validate_int_env("XRAY_BATCH_PROCESSES", 10, 1, 64)
+
+# Delay (milliseconds) after starting xray before sending pings.
+# v2rayN uses 1000ms. With port polling (start_xray_instance does TCP poll),
+# 200ms is usually enough. Increase if you see "connection refused" errors.
+XRAY_BATCH_STARTUP_DELAY_MS = _validate_int_env("XRAY_BATCH_STARTUP_DELAY_MS", 200, 50, 5000)
+
+# Port range size per batch chunk. Must be >= XRAY_BATCH_SIZE to guarantee
+# unique ports. Set higher if many ports on the system are already in use.
+# Formula: XRAY_BATCH_SIZE * 2 is safe (allows for port collision skips).
+XRAY_BATCH_PORT_RANGE_SIZE = _validate_int_env("XRAY_BATCH_PORT_RANGE_SIZE", 200, 20, 1000)
+
+# Module-level batch mode override (set by main.py after CLI parsing).
+# None = use XRAY_BATCH_MODE as-is. "single" or "batch" = force this mode.
+# This must be mutable (not a module constant) because main.py needs to
+# override it after settings.py has already been imported.
+BATCH_MODE_OVERRIDE = None
+
 # === Validation concurrency ===
 V2RAYN_MAX_CONCURRENCY = 1000  # Reference: v2rayN SpeedTestPageSize
 MAX_SAFE_CONCURRENCY = 500     # Conservative cap to avoid resource exhaustion

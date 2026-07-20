@@ -39,8 +39,10 @@ python main.py [OPTIONS]
 | _(без флага)_ | Xray-core: запуск отдельного процесса Xray на каждый конфиг, HTTP-тест через SOCKS5. Максимальная точность. |
 | `--tcp-ping` | TCP-пинг: быстрое тестирование через TCP-соединение к host:port. В 10-20x быстрее Xray. Неявно включает `--skip-xray`. |
 | `--skip-xray` | Пропуск верификации — только raw-файлы без проверки |
+| `--batch-mode` | Batch-режим: один Xray на N конфигов (shared Xray, меньше RAM). Переопределяет XRAY_BATCH_MODE. |
+| `--single-mode` | Single-режим: один Xray на конфиг (больше изоляции). Переопределяет XRAY_BATCH_MODE. |
 
-**Сравнение режимов:**
+**Сравнение режимов верификации:**
 
 | Режим | Точность | Время (на ~700 конфигов) | Зависимости |
 |-------|----------|--------------------------|-------------|
@@ -103,3 +105,8 @@ python main.py --dry-run --no-proxy-check --verbose
 | `ASYNC_CONCURRENCY_LINUX` | 300 | Параллельность Xray на Linux |
 | `VALIDATION_TCP_TIMEOUT` | 3 | Таймаут TCP-соединения (с) |
 | `VALIDATION_HTTP_TIMEOUT` | 5 | Таймаут HTTP-запроса (с) |
+| `XRAY_BATCH_MODE` | single | Режим тестирования: single или batch |
+| `XRAY_BATCH_SIZE` | 100 | Конфигов на один Xray в batch-режиме |
+| `XRAY_BATCH_PROCESSES` | 10 | Параллельных Xray процессов в batch-режиме |
+| `XRAY_BATCH_STARTUP_DELAY_MS` | 200 | Задержка перед пингом после старта Xray (мс) |
+| `XRAY_BATCH_PORT_RANGE_SIZE` | 300 | Диапазон портов на chunk в batch-режиме |

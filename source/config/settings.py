@@ -321,16 +321,13 @@ if XRAY_BATCH_MODE not in ("single", "batch"):
     XRAY_BATCH_MODE = "single"
 
 # Max configs per shared xray instance (inbounds per config).
-# v2rayN default: 100. Higher = fewer xray spawns but bigger config files.
-# xray-core handles ~100-150 inbounds reliably; beyond that crashes increase.
-XRAY_BATCH_SIZE = _validate_int_env("XRAY_BATCH_SIZE", 100, 10, 500)
+# v2rayN default: 1000. Higher = fewer xray spawns but bigger config files.
+# xray-core handles ~1000 inbounds reliably with proper port allocation.
+XRAY_BATCH_SIZE = _validate_int_env("XRAY_BATCH_SIZE", 1000, 50, 2000)
 
-# Max concurrent xray processes in batch mode (env XRAY_BATCH_PROCESSES, default 3, range 1-64).
-# These run IN PARALLEL across chunks. Each processes XRAY_BATCH_SIZE configs.
-# Higher values increase throughput but also increase port race risk.
-# 3 is a safe balance: 3 x 100 = 300 concurrent (same as single mode cap).
-# Increase to 10+ only on systems with abundant RAM and fast port recycling.
-XRAY_BATCH_PROCESSES = _validate_int_env("XRAY_BATCH_PROCESSES", 3, 1, 64)
+# Max concurrent xray processes in batch mode. Set to 1 to match v2rayN
+# exactly — one xray at a time, sequential batches. No port races.
+XRAY_BATCH_PROCESSES = 1
 
 # Delay (milliseconds) after starting xray before sending pings.
 # v2rayN uses 1000ms — this is the documented safe value for xray to
@@ -338,11 +335,9 @@ XRAY_BATCH_PROCESSES = _validate_int_env("XRAY_BATCH_PROCESSES", 3, 1, 64)
 # risk "connection refused" on loaded systems.
 XRAY_BATCH_STARTUP_DELAY_MS = _validate_int_env("XRAY_BATCH_STARTUP_DELAY_MS", 1000, 50, 5000)
 
-# Port range size per batch chunk. Must be >= XRAY_BATCH_SIZE to guarantee
-# unique ports. Set higher if many ports on the system are already in use.
-# Formula: XRAY_BATCH_SIZE * 4 is safe (allows for port probing headroom
-# and TIME_WAIT recycling without colliding with parallel chunks).
-XRAY_BATCH_PORT_RANGE_SIZE = _validate_int_env("XRAY_BATCH_PORT_RANGE_SIZE", 400, 20, 2000)
+# Port range size per batch chunk. Must be >= XRAY_BATCH_SIZE * 2 to allow
+# for port probing headroom. With batch_size=1000, range=2000 gives 2x headroom.
+XRAY_BATCH_PORT_RANGE_SIZE = _validate_int_env("XRAY_BATCH_PORT_RANGE_SIZE", 2000, 100, 5000)
 
 # Module-level batch mode override (set by main.py after CLI parsing).
 # None = use XRAY_BATCH_MODE as-is. "single" or "batch" = force this mode.

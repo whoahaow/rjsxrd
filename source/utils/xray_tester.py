@@ -95,9 +95,9 @@ class XrayTester:
     CHAIN_PORT_START = XRAY_CHAIN_PORT_START
     CHAIN_PORT_END = XRAY_CHAIN_PORT_END
     PERSISTENT_PORT_START = XRAY_PERSISTENT_PORT_START
-    BATCH_SIZE = 100
-    MAX_BATCH_SIZE = 150
-    MIN_BATCH_SIZE = 50
+    BATCH_SIZE = 1000
+    MAX_BATCH_SIZE = 2000
+    MIN_BATCH_SIZE = 100
     
     def __init__(self, xray_path: Optional[str] = None) -> None:
         """Initialize Xray tester."""

@@ -291,9 +291,9 @@ class TestBatchSettings:
         assert XRAY_BATCH_MODE in ("single", "batch")
 
     def test_xray_batch_size_within_bounds(self):
-        """XRAY_BATCH_SIZE is validated within [10, 500]."""
+        """XRAY_BATCH_SIZE is validated within [50, 2000]."""
         from config.settings import XRAY_BATCH_SIZE
-        assert 10 <= XRAY_BATCH_SIZE <= 500
+        assert 50 <= XRAY_BATCH_SIZE <= 2000
 
     def test_xray_batch_processes_within_bounds(self):
         """XRAY_BATCH_PROCESSES is validated within [1, 16]."""
@@ -306,9 +306,9 @@ class TestBatchSettings:
         assert 200 <= XRAY_BATCH_STARTUP_DELAY_MS <= 5000
 
     def test_xray_batch_port_range_size_within_bounds(self):
-        """XRAY_BATCH_PORT_RANGE_SIZE is validated within [20, 1000]."""
+        """XRAY_BATCH_PORT_RANGE_SIZE is validated within [100, 5000]."""
         from config.settings import XRAY_BATCH_PORT_RANGE_SIZE
-        assert 20 <= XRAY_BATCH_PORT_RANGE_SIZE <= 1000
+        assert 100 <= XRAY_BATCH_PORT_RANGE_SIZE <= 5000
 
     def test_batch_mode_override_default_none(self):
         """BATCH_MODE_OVERRIDE defaults to None."""

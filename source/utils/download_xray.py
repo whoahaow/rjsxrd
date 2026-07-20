@@ -7,18 +7,86 @@ Supports: Windows (x86_64), Linux (x86_64, arm64), macOS (x86_64, arm64)
 import os
 import sys
 import platform
+import json
 import urllib.request
+import urllib.error
+import subprocess
 import zipfile
 import tarfile
+import re
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 from utils.logger import log
 
-# Xray-core version to download
-XRAY_VERSION = "v26.2.6"
+# Xray-core version — override with env XRAY_VERSION to pin a specific version.
+# When unset or empty, auto-update fetches the latest release from GitHub.
+XRAY_VERSION = os.environ.get("XRAY_VERSION") or ""
 
 # Base URL for Xray-core releases
 GITHUB_RELEASES_URL = "https://github.com/XTLS/Xray-core/releases/download"
+GITHUB_API_URL = "https://api.github.com/repos/XTLS/Xray-core/releases/latest"
+
+
+def _parse_version(version_str: str) -> Optional[Tuple[int, int, int]]:
+    """Parse a version string like 'v26.2.6' or '26.2.6' into (26, 2, 6)."""
+    clean = version_str.lstrip("vV")
+    match = re.match(r"^(\d+)\.(\d+)\.(\d+)", clean)
+    if match:
+        return (int(match.group(1)), int(match.group(2)), int(match.group(3)))
+    return None
+
+
+def _compare_versions(a: str, b: str) -> int:
+    """Compare two version strings. Returns -1 if a < b, 0 if equal, 1 if a > b."""
+    va = _parse_version(a)
+    vb = _parse_version(b)
+    if va is None or vb is None:
+        return 0  # can't parse, assume equal
+    if va < vb:
+        return -1
+    if va > vb:
+        return 1
+    return 0
+
+
+def get_current_xray_version(xray_path: Path) -> Optional[str]:
+    """Get the installed xray version by running 'xray version'.
+
+    Returns version string like 'v26.2.6' or None if can't determine.
+    """
+    try:
+        result = subprocess.run(
+            [str(xray_path), "version"],
+            capture_output=True, text=True, timeout=10,
+        )
+        # Parse first line: "Xray 26.2.6 (Xray, Penetrates Everything.) ..."
+        line = result.stdout.split("\n")[0] if result.stdout else ""
+        match = re.search(r"Xray\s+v?(\d+\.\d+\.\d+)", line)
+        if match:
+            return f"v{match.group(1)}"
+        return None
+    except (OSError, subprocess.TimeoutExpired, ValueError):
+        return None
+
+
+def fetch_latest_xray_version() -> Optional[str]:
+    """Fetch the latest xray-core release version from GitHub API.
+
+    Returns version string like 'v26.4.1' or None on failure.
+    """
+    try:
+        req = urllib.request.Request(
+            GITHUB_API_URL,
+            headers={"User-Agent": "rjsxrd/1.0", "Accept": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode())
+            tag = data.get("tag_name", "")
+            if tag:
+                return tag.lstrip("vV")
+        return None
+    except (urllib.error.URLError, json.JSONDecodeError, OSError, ValueError):
+        return None
 
 
 def get_platform_info() -> tuple[Optional[str], Optional[str], Optional[str]]:
@@ -113,71 +181,123 @@ def extract_archive(archive_path, extract_dir) -> bool:
         return False
 
 
-def ensure_xray_installed(version=XRAY_VERSION, xray_dir=None, force=False) -> Optional[Path]:
-    """Ensure Xray-core is installed, download if missing.
-    
+def _clean_xray_dir(xray_dir: Path, xray_exe: str) -> None:
+    """Remove xray binary and extracted assets from xray_dir."""
+    for f in xray_dir.iterdir():
+        try:
+            if f.is_file():
+                f.unlink()
+            elif f.is_dir():
+                import shutil
+                shutil.rmtree(f)
+        except OSError:
+            pass
+
+
+def ensure_xray_installed(version=None, xray_dir=None, force=False,
+                          auto_update=True) -> Optional[Path]:
+    """Ensure Xray-core is installed and up-to-date.
+
+    By default fetches the latest version from GitHub. Override with
+    env XRAY_VERSION to pin a specific version.
+
+    Auto-update logic:
+      1. If xray exists and auto_update is on → check version against latest
+         release. If outdated, download latest. If current, skip.
+      2. If xray exists and auto_update is off → use current binary as-is.
+      3. If xray doesn't exist → fetch latest from GitHub API and download.
+
     Args:
-        version: Xray-core version to download
-        xray_dir: Custom installation directory (default: source/xray)
-        force: Force re-download even if already installed
-    
+        version: Xray-core version to pin (default: None = auto-detect latest).
+        xray_dir: Custom installation directory (default: source/xray).
+        force: Force re-download even if already installed and up-to-date.
+        auto_update: Check GitHub API for latest version and update if newer.
+
     Returns:
-        Path: Path to xray binary if successful, None otherwise
+        Path: Path to xray binary if successful, None otherwise.
     """
     # Determine xray directory - always install to source/xray (sibling to utils/)
     if xray_dir is None:
-        # This script is at source/utils/download_xray.py
-        # Install to source/xray/
         xray_dir = Path(__file__).parent.parent / "xray"
     else:
         xray_dir = Path(xray_dir)
-    
+
     # Get platform info
     platform_name, filename, xray_exe = get_platform_info()
-    
+
     if not platform_name:
         log(f"Error: Unsupported platform: {sys.platform} ({platform.machine()})")
         return None
-    
+
     xray_path = xray_dir / xray_exe
-    
-    # Check if already installed
+    target_version = version
+
+    # ── Auto-update: check current vs latest ──────────────────────────
     if xray_path.exists() and not force:
-        return xray_path
-    
-    # Create xray directory
+        if auto_update:
+            current_ver = get_current_xray_version(xray_path)
+            latest_ver = fetch_latest_xray_version()
+            if current_ver and latest_ver:
+                cmp = _compare_versions(current_ver, latest_ver)
+                if cmp < 0:
+                    log(f"Xray update: {current_ver} -> {latest_ver}")
+                    target_version = latest_ver
+                    _clean_xray_dir(xray_dir, xray_exe)
+                elif cmp == 0:
+                    log(f"Xray {current_ver} is current")
+                    return xray_path
+                else:
+                    log(f"Xray {current_ver} is newer than latest {latest_ver} - keeping")
+                    return xray_path
+            elif current_ver:
+                log(f"Xray {current_ver} (could not check for updates)")
+                return xray_path
+            else:
+                log("Xray found but version unknown - re-downloading")
+                _clean_xray_dir(xray_dir, xray_exe)
+        else:
+            return xray_path
+    elif xray_path.exists() and force:
+        _clean_xray_dir(xray_dir, xray_exe)
+
+    # ── Resolve target version ───────────────────────────────────────
+    if not target_version:
+        # No version specified — fetch latest from API
+        target_version = fetch_latest_xray_version()
+        if not target_version:
+            log("Could not fetch latest xray version from GitHub - aborting")
+            return None
+        log(f"Latest xray version: {target_version}")
+
+    # ── Download ─────────────────────────────────────────────────────
     xray_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Build download URL
-    url = f"{GITHUB_RELEASES_URL}/{version}/{filename}"
-    
-    log(f"Downloading Xray-core {version} for {platform_name}...")
+
+    url = f"{GITHUB_RELEASES_URL}/{target_version}/{filename}"
+    log(f"Downloading Xray-core {target_version} for {platform_name}...")
     log(f"URL: {url}")
-    
-    # Download
+
     download_path = Path(filename)
     if not download_file(url, download_path):
         return None
-    
-    # Extract
+
     log(f"Extracting {filename} to {xray_dir}/...")
     if not extract_archive(download_path, xray_dir):
         return None
-    
+
     # Cleanup
     try:
         download_path.unlink()
     except OSError:
         pass
-    
+
     # Make executable on Unix
     if sys.platform != "win32":
         try:
             os.chmod(xray_path, 0o755)
         except (OSError, PermissionError) as e:
             log(f"Warning: Could not set executable permission: {e}")
-    
-    log(f"✓ Xray-core installed: {xray_path.absolute()}")
+
+    log(f"✓ Xray-core {target_version} installed: {xray_path.absolute()}")
     return xray_path
 
 

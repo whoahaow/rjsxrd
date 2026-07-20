@@ -99,9 +99,17 @@ class BatchRunner:
 
         Designed to run in a worker thread (parallel chunks).
         """
-        from config.settings import XRAY_BASE_PORT, XRAY_BATCH_PORT_RANGE_SIZE
+        from config.settings import XRAY_BASE_PORT, XRAY_BATCH_PORT_RANGE_SIZE, XRAY_BATCH_PROCESSES
 
-        chunk_port_base = XRAY_BASE_PORT + chunk_idx * XRAY_BATCH_PORT_RANGE_SIZE
+        # Cycle chunk port base within available space to prevent overflow
+        # past 65535. With XRAY_BASE_PORT=20000, PORT_RANGE_SIZE=300, and
+        # max_batch_port=60000: 133 non-overlapping slots. Chunks beyond 133
+        # recycle earlier slots (by then the original xray is long dead).
+        _max_batch_port = 60000
+        _available = _max_batch_port - XRAY_BASE_PORT
+        _slots = max(XRAY_BATCH_PROCESSES, _available // XRAY_BATCH_PORT_RANGE_SIZE)
+        _cycled_idx = chunk_idx % _slots
+        chunk_port_base = XRAY_BASE_PORT + _cycled_idx * XRAY_BATCH_PORT_RANGE_SIZE
 
         # Build one config with N inbounds
         config, port_map = self.tester.create_multi_config(chunk_urls, chunk_port_base)

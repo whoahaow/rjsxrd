@@ -406,12 +406,38 @@ class XrayTester:
         used_ports = set()
         skipped_urls = []
         
+        # Upper bound: don't allocate ports beyond configured limit
+        port_limit = XRAY_PERSISTENT_PORT_START  # 24000
+        # On Linux with wide range, allow going higher
+        if sys.platform != "win32":
+            port_limit = max(port_limit, 65000)
+        
         for idx, url in enumerate(urls):
             port = base_port + idx
-            if port in used_ports:
-                # Skip to next available port
-                while port in used_ports:
+            # TCP-probe: skip if port is actually in use (handles TIME_WAIT
+            # and cross-chunk collisions in parallel batch mode)
+            max_probe_attempts = XRAY_PORT_MAX_ATTEMPTS
+            for attempt in range(max_probe_attempts):
+                if port in used_ports or port >= port_limit:
+                    port = base_port + idx + attempt + 1
+                    continue
+                try:
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.settimeout(0.1)
+                    result = sock.connect_ex(('127.0.0.1', port))
+                    sock.close()
+                    if result == 0:  # Port is in use
+                        port += 1
+                        continue
+                    break  # Port is free
+                except (OSError, socket.herror, socket.gaierror):
                     port += 1
+                    continue
+            else:
+                # Exhausted probe attempts — skip this config
+                skipped_urls.append((url, f"No free port after {max_probe_attempts} probes"))
+                port = base_port + idx  # Reset for next URL
+                continue
             
             # PRE-VALIDATE: Skip obviously broken configs BEFORE parsing
             # Skip configs that commonly cause Xray to crash entire batch

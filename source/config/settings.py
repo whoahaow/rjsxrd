@@ -325,16 +325,18 @@ if XRAY_BATCH_MODE not in ("single", "batch"):
 # xray-core handles ~100-150 inbounds reliably; beyond that crashes increase.
 XRAY_BATCH_SIZE = _validate_int_env("XRAY_BATCH_SIZE", 100, 10, 500)
 
-# Max concurrent xray processes in batch mode (env XRAY_BATCH_PROCESSES, default 10, range 1-64).
+# Max concurrent xray processes in batch mode (env XRAY_BATCH_PROCESSES, default 3, range 1-64).
 # These run IN PARALLEL across chunks. Each processes XRAY_BATCH_SIZE configs.
-# EXAMPLE: with batch_size=100 and processes=10: 1000 configs tested in one parallel sweep.
-# RAM: each xray ≈ 50MB. At 10 parallel xrays ≈ 500MB peak. Tune down on low-RAM systems.
-XRAY_BATCH_PROCESSES = _validate_int_env("XRAY_BATCH_PROCESSES", 10, 1, 64)
+# Higher values increase throughput but also increase port race risk.
+# 3 is a safe balance: 3 x 100 = 300 concurrent (same as single mode cap).
+# Increase to 10+ only on systems with abundant RAM and fast port recycling.
+XRAY_BATCH_PROCESSES = _validate_int_env("XRAY_BATCH_PROCESSES", 3, 1, 64)
 
 # Delay (milliseconds) after starting xray before sending pings.
-# v2rayN uses 1000ms. With port polling (start_xray_instance does TCP poll),
-# 200ms is usually enough. Increase if you see "connection refused" errors.
-XRAY_BATCH_STARTUP_DELAY_MS = _validate_int_env("XRAY_BATCH_STARTUP_DELAY_MS", 200, 50, 5000)
+# v2rayN uses 1000ms — this is the documented safe value for xray to
+# parse config, load geo files, and bind all inbounds. Lower values
+# risk "connection refused" on loaded systems.
+XRAY_BATCH_STARTUP_DELAY_MS = _validate_int_env("XRAY_BATCH_STARTUP_DELAY_MS", 1000, 50, 5000)
 
 # Port range size per batch chunk. Must be >= XRAY_BATCH_SIZE to guarantee
 # unique ports. Set higher if many ports on the system are already in use.

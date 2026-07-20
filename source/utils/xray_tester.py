@@ -427,12 +427,11 @@ class XrayTester:
                     port = base_port + idx + attempt + 1
                     continue
                 try:
-                    # bind-probe: if we can bind with SO_REUSEADDR, port is
-                    # truly free — including for TIME_WAIT cleanup.
-                    # This is more accurate than connect_ex() which can't
-                    # distinguish "free" from "TIME_WAIT with no listener".
+                    # bind-probe: if we can bind, xray can bind.
+                    # NO SO_REUSEADDR — that would succeed on TIME_WAIT
+                    # ports, but xray doesn't set SO_REUSEADDR on its
+                    # inbounds, so xray would fail with EADDRINUSE.
                     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                     sock.settimeout(0.1)
                     sock.bind(('127.0.0.1', port))
                     sock.close()

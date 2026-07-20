@@ -16,20 +16,16 @@ https://raw.githubusercontent.com/MhdiTaheri/V2rayCollector_Py/refs/heads/main/s
 https://raw.githubusercontent.com/Epodonios/v2ray-configs/refs/heads/main/All_Configs_Sub.txt
 https://raw.githubusercontent.com/MhdiTaheri/V2rayCollector/refs/heads/main/sub/mix
 https://raw.githubusercontent.com/Argh94/Proxy-List/refs/heads/main/All_Config.txt
-https://raw.githubusercontent.com/shabane/kamaji/master/hub/merged.txt
 https://raw.githubusercontent.com/wuqb2i4f/xray-config-toolkit/main/output/base64/mix-uri
 https://raw.githubusercontent.com/AzadNetCH/Clash/refs/heads/main/AzadNet.txt
 https://raw.githubusercontent.com/V2RayRoot/V2RayConfig/refs/heads/main/Config/vless.txt
 https://raw.githubusercontent.com/4n0nymou3/multi-proxy-config-fetcher/refs/heads/main/configs/proxy_configs.txt
 https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/main/subscriptions/v2ray/all_sub.txt
 https://raw.githubusercontent.com/barry-far/V2ray-Config/refs/heads/main/All_Configs_Sub.txt
-https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/refs/heads/main/all_configs.txt
 https://raw.githubusercontent.com/mahdibland/V2RayAggregator/refs/heads/master/sub/sub_merge.txt
 https://raw.githubusercontent.com/F0rc3Run/F0rc3Run/refs/heads/main/Best-Results/proxies.txt
 https://raw.githubusercontent.com/Surfboardv2ray/TGParse/refs/heads/main/configtg.txt
 https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/refs/heads/main/configs/Hysteria2.txt
-https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/refs/heads/main/configs/ShadowSocks.txt
-https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/refs/heads/main/configs/Vless.txt
 https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/refs/heads/main/configs/Vmess.txt
 https://raw.githubusercontent.com/NiREvil/vless/main/sub/SSTime
 https://raw.githubusercontent.com/Mahdi0024/ProxyCollector/master/sub/proxies.txt
@@ -38,7 +34,6 @@ https://raw.githubusercontent.com/Barabama/FreeNodes/refs/heads/feat/ai-crawler-
 https://raw.githubusercontent.com/Barabama/FreeNodes/refs/heads/feat/ai-crawler-v2/nodes/clashnode.txt
 https://raw.githubusercontent.com/Barabama/FreeNodes/refs/heads/feat/ai-crawler-v2/nodes/clashstair.txt
 https://raw.githubusercontent.com/Barabama/FreeNodes/refs/heads/feat/ai-crawler-v2/nodes/freeclashnode.txt
-https://raw.githubusercontent.com/Barabama/FreeNodes/refs/heads/feat/ai-crawler-v2/nodes/merged.txt
 https://raw.githubusercontent.com/Barabama/FreeNodes/refs/heads/feat/ai-crawler-v2/nodes/nodev2ray.txt
 https://raw.githubusercontent.com/Barabama/FreeNodes/refs/heads/feat/ai-crawler-v2/nodes/oneclash.txt
 https://raw.githubusercontent.com/ALIILAPRO/v2rayNG-Config/refs/heads/main/server.txt
@@ -51,7 +46,6 @@ https://raw.githubusercontent.com/xiaoji235/airport-free/refs/heads/main/v2ray/v
 https://raw.githubusercontent.com/chengaopan/AutoMergePublicNodes/refs/heads/master/list_raw.txt
 https://raw.githubusercontent.com/mehran1404/Sub_Link/refs/heads/main/V2RAY-Sub.txt
 https://github.com/nyeinkokoaung404/V2ray-Configs/raw/refs/heads/main/All_Configs_Sub.txt
-https://raw.githubusercontent.com/lagzian/SS-Collector/refs/heads/main/mix.txt
 https://raw.githubusercontent.com/hamedcode/port-based-v2ray-configs/main/sub/vless.txt
 https://raw.githubusercontent.com/hamedcode/port-based-v2ray-configs/main/sub/vmess.txt
 https://raw.githubusercontent.com/hamedcode/port-based-v2ray-configs/main/sub/trojan.txt
@@ -172,7 +166,6 @@ https://raw.githubusercontent.com/ewecrow78-gif/whitelist1/main/list.txt
 https://raw.githubusercontent.com/Temnuk/naabuzil/refs/heads/main/wifi
 https://raw.githubusercontent.com/LimeHi/LimeVPN/refs/heads/main/LimeVPN.txt?v=1
 https://gitverse.ru/api/repos/ru-wbl/wl/raw/branch/master/OutlineVPN%2FOutlineVPN.txt
-https://raw.githubusercontent.com/Kirill39127/-my-sub/refs/heads/main/sub.txt
 https://raw.githubusercontent.com/ShadowException/VPN/refs/heads/main/configs/VPN-cat
 https://raw.githubusercontent.com/luxxuria/harvester/refs/heads/main/non_ru.txt
 https://raw.githubusercontent.com/Maskkost93/kizyak-vpn-4.0/refs/heads/main/kizyakbeta7.txt
@@ -186,29 +179,22 @@ https://app.proxy-slon.shop/v1/service/sub/e754770b-a24c-4093-920a-a22d10b24f75
 https://www.dropbox.com/scl/fi/sk6i6etx9mmx5xm98xu36/VLESS.txt?rlkey=utvnt1nbv07ixxwax6icu7fca&raw=1
 https://translate.yandex.ru/translate?url=https://raw.githubusercontent.com/v0id9/vpn-configs/refs/heads/main/vpn.txt
 https://app.proxy-slon.shop/v1/service/sub/eb73dd50-2e6d-447b-baa9-ed6efc81940c
-https://raw.githubusercontent.com/Omid-0x0x0x/vless/refs/heads/main/configs/all_vless_config.txt
 https://raw.githubusercontent.com/seknei3/psychic-fiestas/refs/heads/main/vpn.txt
 https://raw.githubusercontent.com/Danialsamadi/v2go/refs/heads/main/Splitted-By-Protocol/hy2.txt
 https://raw.githubusercontent.com/Danialsamadi/v2go/refs/heads/main/Splitted-By-Protocol/ss.txt
 https://raw.githubusercontent.com/Danialsamadi/v2go/refs/heads/main/Splitted-By-Protocol/trojan.txt
 https://raw.githubusercontent.com/Danialsamadi/v2go/refs/heads/main/Splitted-By-Protocol/vless.txt
 https://raw.githubusercontent.com/Danialsamadi/v2go/refs/heads/main/Splitted-By-Protocol/vmess.txt
-https://raw.githubusercontent.com/DukeMehdi/FreeList-V2ray-Configs/refs/heads/main/Configs/VLESS-DukeMehdi-Configs.txt
 https://raw.githubusercontent.com/DukeMehdi/FreeList-V2ray-Configs/refs/heads/main/Configs/VMESS-DukeMehdi-Configs.txt
 https://raw.githubusercontent.com/DukeMehdi/FreeList-V2ray-Configs/refs/heads/main/Configs/TROJAN-DukeMehdi-Configs.txt
 https://raw.githubusercontent.com/DukeMehdi/FreeList-V2ray-Configs/refs/heads/main/Configs/SS-DukeMehdi-Configs.txt
-https://raw.githubusercontent.com/giromo/Collector/refs/heads/main/All_Configs_Sub.txt
-https://raw.githubusercontent.com/vpnineh/config/refs/heads/main/sub/all_configs.txt
 https://raw.githubusercontent.com/ermaozi/get_subscribe/refs/heads/main/subscribe/v2ray.txt
 https://raw.githubusercontent.com/Argh73/V2Ray-Vault/refs/heads/main/data/sub/all_configs.txt
-https://raw.githubusercontent.com/Argh73/VpnConfigCollector/refs/heads/main/All_Configs_Sub.txt
 https://raw.githubusercontent.com/kingowow/Kingo-vpn/refs/heads/main/merged_config.txt
 https://raw.githubusercontent.com/redfree8/config-fetcher/refs/heads/main/configs/proxy_configs.txt
-https://raw.githubusercontent.com/nzea243/ikoV31tud_vpn/refs/heads/main/tri_228.txt
 https://gist.githubusercontent.com/pidarasuebisov-afk/e220b44264242d1a97c0908aba091edd/raw/PKN%20cocnyL
 https://raw.githubusercontent.com/mahdibland/ShadowsocksAggregator/master/Eternity.txt
 https://raw.githubusercontent.com/HenonBank/Russia_LTE/refs/heads/main/v2ray_sub.txt
-https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/all_extracted_configs.txt
 https://raw.githubusercontent.com/mahdibland/V2RayAggregator/refs/heads/master/Eternity.txt
 https://gist.githubusercontent.com/shirinyannver31-ux/6b16a88d07db0830b49ab8b02536c3b6/raw/VedaVPN.txt
 
@@ -254,7 +240,6 @@ https://raw.githubusercontent.com/Leon406/SubCrawler/refs/heads/main/sub/share/h
 http://livpn.atwebpages.com/sub.php?token=c829c20769d2112b
 https://simchin.online/sub/?secret=2GQ65ZNLcNTHl830FxQR0uWq%2F%2FggN9wXb0zfwSSgwHEctU6RmjRqBVW%2BjE%2F9fQQUSoU%3D
 https://github.com/FLEXIY0/matryoshka-vpn/raw/main/configs/russia_whitelist.txt
-https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/Vless-Reality-White-Lists-Rus-Mobile-2.txt
 https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/Vless-Reality-White-Lists-Rus-Mobile.txt#Vless-Reality-White-Lists-Rus-Mobile
 https://gist.githubusercontent.com/sevushyamamoto-stack/9341be7a058e132154d407d082a60fb1/raw/mysub.txt
 https://raw.githubusercontent.com/GoldCaviar/vpn-configs-for-russia/refs/heads/main/Vless-Reality-White-Lists-Rus-Mobile.txt
@@ -332,7 +317,6 @@ https://gitverse.ru/api/repos/nloverx/EtoNeYa_Subs/raw/branch/master/whitelist
 https://raw.githack.com/igareck/vpn-configs-for-russia/main/WHITE-CIDR-RU-all.txt
 https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/26.txt
 https://gitverse.ru/api/repos/cid-uskoritel/cid-white/raw/branch/master/whitelist.txt
-https://sub.obbhod.online/premium
 https://raw.githubusercontent.com/nzea243/ikoV31tud_vpn/refs/heads/main/wl_228.txt
 
 

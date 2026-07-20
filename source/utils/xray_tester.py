@@ -154,6 +154,7 @@ _UNSUPPORTED_FLOWS = frozenset({
     'xtls-rprx-splice',
     'xtls-rprx-splice-udp443',
     'xtls-rprx-vision-udp443',
+    'xtls-rprx-origin',
 })
 
 # Valid shortId: 2-32 hex characters
@@ -235,26 +236,30 @@ def _xray_incompatible_reason(cfg: str) -> str:
     if 'encryption=none=@' in cfg or 'encryption=none=/' in cfg:
         return 'garbage encryption value'
 
-    # ── Flow validation (VLESS) ──────────────────────────────────
+    # ── Flow validation (VLESS) — prefix match against deprecated flows ──
     if 'flow=' in cfg_lower:
         flow_match = re.search(r'[?&]flow=([^&#]+)', cfg_lower)
         if flow_match:
             flow_val = flow_match.group(1).lower().split('&')[0].split('#')[0]
-            # URL-decode the flow value
             from urllib.parse import unquote
             flow_val = unquote(flow_val)
-            if flow_val in _UNSUPPORTED_FLOWS:
-                return f'unsupported flow: {flow_val}'
+            # Check if flow starts with a deprecated prefix (catches
+            # both exact matches and malformed variants like
+            # xtls-rprx-vision-udp443-udp443-udp443)
+            for deprecated in _UNSUPPORTED_FLOWS:
+                if flow_val == deprecated or flow_val.startswith(deprecated + '-'):
+                    return f'unsupported flow: {flow_val}'
 
-    # ── Reality password (no spaces) ──────────────────────────────
-    if 'password=' in cfg:
-        pw_match = re.search(r'password=([^&#]+)', cfg)
-        if pw_match:
-            pw_val = pw_match.group(1)
-            from urllib.parse import unquote
-            pw_val = unquote(pw_val)
-            if ' ' in pw_val:
-                return 'reality password contains space'
+    # ── Reality password (no spaces) — checks both password= and pbk= ─
+    if 'password=' in cfg or 'pbk=' in cfg:
+        for param in ('password', 'pbk'):
+            pw_match = re.search(rf'(?:^|[?&]){param}=([^&#]+)', cfg)
+            if pw_match:
+                pw_val = pw_match.group(1)
+                from urllib.parse import unquote
+                pw_val = unquote(pw_val)
+                if ' ' in pw_val:
+                    return f'reality {param} contains space'
 
     # ── Reality shortId length ────────────────────────────────────
     if 'sid=' in cfg:

@@ -179,3 +179,6 @@ source/.serena/
 
 # URL stats (local only, never committed)
 source/data/
+
+# Logs directory for run diagnostics
+/logs/

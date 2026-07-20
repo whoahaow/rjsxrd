@@ -321,8 +321,9 @@ if XRAY_BATCH_MODE not in ("single", "batch"):
     XRAY_BATCH_MODE = "single"
 
 # Max configs per shared xray instance (inbounds per config).
-# v2rayN default: 1000. Higher = fewer xray spawns but bigger config files.
-# xray-core handles ~1000 inbounds reliably with proper port allocation.
+# v2rayN uses 1000 for curated subscriptions — same default here.
+# If a batch xray crashes (bad config), _process_single_chunk falls
+# back to single-mode per-config testing for that chunk.
 XRAY_BATCH_SIZE = _validate_int_env("XRAY_BATCH_SIZE", 1000, 50, 2000)
 
 # Max concurrent xray processes in batch mode. Set to 1 to match v2rayN
@@ -336,7 +337,7 @@ XRAY_BATCH_PROCESSES = 1
 XRAY_BATCH_STARTUP_DELAY_MS = _validate_int_env("XRAY_BATCH_STARTUP_DELAY_MS", 1000, 50, 5000)
 
 # Port range size per batch chunk. Must be >= XRAY_BATCH_SIZE * 2 to allow
-# for port probing headroom. With batch_size=1000, range=2000 gives 2x headroom.
+# for port probing headroom. With batch_size=500, range=1000 gives 2x headroom.
 XRAY_BATCH_PORT_RANGE_SIZE = _validate_int_env("XRAY_BATCH_PORT_RANGE_SIZE", 2000, 100, 5000)
 
 # Module-level batch mode override (set by main.py after CLI parsing).

@@ -19,6 +19,7 @@ Note: TUIC is not natively supported by Xray-core. TUIC configs will fail testin
 from utils.security_filter import SS_WEAK_CIPHERS
 from utils import protocol_parsers
 
+import datetime
 import os
 import sys
 import json
@@ -68,6 +69,63 @@ from utils.xray_batch import BatchRunner
 from utils.xray_helpers import wait_for_port
 
 
+# ── Xray error logging ──────────────────────────────────────────────
+# Each pipeline run logs xray stderr to logs/xray-errors-YYYY-MM-DDTHH-MM-SS.log
+# for post-run analysis of crash-causing configs.
+
+_log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "..", "logs")
+_XRAY_ERROR_LOG = None  # lazy-init on first error
+
+
+def _ensure_error_log() -> str:
+    """Create and return the path to the current run's error log file."""
+    global _XRAY_ERROR_LOG
+    if _XRAY_ERROR_LOG is None:
+        os.makedirs(_log_dir, exist_ok=True)
+        ts = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+        _XRAY_ERROR_LOG = os.path.join(_log_dir, f"xray-errors-{ts}.log")
+        # Keep only the 7 most recent log files
+        try:
+            entries = sorted(
+                (os.path.join(_log_dir, f) for f in os.listdir(_log_dir)
+                 if f.startswith("xray-errors-") and f.endswith(".log")),
+                key=os.path.getmtime,
+            )
+            for old in entries[:-7]:  # remove all but the last 7
+                os.remove(old)
+        except OSError:
+            pass
+    return _XRAY_ERROR_LOG
+
+
+def _log_xray_error(tag: str, stderr: str, stdout: str = "", config_snippet: str = "") -> None:
+    """Append a xray crash/failure record to the run's error log.
+
+    Args:
+        tag: Chunk or config identifier (e.g. "Chunk 3" or URL[:60])
+        stderr: Full stderr from the xray process
+        stdout: Full stdout from the xray process (optional)
+        config_snippet: First few lines of the config JSON (optional)
+    """
+    logpath = _ensure_error_log()
+    try:
+        with open(logpath, "a", encoding="utf-8") as f:
+            f.write(f"[{datetime.datetime.now().isoformat()}] {tag}\n")
+            f.write(f"{'─' * 60}\n")
+            if stderr:
+                f.write("STDERR:\n")
+                f.write(stderr.rstrip() + "\n")
+            if stdout:
+                f.write("STDOUT:\n")
+                f.write(stdout.rstrip() + "\n")
+            if config_snippet:
+                f.write("CONFIG (first 500 chars):\n")
+                f.write(config_snippet[:500] + "\n")
+            f.write(f"{'=' * 60}\n\n")
+    except OSError:
+        pass  # best-effort logging
+
+
 def _cleanup_all() -> None:
     """Cleanup all active Xray processes on exit.
 
@@ -95,8 +153,8 @@ class XrayTester:
     CHAIN_PORT_START = XRAY_CHAIN_PORT_START
     CHAIN_PORT_END = XRAY_CHAIN_PORT_END
     PERSISTENT_PORT_START = XRAY_PERSISTENT_PORT_START
-    BATCH_SIZE = 1000
-    MAX_BATCH_SIZE = 2000
+    BATCH_SIZE = 500
+    MAX_BATCH_SIZE = 1000
     MIN_BATCH_SIZE = 100
     
     def __init__(self, xray_path: Optional[str] = None) -> None:
@@ -647,6 +705,14 @@ class XrayTester:
                 else:
                     log(f"Xray error: {error_detail[:LOG_ERROR_SAMPLE_LENGTH]}")
 
+                # Log full error to run diagnostics file
+                _log_xray_error(
+                    tag="xray startup crash",
+                    stderr=stderr_text,
+                    stdout=stdout_text,
+                    config_snippet=config_json[:500],
+                )
+
                 # Cleanup config file on early exit
                 self._cleanup_config_file(config_file)
                 return False, None, error_detail
@@ -663,6 +729,14 @@ class XrayTester:
                 error_detail = stderr_text[:2000] if stderr_text else (stdout_text[:2000] if stdout_text else "")
                 if error_detail:
                     log(f"Xray port error: {error_detail[:1000]}")
+
+                # Log port binding failure to diagnostics file
+                _log_xray_error(
+                    tag="xray port timeout",
+                    stderr=stderr_text,
+                    stdout=stdout_text,
+                    config_snippet=config_json[:500],
+                )
 
                 self._cleanup_config_file(config_file)
                 return False, None, error_detail or "Port not listening"
@@ -684,6 +758,14 @@ class XrayTester:
             ])
             if verbose and not is_config_error:
                 log(f"Failed to start Xray: {e}")
+
+            # Log exception to diagnostics file
+            _log_xray_error(
+                tag=f"xray exception: {type(e).__name__}",
+                stderr=error_str,
+                config_snippet=config_json[:500],
+            )
+
             return False, None, str(e)
     
     def stop_xray_process(self, process: subprocess.Popen) -> None:

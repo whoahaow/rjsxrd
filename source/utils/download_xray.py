@@ -88,7 +88,7 @@ def fetch_latest_xray_version() -> Optional[str]:
             data = json.loads(resp.read().decode())
             tag = data.get("tag_name", "")
             if tag:
-                return tag.lstrip("vV")
+                return tag
     except (urllib.error.URLError, json.JSONDecodeError, OSError, ValueError):
         pass
 
@@ -110,7 +110,7 @@ def fetch_latest_xray_version() -> Optional[str]:
             # URL format: /XTLS/Xray-core/releases/tag/v26.4.1
             match = re.search(r"/tag/v?(\d+\.\d+\.\d+)", redirect_url)
             if match:
-                return match.group(1)
+                return "v" + match.group(1)
     except (urllib.error.URLError, OSError, ValueError):
         pass
 

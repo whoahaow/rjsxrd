@@ -102,10 +102,12 @@ class BatchRunner:
         from config.settings import XRAY_BASE_PORT, XRAY_BATCH_PORT_RANGE_SIZE, XRAY_BATCH_PROCESSES
 
         # Cycle chunk port base within available space to prevent overflow
-        # past 65535. With XRAY_BASE_PORT=20000, PORT_RANGE_SIZE=300, and
-        # max_batch_port=60000: 133 non-overlapping slots. Chunks beyond 133
-        # recycle earlier slots (by then the original xray is long dead).
-        _max_batch_port = 60000
+        # past 65535 and to stay below the OS ephemeral port range.
+        # Ephemeral range: Linux ~32768, Windows ~49152.
+        if sys.platform == "win32":
+            _max_batch_port = 49000
+        else:
+            _max_batch_port = 32000
         _available = _max_batch_port - XRAY_BASE_PORT
         _slots = max(XRAY_BATCH_PROCESSES, _available // XRAY_BATCH_PORT_RANGE_SIZE)
         _cycled_idx = chunk_idx % _slots

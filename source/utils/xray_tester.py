@@ -406,11 +406,14 @@ class XrayTester:
         used_ports = set()
         skipped_urls = []
         
-        # Upper bound: don't allocate ports beyond configured limit
-        port_limit = XRAY_PERSISTENT_PORT_START  # 24000
-        # On Linux with wide range, allow going higher
-        if sys.platform != "win32":
-            port_limit = max(port_limit, 65000)
+        # Upper bound: don't allocate ports beyond OS ephemeral range.
+        # Ports above this threshold are randomly assigned by the OS for
+        # outgoing connections — a race between probe and xray bind().
+        # Defaults: Linux 32768-60999, Windows 49152-65535.
+        if sys.platform == "win32":
+            port_limit = 49000
+        else:
+            port_limit = 32000
         
         for idx, url in enumerate(urls):
             port = base_port + idx

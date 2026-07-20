@@ -196,11 +196,17 @@ def verify_config_file(input_path: str, configs: List[str] = None, verbose: bool
         else:
             verifier = None
             try:
-                from utils.xray_tester import XrayTester
+                from utils.xray_tester import XrayTester, filter_xray_compatible
                 verifier = XrayTester()
                 if verifier.xray_path and os.path.isfile(verifier.xray_path):
                     log(f"Using Xray-core tester: {verifier.xray_path}")
-                    all_results = verifier.test_batch(configs, timeout=VALIDATION_HTTP_TIMEOUT, verbose=verbose, progress_callback=progress_callback)
+                    # Final compat filter before xray sees these configs
+                    configs, rejected = filter_xray_compatible(configs)
+                    if not configs:
+                        log("All configs filtered out by xray compat check")
+                        all_results = []
+                    else:
+                        all_results = verifier.test_batch(configs, timeout=VALIDATION_HTTP_TIMEOUT, verbose=verbose, progress_callback=progress_callback)
                 else:
                     xray_path_str = verifier.xray_path if verifier and verifier.xray_path else "default paths"
                     log(f"WARNING: Xray not found at {xray_path_str}. "

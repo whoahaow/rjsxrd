@@ -671,9 +671,29 @@ cd /path/to/rjsxrd && git pull origin main && python source/main.py --use-git --
    - `tg://proxy?...` or `tg://socks?...`
 3. Proxies auto-merge and verify on next run
 
-### Modify Security Filtering
-Edit `utils/security_filter.py:has_insecure_setting()`:
-- Add new insecure patterns for existing protocols
+### Config Validation Pipeline (processing order)
+
+Configs pass through these filters in order before reaching Xray:
+
+1. **Protocol/syntax validation** — `is_valid_vpn_config_url()` rejects malformed URLs
+2. **SNI/CIDR filter** — `apply_sni_cidr_filter()` separates bypass configs
+3. **Security filter** — `has_insecure_setting()` flags insecure configs for unsecure output files
+4. **Xray compatibility filter** 🔒 — `filter_xray_compatible()` in `utils/xray_tester.py`
+   Removes configs that would **crash xray at startup** even though they parse successfully:
+   - Hysteria2 protocol (removed from xray-core)
+   - Invalid UUIDs (URL-encoded garbage, truncated, non-hex chars)
+   - VLESS with garbage encryption values (`encryption=none=@...`)
+   - Reality with spaces in password
+   - Reality shortId too short (<2 hex) or too long (>32 hex)
+   - Reality with unsupported transport (only raw/xhttp/grpc allowed)
+   - Deprecated flow values (xtls-rprx-direct*, etc.)
+5. **Xray verification** — actual speed/latency testing
+
+### Security Filtering (`has_insecure_setting()`)
+
+> **Note:** The xray compat filter (step 4) is independent of the security filter (step 3).
+> A config can be "secure" but xray-incompatible (bad UUID), or "insecure" but xray-compatible
+> (`insecure=1` doesn't crash xray). Both are filtered at their respective stages.
 - Add checks for new protocols
 - Update docstring with new checks
 

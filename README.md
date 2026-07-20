@@ -4,6 +4,18 @@ tgc: [t.me/rjsxrd](https://t.me/rjsxrd)
 
 ---
 
+Если вы хотите поддержать меня, то вот мои крипто-кошельки:
+
+SOL: `DcvcsapMBqbLdA2GRhGQXPq5F74AkLQ4eh8yyTxEtsVj`
+
+USDT (TRC20): `TTgMgXWZKFpzqXL7mPfchvjovMHKaGyea4`
+
+BTC: `bc1q8s5snc95w3696taw5du9gnz6uf33wjz3yrq5e6`
+
+ETH: `0x17D7206EBfba1F0b6b65E99ACbd294827D9A79B1`
+
+---
+
 Автоматически обновляемая коллекция публичных VPN-конфигов (`V2Ray` / `VLESS` / `Trojan` / `VMess` / `Reality` / `Shadowsocks` / `ShadowsocksR` / `Hysteria` / `Hysteria2` / `TUIC`) для быстрого обхода блокировок. Обход белых списков на мобильном интернете.
 
 Каждый конфиг — это TXT-подписка, которую можно импортировать практически в любой современный клиент (`v2rayNG`, `NekoRay`, `Throne`, `v2rayN`, `V2Box`, `v2RayTun`, `Hiddify` и др.).
@@ -72,7 +84,7 @@ tgc: [t.me/rjsxrd](https://t.me/rjsxrd)
 
 ## Быстрый старт
 
-1. Скопируйте нужную ссылку из раздела [Конфигурации](#конфигурации) (рекомендуем начать с 6.txt, 22.txt, 23.txt, 24.txt или 25.txt из папки default/ или bypass/bypass-all.txt для мобильного интернета)
+1. Скопируйте нужную ссылку из раздела [Конфигурации](#конфигурации) (bypass/bypass-all.txt)
 2. Импортируйте её в ваш **VPN-клиент**
 3. Выберите сервер с минимальным пингом и подключайтесь
 
@@ -99,6 +111,8 @@ tgc: [t.me/rjsxrd](https://t.me/rjsxrd)
 > **Для пользователей мобильных устройств**: при возникновении проблем с производительностью рекомендуется использовать файлы по отдельности, а не bypass-all.txt
 
 **[bypass-all](https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/bypass/bypass-all.txt)** - все безопасные конфиги для обхода SNI/CIDR в одном файле
+
+Ссылка для обновления при бс: **[bypass-all](https://translate.yandex.ru/translate?url=https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/bypass/bypass-all.txt&lang=en-en)**. Если конфиги ломаются, то открыть ссылку в браузере, скопировать все конфиги и вставить в клиент.
 
 **Файлы разделенные по 300 конфигов**:
 - **[bypass-1](https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/bypass/bypass-1.txt)**
@@ -375,83 +389,123 @@ tgc: [t.me/rjsxrd](https://t.me/rjsxrd)
 
 ### Структура репозитория
 ```text
-githubmirror/        - сгенерированные .txt файлы конфигов
+githubmirror/         - сгенерированные .txt файлы конфигов
  ├─ default/          - основные конфиги (1.txt, 2.txt, ..., all.txt, all-secure.txt)
  ├─ bypass/           - безопасные конфиги для обхода SNI/CIDR
-  │   ├─ raw/          - нетестированные конфиги (перед верификацией)
-  │   └─ bypass-all.txt, bypass-1.txt, ... (протестированы, отсортированы по пингу)
+ │   ├─ raw/          - нетестированные конфиги (перед верификацией)
+ │   └─ bypass-all.txt, bypass-1.txt, ... (протестированы, отсортированы по пингу)
  ├─ bypass-unsecure/  - все конфиги для обхода SNI/CIDR (включая небезопасные)
-  │   ├─ raw/          - нетестированные конфиги (перед верификацией)
-  │   └─ bypass-unsecure-all.txt, bypass-unsecure-1.txt, ... (протестированы, отсортированы по пингу)
- ├─ split-by-protocols/ - протокол-специфичные файлы (vless.txt, vmess.txt, trojan.txt, и т.д. в обеих версиях: secure и unsecure)
+ │   ├─ raw/          - нетестированные конфиги (перед верификацией)
+ │   └─ bypass-unsecure-all.txt, bypass-unsecure-1.txt, ...
+ ├─ split-by-protocols/ - протокол-специфичные файлы (vless.txt, vmess.txt, ...)
  ├─ tg-proxy/         - Telegram прокси (all.txt, MTProto.txt, socks.txt)
-qr-codes/            - PNG-версии конфигов для импорта по QR
-source/              - исходный код генератора
- ├─ data/            - постоянная статистика URL (gitignored, накапливается между запусками)
- ├─ main.py          - основная точка входа в приложение
- ├─ config/          - настройки и конфигурационные параметры
-  │   ├─ settings.py  - глобальные настройки, токены, URL-источники, часовые пояса
-  │   ├─ URLS.txt     - список URL для основных конфигов (секции: default, extra_bypass, yaml, telegram)
-  │   ├─ servers.txt  - список ручных серверов для добавления в конфигурации
-  │   ├─ tg_proxies.txt - список ручных Telegram прокси
-  │   ├─ whitelist-all.txt - список доменов для SNI фильтрации
-  │   └─ cidrwhitelist.txt - список CIDR для IP фильтрации
- ├─ fetchers/        - модули для загрузки конфигов из внешних источников
-  │   ├─ fetcher.py   - базовый загрузчик конфигов с curl_cffi (быстрый, обход анти-ботов)
-  │   ├─ daily_repo_fetcher.py - загрузка из ежедневно обновляемого репозитория
-  │   ├─ telegram_proxy_scraper.py - скрапер Telegram прокси (MTProto и SOCKS5)
-  │   ├─ yaml_converter.py - конвертер YAML-конфигов (Clash/Surge) в формат VPN URL
-  │   ├─ sstap_scraper.py - скрапинг sstap.org/node-real-time-update/
-  │   └─ upstream_aggregator.py - агрегатор yudou226.top + guidongone
- ├─ processors/      - основная обработка и фильтрация конфигов
-  │   ├─ config_processor.py - ConfigPipeline — оркестратор пайплайна
-  │   └─ telegram_proxy_processor.py - обработчик Telegram прокси
- ├─ utils/           - вспомогательные функции и утилиты
-  │   ├─ file_utils.py - I/O, SNI/CIDR, дедупликация, prepare_config_content
-  │   ├─ security_filter.py - has_insecure_setting + cipher sets (SS_WEAK/SS_SECURE)
-  │   ├─ vpn_config.py - VPNConfig dataclass иерархия
-  │   ├─ managed_process.py - ManagedProcess lifecycle
-  │   ├─ process_registry.py - единый реестр процессов (заменил 3 старых)
-  │   ├─ config_tagger.py - ConfigTagger (source+protocol)
-  │   ├─ system_specs.py - SystemSpecs — автодетект RAM/CPU/WSL/cgroups
-  │   ├─ psutil_available.py - единый import psutil (HAS_PSUTIL)
-  │   ├─ protocol_parsers.py - парсеры протоколов (вынесены из xray_tester)
-  │   ├─ config_helpers.py - хэлперы пайплайна
-  │   ├─ xray_tester.py - Xray-core тестирование с сортировкой по скорости
-  │   ├─ simple_tester.py - TCP пинг конфигов (без Xray)
-  │   ├─ smart_eta.py - умный ETA для batch-тестирования
-  │   ├─ telegram_proxy_verifier.py - верификация Telegram прокси
-  │   ├─ proxy_detector.py - авто-детекция активных прокси
-  │   ├─ ip_verifier.py - проверка IP и настройка прокси цепочек
-  │   ├─ proxy_monitor.py - мониторинг здоровья прокси-цепочек
-  │   ├─ resource_monitor.py - мониторинг CPU/RAM/сети
-  │   ├─ executor_cache.py - кэш ThreadPoolExecutor с WSL-детекцией
-  │   ├─ download_xray.py - загрузка и установка Xray-core
-  │   ├─ url_stats.py - сбор статистики и авто-очистка мёртвых URL
-  │   ├─ health_check.py - health check (интернет/Xray/GitHub API)
-  │   ├─ _sni_worker.py - SNI/CIDR worker (внутренний)
-  │   ├─ logger.py - потокобезопасное логирование
-  │   ├─ progress.py - консолидированный tqdm импорт
-  │   ├─ github_handler.py - работа с GitHub API (PyGithub)
-  │   └─ git_updater.py - Git-коммиты (режим VPS cron)
-  └─ requirements.txt - зависимости проекта
- scripts/              - служебные скрипты
-  ├─ purge_dead_urls.py - очистка URLS.txt от нерабочих ссылок
-  ├─ purge_stale_urls.py - очистка по git timestamp
-  ├─ analyze_url_stats.py - анализ статистики URL
-  ├─ benchmark_configs.py - бенчмарк конфигов (--mode xray|tcp)
-  └─ test_telegram_proxies.py - тестирование Telegram прокси
-  ├─ conftest.py - фикстуры и конфигурация pytest
-  ├─ test_fetcher.py - тесты загрузчика конфигов
-   ├─ test_file_utils.py - тесты утилит работы с файлами
-   ├─ test_config_processor.py - тесты процессора конфигов
-   ├─ test_smart_eta.py - тесты умного ETA
-   ├─ test_telegram_proxy_scraper.py - тесты скрапера Telegram прокси
-   ├─ test_url_stats.py - тесты статистики URL
-  └─ README.md - документация по тестам
- .github/workflows/   - CI/CD (авто-обновление ежедневно)
- README.md            - этот файл
- docs/                - документация проекта (см. docs/readme.md)
+qr-codes/             - PNG-версии конфигов для импорта по QR
+source/               - исходный код генератора
+ ├─ __init__.py
+ ├─ main.py           - основная точка входа в приложение
+ ├─ config/           - настройки и конфигурационные параметры
+ │   ├─ __init__.py
+ │   ├─ settings.py   - глобальные настройки, токены, URL-источники, часовые пояса
+ │   ├─ URLS.txt      - список URL для основных конфигов
+ │   ├─ servers.txt   - список ручных серверов для добавления в конфигурации
+ │   ├─ tg_proxies.txt - список ручных Telegram прокси
+ │   ├─ whitelist-all.txt - список доменов для SNI фильтрации
+ │   └─ cidrwhitelist.txt - список CIDR для IP фильтрации
+ ├─ data/             - постоянная статистика URL (gitignored, накапливается между запусками)
+ ├─ fetchers/         - модули для загрузки конфигов из внешних источников
+ │   ├─ __init__.py
+ │   ├─ fetcher.py    - базовый загрузчик конфигов с curl_cffi
+ │   ├─ daily_repo_fetcher.py - загрузка из ежедневно обновляемого репозитория
+ │   ├─ telegram_proxy_scraper.py - скрапер Telegram прокси (MTProto и SOCKS5)
+ │   ├─ yaml_converter.py - конвертер YAML-конфигов (Clash/Surge) в VPN URL
+ │   ├─ sstap_scraper.py - скрапинг sstap.org/node-real-time-update/
+ │   └─ upstream_aggregator.py - агрегатор yudou226.top + guidongone
+ ├─ processors/       - основная обработка и фильтрация конфигов
+ │   ├─ __init__.py
+ │   ├─ config_processor.py - ConfigPipeline — оркестратор пайплайна
+ │   └─ telegram_proxy_processor.py - обработчик Telegram прокси
+ ├─ scripts/          - служебные скрипты
+ │   ├─ analyze_url_stats.py - анализ статистики URL
+ │   ├─ benchmark_configs.py - бенчмарк конфигов (--mode xray|tcp)
+ │   ├─ purge_dead_urls.py - очистка URLS.txt от нерабочих ссылок
+ │   ├─ purge_stale_urls.py - очистка по git timestamp
+ │   ├─ setup-vps.sh   - скрипт развёртывания на VPS
+ │   └─ test_telegram_proxies.py - тестирование Telegram прокси
+ ├─ tests/            - unit-тесты (640+ тестов, 25 файлов)
+ │   ├─ __init__.py
+ │   ├─ conftest.py   - фикстуры и конфигурация pytest
+ │   ├─ README.md     - документация по тестам
+ │   ├─ test_config_processor.py
+ │   ├─ test_config_tagger.py
+ │   ├─ test_executor_cache.py
+ │   ├─ test_fetcher.py
+ │   ├─ test_file_utils.py
+ │   ├─ test_git_auto_cleaner.py
+ │   ├─ test_git_updater.py
+ │   ├─ test_github_handler.py
+ │   ├─ test_health_check.py
+ │   ├─ test_ip_checker.py
+ │   ├─ test_ip_verifier.py
+ │   ├─ test_logger.py
+ │   ├─ test_managed_process.py
+ │   ├─ test_process_registry.py
+ │   ├─ test_progress.py
+ │   ├─ test_proxy_monitor.py
+ │   ├─ test_security_filter.py
+ │   ├─ test_simple_tester.py
+ │   ├─ test_smart_eta.py
+ │   ├─ test_telegram_proxy_scraper.py
+ │   ├─ test_telegram_proxy_verifier.py
+ │   ├─ test_url_stats.py
+ │   ├─ test_vpn_config.py
+ │   ├─ test_xray_batch.py
+ │   ├─ test_xray_tester.py
+ │   └─ test_yaml_converter.py
+ ├─ utils/            - вспомогательные функции и утилиты
+ │   ├─ __init__.py
+ │   ├─ _sni_worker.py - SNI/CIDR worker (внутренний)
+ │   ├─ bypass_builder.py - сборщик bypass-конфигов
+ │   ├─ config_helpers.py - хэлперы пайплайна
+ │   ├─ config_tagger.py - ConfigTagger (source+protocol)
+ │   ├─ curl_import.py - условный импорт curl_cffi
+ │   ├─ download_xray.py - загрузка и установка Xray-core
+ │   ├─ executor_cache.py - кэш ThreadPoolExecutor с WSL-детекцией
+ │   ├─ file_utils.py - I/O, SNI/CIDR, дедупликация, prepare_config_content
+ │   ├─ file_writer.py - асинхронная запись результирующих файлов
+ │   ├─ git_auto_cleaner.py - авто-очистка истории git
+ │   ├─ git_updater.py - Git-коммиты (режим VPS cron)
+ │   ├─ github_handler.py - работа с GitHub API (PyGithub)
+ │   ├─ health_check.py - health check (интернет/Xray/GitHub API)
+ │   ├─ ip_verifier.py - проверка IP и настройка прокси цепочек
+ │   ├─ logger.py - потокобезопасное логирование
+ │   ├─ managed_process.py - ManagedProcess lifecycle
+ │   ├─ process_registry.py - единый реестр процессов
+ │   ├─ progress.py - консолидированный tqdm импорт
+ │   ├─ protocol_parsers.py - парсеры протоколов
+ │   ├─ proxy_detector.py - авто-детекция активных прокси
+ │   ├─ proxy_monitor.py - мониторинг здоровья прокси-цепочек
+ │   ├─ psutil_available.py - единый import psutil (HAS_PSUTIL)
+ │   ├─ resource_monitor.py - мониторинг CPU/RAM/сети
+ │   ├─ security_filter.py - has_insecure_setting + cipher sets
+ │   ├─ simple_tester.py - TCP пинг конфигов (без Xray)
+ │   ├─ smart_eta.py - умный ETA для batch-тестирования
+ │   ├─ system_specs.py - SystemSpecs — автодетект RAM/CPU/WSL/cgroups
+ │   ├─ telegram_notifier.py - уведомления в Telegram
+ │   ├─ telegram_proxy_verifier.py - верификация Telegram прокси
+ │   ├─ url_stats.py - сбор статистики и авто-очистка мёртвых URL
+ │   ├─ vpn_config.py - VPNConfig dataclass иерархия
+ │   ├─ xray_batch.py - batch-режим тестирования (shared Xray)
+ │   ├─ xray_helpers.py - вспомогательные функции Xray
+ │   └─ xray_tester.py - Xray-core тестирование с сортировкой по скорости
+ ├─ xray/             - Xray-core бандл (xray, geoip.dat, geosite.dat, LICENSE)
+ └─ requirements.txt  - зависимости проекта
+.github/workflows/    - CI/CD (авто-обновление ежедневно)
+.env                  - переменные окружения (gitignored)
+.env.example          - шаблон переменных окружения
+pyproject.toml        - метаданные и инструменты проекта
+README.md             - этот файл
+LICENSE               - лицензия MIT
+docs/                 - документация проекта (см. docs/readme.md)
 ```
 
 ---

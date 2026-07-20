@@ -492,17 +492,23 @@ class XrayTester:
             used_ports.add(port)
         
         if skipped_urls:
-            # Log first few skipped configs for debugging
-            sample = skipped_urls[:5]
-            reasons = {}
-            for _, reason in sample:
-                reasons[reason] = reasons.get(reason, 0) + 1
-            log(f"Skipped {len(skipped_urls)} invalid configs: {', '.join([f'{k}({v})' for k,v in list(reasons.items())[:3]])}...")
+            # Log first few skipped configs for debugging (verbose only in batch mode)
+            from config.settings import XRAY_BATCH_MODE, BATCH_MODE_OVERRIDE
+            _batch_mode = BATCH_MODE_OVERRIDE if BATCH_MODE_OVERRIDE is not None else XRAY_BATCH_MODE
+            if _batch_mode != "batch":
+                sample = skipped_urls[:5]
+                reasons = {}
+                for _, reason in sample:
+                    reasons[reason] = reasons.get(reason, 0) + 1
+                log(f"Skipped {len(skipped_urls)} invalid configs: {', '.join([f'{k}({v})' for k,v in list(reasons.items())[:3]])}...")
         
         if not port_map:
             return None, {}
         
-        log(f"Created multi-config with {len(port_map)} valid inbounds (ports {min(port_map.keys())}-{max(port_map.keys())})")
+        from config.settings import XRAY_BATCH_MODE as _mode, BATCH_MODE_OVERRIDE as _override
+        _effective = _override if _override is not None else _mode
+        if _effective != "batch":
+            log(f"Created multi-config with {len(port_map)} valid inbounds (ports {min(port_map.keys())}-{max(port_map.keys())})")
         return config, port_map
 
     @staticmethod

@@ -204,6 +204,22 @@ class BatchRunner:
         working_count = [0]
         last_callback_file = [0]
 
+        # Single progress bar for all chunks (thread-safe via lock on updates)
+        pbar = _tqdm_sync(
+            total=len(urls),
+            desc="Testing | Working: 0/0 (0%) ETA: ?s",
+            unit="config",
+            unit_scale=True,
+            unit_divisor=1000,
+            ncols=100,
+            bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}, {rate_fmt}]',
+            mininterval=0.5,
+            maxinterval=2.0,
+            file=sys.stderr,
+            delay=0,
+            leave=True,
+        )
+
         def _run_chunk(chunk_urls: List[str], chunk_idx: int) -> List[Tuple[str, bool, float]]:
             """Wrapper that processes a chunk and updates shared progress state."""
             chunk_results = self._process_single_chunk(
@@ -228,11 +244,16 @@ class BatchRunner:
                                 ]
                                 progress_callback(sorted_working, len(all_results))
 
-            log(
-                f"Chunk {chunk_idx + 1}/{num_chunks} done: "
-                f"{sum(1 for _, s, _ in chunk_results if s)}/"
-                f"{len(chunk_results)} working"
-            )
+                # Update progress bar
+                wc = working_count[0]
+                done = len(all_results)
+                rate = done / (time.time() - pbar.start_t + 0.01)
+                pbar.set_description(
+                    f"Testing | Working: {wc}/{done} "
+                    f"({wc / done * 100:.1f}%)"
+                )
+                pbar.update(len(chunk_urls))
+
             return chunk_results
 
         # Process chunks in parallel using ThreadPoolExecutor
@@ -246,9 +267,11 @@ class BatchRunner:
                 try:
                     future.result(timeout=default_timeout + 30)
                 except concurrent.futures.TimeoutError:
-                    log(f"Chunk {idx + 1}: timed out after {default_timeout + 30}s")
+                    log(f"Chunk {idx + 1}: timed out")
                 except Exception as e:
-                    log(f"Chunk {idx + 1}: failed with {type(e).__name__}: {e}")
+                    log(f"Chunk {idx + 1}: failed: {e}")
+
+        pbar.close()
 
         # Sort final results: working first (by latency), failed last
         working = [(url, s, l) for url, s, l in all_results if s]

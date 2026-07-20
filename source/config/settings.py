@@ -338,8 +338,9 @@ XRAY_BATCH_STARTUP_DELAY_MS = _validate_int_env("XRAY_BATCH_STARTUP_DELAY_MS", 2
 
 # Port range size per batch chunk. Must be >= XRAY_BATCH_SIZE to guarantee
 # unique ports. Set higher if many ports on the system are already in use.
-# Formula: XRAY_BATCH_SIZE * 2 is safe (allows for port collision skips).
-XRAY_BATCH_PORT_RANGE_SIZE = _validate_int_env("XRAY_BATCH_PORT_RANGE_SIZE", 200, 20, 1000)
+# Formula: XRAY_BATCH_SIZE * 4 is safe (allows for port probing headroom
+# and TIME_WAIT recycling without colliding with parallel chunks).
+XRAY_BATCH_PORT_RANGE_SIZE = _validate_int_env("XRAY_BATCH_PORT_RANGE_SIZE", 400, 20, 2000)
 
 # Module-level batch mode override (set by main.py after CLI parsing).
 # None = use XRAY_BATCH_MODE as-is. "single" or "batch" = force this mode.

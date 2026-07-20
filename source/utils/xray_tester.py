@@ -415,22 +415,26 @@ class XrayTester:
         for idx, url in enumerate(urls):
             port = base_port + idx
             # TCP-probe: skip if port is actually in use (handles TIME_WAIT
-            # and cross-chunk collisions in parallel batch mode)
+            # and cross-chunk collisions in parallel batch mode).
+            # Uses bind() with SO_REUSEADDR because connect_ex() can't
+            # detect TIME_WAIT ports (ECONNREFUSED != free for bind).
             max_probe_attempts = XRAY_PORT_MAX_ATTEMPTS
             for attempt in range(max_probe_attempts):
                 if port in used_ports or port >= port_limit:
                     port = base_port + idx + attempt + 1
                     continue
                 try:
+                    # bind-probe: if we can bind with SO_REUSEADDR, port is
+                    # truly free — including for TIME_WAIT cleanup.
+                    # This is more accurate than connect_ex() which can't
+                    # distinguish "free" from "TIME_WAIT with no listener".
                     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                     sock.settimeout(0.1)
-                    result = sock.connect_ex(('127.0.0.1', port))
+                    sock.bind(('127.0.0.1', port))
                     sock.close()
-                    if result == 0:  # Port is in use
-                        port += 1
-                        continue
-                    break  # Port is free
-                except (OSError, socket.herror, socket.gaierror):
+                    break  # Port is free (we just claimed it)
+                except (OSError, OverflowError):
                     port += 1
                     continue
             else:

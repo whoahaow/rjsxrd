@@ -685,7 +685,7 @@ Configs pass through these filters in order before reaching Xray:
    - VLESS with garbage encryption values (`encryption=none=@...`)
    - Reality with spaces in password
    - Reality shortId too short (<2 hex) or too long (>32 hex)
-   - Reality with unsupported transport (only raw/xhttp/grpc allowed)
+   - Reality with unsupported transport (only raw/tcp/xhttp/grpc allowed)
    - Deprecated flow values (xtls-rprx-direct*, etc.)
 5. **Xray verification** — actual speed/latency testing
 

@@ -160,8 +160,8 @@ _UNSUPPORTED_FLOWS = frozenset({
 # Valid shortId: 2-32 hex characters
 _RE_SHORTID_VALID = re.compile(r'^[0-9a-f]{2,32}$', re.I)
 
-# Supported Reality transports
-_REALITY_TRANSPORTS = frozenset({'raw', 'xhttp', 'grpc'})
+# Supported Reality transports (xray URL type= maps to raw transport)
+_REALITY_TRANSPORTS = frozenset({'raw', 'tcp', 'xhttp', 'grpc'})
 
 
 def filter_xray_compatible(configs: list[str]) -> tuple[list[str], list[tuple[str, str]]]:

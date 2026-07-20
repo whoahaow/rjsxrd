@@ -507,10 +507,14 @@ python main.py --skip-xray
 python main.py --tcp-ping
 ```
 
-**Batch-режим (shared Xray, экономия RAM для тысяч конфигов):**
+**Batch-режим (по умолчанию, v2rayN-стиль, shared Xray, экономия RAM):**
 ```bash
-python main.py --batch-mode              # через CLI-флаг
-XRAY_BATCH_MODE=batch python main.py     # через переменную окружения
+# batch-режим включён по умолчанию, явно указывать не нужно
+python main.py
+# явное включение (если был переключён в single)
+python main.py --batch-mode
+# или через переменную окружения
+XRAY_BATCH_MODE=batch python main.py
 ```
 
 **Использовать один прокси:**

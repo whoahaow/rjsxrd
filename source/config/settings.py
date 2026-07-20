@@ -315,10 +315,10 @@ _ESTIMATED_MEM_PER_XRAY_MB = 50
 #   "single" — one xray process per config (current default, max isolation)
 #   "batch"  — one xray process handles N configs via N SOCKS inbounds
 #             (v2rayN-style, far less RAM at high concurrency)
-XRAY_BATCH_MODE = os.environ.get("XRAY_BATCH_MODE", "single")
+XRAY_BATCH_MODE = os.environ.get("XRAY_BATCH_MODE", "batch")
 if XRAY_BATCH_MODE not in ("single", "batch"):
-    log(f"Warning: XRAY_BATCH_MODE='{XRAY_BATCH_MODE}' invalid, falling back to 'single'")
-    XRAY_BATCH_MODE = "single"
+    log(f"Warning: XRAY_BATCH_MODE='{XRAY_BATCH_MODE}' invalid, falling back to 'batch'")
+    XRAY_BATCH_MODE = "batch"
 
 # Max configs per shared xray instance (inbounds per config).
 # v2rayN uses 1000 for curated subscriptions — same default here.

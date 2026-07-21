@@ -198,12 +198,7 @@ https://raw.githubusercontent.com/HenonBank/Russia_LTE/refs/heads/main/v2ray_sub
 https://raw.githubusercontent.com/mahdibland/V2RayAggregator/refs/heads/master/Eternity.txt
 https://gist.githubusercontent.com/shirinyannver31-ux/6b16a88d07db0830b49ab8b02536c3b6/raw/VedaVPN.txt
 https://github.com/Delta-Kronecker/V2ray-Config/blob/main/config/all_configs.txt
-https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/protocols/vl.txt
-https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/protocols/vm.txt
-https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/protocols/ss.txt
-https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/protocols/tr.txt
 https://raw.githubusercontent.com/miladtahanian/V2RayCFGDumper/refs/heads/main/sub.txt
-https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/all_extracted_configs.txt
 https://raw.githubusercontent.com/10ium/ScrapeAndCategorize/refs/heads/main/output_configs/Vless.txt
 https://raw.githubusercontent.com/10ium/ScrapeAndCategorize/refs/heads/main/output_configs/Vmess.txt
 https://raw.githubusercontent.com/10ium/ScrapeAndCategorize/refs/heads/main/output_configs/ShadowSocks.txt
@@ -321,7 +316,7 @@ https://raw.githubusercontent.com/vsvavan2/vpn-config-rkn/refs/heads/main/output
 https://github.com/vsvavan2/vpn-config-rkn/blob/main/output/WHITE_Reality_Mobile_working.txt
 https://gitverse.ru/RUVIPIEN/russian-white-bolt
 https://subs.neverspy.tech/LKyRAuYKBpFx1ksQ
-https://translate.yandex.ru/translate?url=https://gitverse.ru/api/repos/kfwlru/sub/raw/branch/main/212.txt&lang=en-ru
+https://gitverse.ru/api/repos/kfwlru/sub/raw/branch/main/212.txt
 https://vpn.akres.fun/all
 https://gitverse.ru/api/repos/nloverx/EtoNeYa_Subs/raw/branch/master/whitelist
 https://raw.githack.com/igareck/vpn-configs-for-russia/main/WHITE-CIDR-RU-all.txt

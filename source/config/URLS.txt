@@ -197,9 +197,20 @@ https://raw.githubusercontent.com/mahdibland/ShadowsocksAggregator/master/Eterni
 https://raw.githubusercontent.com/HenonBank/Russia_LTE/refs/heads/main/v2ray_sub.txt
 https://raw.githubusercontent.com/mahdibland/V2RayAggregator/refs/heads/master/Eternity.txt
 https://gist.githubusercontent.com/shirinyannver31-ux/6b16a88d07db0830b49ab8b02536c3b6/raw/VedaVPN.txt
-
-
-
+https://github.com/Delta-Kronecker/V2ray-Config/blob/main/config/all_configs.txt
+https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/protocols/vl.txt
+https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/protocols/vm.txt
+https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/protocols/ss.txt
+https://raw.githubusercontent.com/sevcator/5ubscrpt10n/main/protocols/tr.txt
+https://raw.githubusercontent.com/miladtahanian/V2RayCFGDumper/refs/heads/main/sub.txt
+https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/all_extracted_configs.txt
+https://raw.githubusercontent.com/10ium/ScrapeAndCategorize/refs/heads/main/output_configs/Vless.txt
+https://raw.githubusercontent.com/10ium/ScrapeAndCategorize/refs/heads/main/output_configs/Vmess.txt
+https://raw.githubusercontent.com/10ium/ScrapeAndCategorize/refs/heads/main/output_configs/ShadowSocks.txt
+https://raw.githubusercontent.com/10ium/ScrapeAndCategorize/refs/heads/main/output_configs/Trojan.txt
+https://raw.githubusercontent.com/10ium/ScrapeAndCategorize/refs/heads/main/output_configs/Tuic.txt
+https://raw.githubusercontent.com/10ium/ScrapeAndCategorize/refs/heads/main/output_configs/Hysteria2.txt
+https://raw.githubusercontent.com/flaafix/AetrisVPN-black-list/refs/heads/main/configs.txt
 
 
 # extra for bypass
@@ -298,7 +309,6 @@ https://gitverse.ru/api/repos/Catlerok_glasha/catwhiteMIRROR/raw/branch/master/c
 https://raw.githubusercontent.com/VAL41K/bypass-rkn-blocks/refs/heads/main/configs/obhod_WL
 https://mifa.world/fast
 https://mifa.world/turbo
-https://gist.githubusercontent.com/flaafix/c79a81037d15163360571c7a7331b153/raw/AetrisVPN.txt
 https://raw.githubusercontent.com/kort0881/vpn-checker-backend/main/checked/RU_Best/ru_white_all_part2.txt
 https://raw.githubusercontent.com/ArtemAfonasyev/hentai-goida-subscription/refs/heads/main/subscription-ru.txt
 https://raw.githubusercontent.com/AirLinkVPN1/AirLinkVPN/refs/heads/main/rkn_white_list
@@ -318,6 +328,8 @@ https://raw.githack.com/igareck/vpn-configs-for-russia/main/WHITE-CIDR-RU-all.tx
 https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/26.txt
 https://gitverse.ru/api/repos/cid-uskoritel/cid-white/raw/branch/master/whitelist.txt
 https://raw.githubusercontent.com/nzea243/ikoV31tud_vpn/refs/heads/main/wl_228.txt
+https://yax.nenadoblokirowatgnidda.ru/exec?url=http%3A%2F%2F77.110.104.181%3A5002%2Fsub%2FUnV0ZywxNzg0NDg0NDU5H6bx6udOQL
+https://raw.githubusercontent.com/flaafix/AetrisVPN/refs/heads/main/AetrisVPN.txt
 
 
 

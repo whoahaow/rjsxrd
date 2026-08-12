@@ -323,9 +323,31 @@ https://raw.githack.com/igareck/vpn-configs-for-russia/main/WHITE-CIDR-RU-all.tx
 https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/26.txt
 https://gitverse.ru/api/repos/cid-uskoritel/cid-white/raw/branch/master/whitelist.txt
 https://raw.githubusercontent.com/nzea243/ikoV31tud_vpn/refs/heads/main/wl_228.txt
-https://yax.nenadoblokirowatgnidda.ru/exec?url=http%3A%2F%2F77.110.104.181%3A5002%2Fsub%2FUnV0ZywxNzg0NDg0NDU5H6bx6udOQL
 https://raw.githubusercontent.com/flaafix/AetrisVPN/refs/heads/main/AetrisVPN.txt
-
+https://yax.nenadoblokirowatgnidda.ru/exec?url=http%3A%2F%2F77.110.104.181%3A5002%2Fsub%2FdGd0Z3RndGcsMTc4NjUwOTI3MQtw1cqFkv06
+https://mifa.world/bit
+https://raw.githubusercontent.com/miuilore/parsing-vless/refs/heads/main/wln
+https://mifa.world/axe
+https://is.wepogp.gay/bypass-hwid-lock-3z5O6BFAaJQzGlamvtSo?payload=y98cOeizXhHE4bkGbE31zlxJd03nbc51zjc9ukuFlEF/fdVVJlBgtglt9oFaUhMLvjyHc77NUQ8J2W6ip43WGvDKOrpqeyekg6zgCtaNcyBGPAnqZYzW9yGONhdQhzqU
+https://is.wepogp.gay/bypass-hwid-lock-3z5O6BFAaJQzGlamvtSo?payload=y98cOeizXhHE4bkGbE31zjK7ZWL2irJQA8hfCcrg7w7ZxdVXIcS0F3TqIfbhSOd5pxpEPW8PMW4r65gJ59XYLF/rbt47VqDcCeZWk7v72%2Bljf2u1RF1%2BVQpLJCSaaCMv
+https://is.wepogp.gay/bypass-hwid-lock-3z5O6BFAaJQzGlamvtSo?payload=y98cOeizXhHE4bkGbE31zu08JuZ9ZGIaK%2BZbzIlkhgPhN1qcU4tv6Wdp3Z4I2m04U0Xb1x5QVCQAedLZ%2BoxkTGP2jdHIYRVTmCCzVTzm1OnLyvoHAhR6lDtbPabJ9rOC
+https://is.wepogp.gay/bypass-hwid-lock-3z5O6BFAaJQzGlamvtSo?payload=y98cOeizXhHE4bkGbE31zmAH5rvSVxmXj7lvQxBofg2mjDifbvnyUCepBj/p5swnv2F2/KautImFDMZul9GjmXztDElIeJMK%2Bk%2BJSXhhS0x6KpQJZjQESLaLv%2B6RcyYs
+https://is.wepogp.gay/bypass-hwid-lock-3z5O6BFAaJQzGlamvtSo?payload=y98cOeizXhHE4bkGbE31zlxJd03nbc51zjc9ukuFlEF/fdVVJlBgtglt9oFaUhMLvjyHc77NUQ8J2W6ip43WGvDKOrpqeyekg6zgCtaNcyBGPAnqZYzW9yGONhdQhzqU
+https://is.wepogp.gay/bypass-hwid-lock-3z5O6BFAaJQzGlamvtSo?payload=6QzNd3JbYLgfbp7VGNRlhDizX29bpq3EhH/ihuT2Nha85dXK17R5cL9VL3r3PhsXroCTfd3rESbRjOHF%2BfE5jkCzId0BPl0P2V7Mq8DyCYQ%3D
+https://raw.githubusercontent.com/LIKE-FURRY/FURRY_VPN_PRO/refs/heads/main/%40FURRY_VPN_PRO
+https://raw.githubusercontent.com/misha12333211-ctrl/v2ray-aggregator-for-russia/refs/heads/main/sub.txt
+https://gist.githubusercontent.com/SlavaKat/2d75a18830db8315ee79d58f5ee62e30/raw/
+https://raw.githubusercontent.com/flaafix/AetrisVPN-white-list-lite/refs/heads/main/AetrisVPN.txt
+https://mifa.world/tetra
+https://sub.vlessfo.ru/vlessforu/working_configs.txt
+https://raw.githubusercontent.com/kafka-def/kafka-sub/refs/heads/main/subscription.txt
+https://raw.githubusercontent.com/bskertt-cmd/vpn-has/refs/heads/main/keys.txt
+https://raw.githubusercontent.com/xolirx/list-check/refs/heads/main/LTE%20Sub
+https://raw.githubusercontent.com/xolirx/list-check/refs/heads/main/Black%20Sub
+https://raw.githubusercontent.com/free1zona/Keyfreetee/refs/heads/main/razlo4ka7
+https://raw.githubusercontent.com/makardinis2013-cloud/My-vpn/refs/heads/main/Antarktida%20VPN%20%2B%20GS300
+https://raw.githubusercontent.com/yarikdron01-beep/Key-for-vpnFR/refs/heads/main/S-LTE%20configs
+https://raw.githubusercontent.com/yarikdron01-beep/Key-for-vpnFR/refs/heads/main/Key%20for%20S-WIFI
 
 
 

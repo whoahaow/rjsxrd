@@ -98,31 +98,32 @@ rjsxrd/
 │   │   └── setup-vps.sh           # VPS setup script
 │   ├── tests/
 │   │   ├── conftest.py            # Pytest fixtures
-│   │   ├── test_fetcher.py        # 16 fetcher tests
-│   │   ├── test_file_utils.py     # 26+ file utils tests
-│   │   ├── test_config_processor.py # 45+ processor tests
-│   │   ├── test_config_tagger.py  # ConfigTagger tests
-│   │   ├── test_executor_cache.py # ExecutorCache tests
-│   │   ├── test_ip_checker.py     # IP checker tests
-│   │   ├── test_ip_verifier.py    # IP verifier tests
-│   │   ├── test_logger.py         # Logger tests
-│   │   ├── test_managed_process.py # ManagedProcess lifecycle tests
-│   │   ├── test_process_registry.py # ProcessRegistry tests
-│   │   ├── test_progress.py       # Progress bar tests
-│   │   ├── test_proxy_monitor.py  # Proxy monitor tests
-│   │   ├── test_security_filter.py # Security filter tests
+│   │   ├── test_config_processor.py # 78 processor tests
+│   │   ├── test_config_tagger.py  # 17 ConfigTagger tests
+│   │   ├── test_executor_cache.py # 15 ExecutorCache tests
+│   │   ├── test_fetcher.py        # 15 fetcher tests
+│   │   ├── test_file_utils.py     # 70 file utils tests
+│   │   ├── test_git_auto_cleaner.py # 24 auto-commit cleaner tests
+│   │   ├── test_git_updater.py    # 26 GitUpdater workflow tests
+│   │   ├── test_github_handler.py # 22 GitHub handler tests (adapter pattern)
+│   │   ├── test_health_check.py  # 21 health check tests (DNS fallback, disk, memory)
+│   │   ├── test_ip_checker.py     # 14 IP checker tests
+│   │   ├── test_ip_verifier.py    # 6 IP verifier tests
+│   │   ├── test_logger.py         # 30 logger tests
+│   │   ├── test_managed_process.py # 15 ManagedProcess lifecycle tests
+│   │   ├── test_process_registry.py # 25 ProcessRegistry tests
+│   │   ├── test_progress.py       # 6 progress bar tests
+│   │   ├── test_proxy_monitor.py  # 19 proxy monitor tests
+│   │   ├── test_security_filter.py # 35 security filter tests
 │   │   ├── test_simple_tester.py  # 25 TCP ping tests
 │   │   ├── test_smart_eta.py      # 27 SmartETA tests
-│   │   ├── test_telegram_proxy_scraper.py # 27 Telegram tests
-│   │   ├── test_telegram_proxy_verifier.py # Telegram proxy verifier tests
-│   │   ├── test_url_stats.py      # URL stats tests
-│   │   ├── test_vpn_config.py     # VPNConfig typed dataclass tests
-│   │   ├── test_github_handler.py # 22 GitHub handler tests (adapter pattern)
-│   │   ├── test_git_updater.py    # 26 GitUpdater workflow tests
-│   │   ├── test_health_check.py  # 21 health check tests (DNS fallback, disk, memory)
-│   │   ├── test_xray_tester.py    # Xray tester + security edge case tests
-│   │   ├── test_yaml_converter.py # 28 YAML converter tests
-│   │   └── README.md
+│   │   ├── test_telegram_proxy_scraper.py # 21 Telegram tests
+│   │   ├── test_telegram_proxy_verifier.py # 12 Telegram proxy verifier tests
+│   │   ├── test_url_stats.py      # 11 URL stats tests
+│   │   ├── test_vpn_config.py     # 35 VPNConfig typed dataclass tests
+│   │   ├── test_xray_batch.py     # 18 BatchRunner tests
+│   │   ├── test_xray_tester.py    # 44 Xray tester + security edge case tests
+│   │   └── test_yaml_converter.py # 28 YAML converter tests
 │   └── requirements.txt
 ├── docs/                   # Documentation (user, operation, development — see docs/readme.md)
 ├── .github/workflows/
@@ -213,7 +214,7 @@ rjsxrd/
 - `create_working_config_files()` - Xray verification & sorting
 - `create_protocol_split_files()` - Protocol-specific outputs
 - `process_all_configs()` - Main orchestration function (accepts `upload_fn` for progressive upload)
-- `ConfigPipeline.run()` - 9-stage pipeline with pre-verify upload (stage 6) before verification (stage 7)
+- `ConfigPipeline.run()` - 11-stage pipeline (download → defaults → bypass raw → bypass-unsecure raw → protocol split → tg proxy → file pairs → config sources → pre-verify upload → verify → verified unsecure → report)
 
 #### `utils/file_utils.py` - Core Utilities
 - `apply_sni_cidr_filter()` - SNI/CIDR whitelist filtering
@@ -545,42 +546,46 @@ pytest -n auto                      # Parallel execution
 **Fixtures** (`source/tests/conftest.py`): sample VLESS/VMess/Trojan/SS configs, MTProto/SOCKS5 proxies, temp files, mock logger.
 
 ### Test Coverage
-- **640 passing tests** across 25 test files (full suite in ~40s)
-- `test_fetcher.py` - 16 tests
-- `test_file_utils.py` - 26+ file utils tests
-- `test_url_stats.py` - 11+ URL stats tests
-- `test_config_processor.py` - 64+ processor tests
-- `test_config_tagger.py` - 17+ ConfigTagger tests
-- `test_simple_tester.py` - 25 tests (extract_host_port + SimpleTester)
-- `test_smart_eta.py` - 27 tests (SmartETA estimator)
-- `test_telegram_proxy_scraper.py` - 27 tests
-- `test_telegram_proxy_verifier.py` - Telegram proxy verifier tests
-- `test_executor_cache.py` - ExecutorCache tests
-- `test_ip_checker.py` - IP checker tests
-- `test_ip_verifier.py` - IP verifier tests
-- `test_logger.py` - Logger tests
-- `test_managed_process.py` - ManagedProcess lifecycle tests
-- `test_process_registry.py` - ProcessRegistry tests
-- `test_progress.py` - Progress bar tests
-- `test_proxy_monitor.py` - Proxy monitor tests
-- `test_security_filter.py` - Security filter tests
-- `test_vpn_config.py` - VPNConfig typed dataclass tests
-- `test_github_handler.py` - 22 GitHub handler tests (adapter pattern)
+- **658 tests** across 26 test files (full suite in ~40s)
+- `test_config_processor.py` - 78 processor tests
+- `test_file_utils.py` - 70 file utils tests
+- `test_xray_tester.py` - 44 Xray tester + security edge case tests
+- `test_security_filter.py` - 35 security filter tests
+- `test_vpn_config.py` - 35 VPNConfig typed dataclass tests
+- `test_logger.py` - 30 logger tests
+- `test_yaml_converter.py` - 28 YAML converter tests
+- `test_smart_eta.py` - 27 SmartETA tests
 - `test_git_updater.py` - 26 GitUpdater tests (init, pull, commit, push, retry)
+- `test_simple_tester.py` - 25 TCP ping tests (extract_host_port + SimpleTester)
+- `test_process_registry.py` - 25 ProcessRegistry tests
+- `test_git_auto_cleaner.py` - 24 auto-commit cleaner tests
+- `test_github_handler.py` - 22 GitHub handler tests (adapter pattern)
 - `test_health_check.py` - 21 health check tests (DNS fallback, disk, memory, GitHub token)
-- `test_xray_tester.py` - Xray tester + security edge case tests
-- `test_yaml_converter.py` - 28 tests
+- `test_telegram_proxy_scraper.py` - 21 Telegram proxy scraper tests
+- `test_proxy_monitor.py` - 19 proxy monitor tests
+- `test_xray_batch.py` - 18 BatchRunner tests
+- `test_config_tagger.py` - 17 ConfigTagger tests
+- `test_fetcher.py` - 15 fetcher tests
+- `test_executor_cache.py` - 15 ExecutorCache tests
+- `test_managed_process.py` - 15 ManagedProcess lifecycle tests
+- `test_ip_checker.py` - 14 IP checker tests
+- `test_telegram_proxy_verifier.py` - 12 Telegram proxy verifier tests
+- `test_url_stats.py` - 11 URL stats tests
+- `test_ip_verifier.py` - 6 IP verifier tests
+- `test_progress.py` - 6 progress bar tests
 
 ### Utility Scripts
 ```bash
-# Clean dead URLs from URLS.txt
-python scripts/cleanup_dead_urls.py
+# Clean dead URLs from URLS.txt (dry run: add --apply to actually remove)
+python scripts/purge_dead_urls.py
+python scripts/purge_dead_urls.py --apply
 
-# Test ping speed of configs with Xray
-python scripts/test_ping_speed.py --count 1000
+# Remove stale URLs by git timestamp (GitHub URLs only)
+python scripts/purge_stale_urls.py --days 60 --apply
 
-# Test TCP ping (faster, no Xray needed)
-python scripts/test_tcp_ping.py --count 500
+# Benchmark configs (TCP ping or Xray)
+python scripts/benchmark_configs.py --mode tcp --count 500
+python scripts/benchmark_configs.py --mode xray --count 200
 
 # Test Telegram proxies
 python scripts/test_telegram_proxies.py
@@ -708,7 +713,7 @@ Edit `source/config/settings.py` or use env vars:
 - `ASYNC_CONCURRENCY_WIN32` - Windows Xray concurrency (default: 50)
 - `ASYNC_CONCURRENCY_LINUX` - Linux Xray concurrency (default: 300)
 - `FETCH_TIMEOUT` - HTTP request timeout (default: 5s, env overridable)
-- `FETCH_MAX_ATTEMPTS` - Retry attempts per URL (default: 2, env overridable)
+- `FETCH_MAX_ATTEMPTS` - Retry attempts per URL (default: 3, env overridable)
 - `VALIDATION_TCP_TIMEOUT` - TCP ping timeout (default: 3s)
 - `VALIDATION_HTTP_TIMEOUT` - Xray HTTP test timeout (default: 5s)
 - `TEST_PING_URLS` - Test URL(s) for Xray ping (default: gstatic/generate_204, comma-separated)
@@ -815,7 +820,7 @@ on:
 - **Create all.txt:** 5-10s (deduplication)
 - **SNI/CIDR filter:** 5-15s (parallel, up to 32 chunks)
 - **Per-source yield stats:** < 0.5s (batch filter_secure_configs)
-- **Xray verification:** 60-180s (concurrent, 150 workers)
+- **Xray verification:** 60-180s (concurrent, 300 workers)
 - **Protocol splitting:** 5-10s (parallel writes)
 - **URL Health Report:** < 0.1s (in-memory)
 - **Upload:** 20-40s (GitHub API, parallel)

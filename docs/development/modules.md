@@ -33,7 +33,9 @@
 
 Классифицирует конфиги по протоколам из URL-префикса и создаёт отдельные файлы с secure/unsecure вариантами.
 
-### Вспомогательные функции
+### Вспомогательные функции (из `file_writer.py`)
+
+Эти функции определены в `file_writer.py` и импортируются в `config_processor.py`:
 
 - `append_remark_suffix(config)` — добавляет `%20t.me%2Frjsxrd` к remark каждого конфига
 - `get_subscription_header(filename)` — генерирует subscription-заголовок (`#profile-title`, `#profile-update-interval: 48`, и т.д.)
@@ -96,7 +98,7 @@
 
 **MTProto** (4 паттерна): `https://t.me/proxy?...`, `http://t.me/proxy?...`, `t.me/proxy?...` (bare), `tg://proxy?...`
 
-**SOCKS5** (6 паттернов): `https://t.me/socks?...`, `http://t.me/socks?...`, `t.me/socks?...`, `tg://socks?...`, `socks5://host:port`, `IP:PORT` (bare format)
+**SOCKS5** (7 паттернов): `https://t.me/socks?...`, `http://t.me/socks?...`, `t.me/socks?...`, `tg://socks?...`, `socks5://host:port`, `http://IP:PORT`, `IP:PORT` (bare format)
 
 `_clean_proxy_url()` — удаляет эмодзи и не-ASCII символы. `deduplicate_proxies()` — O(n) дедупликация через set.
 
@@ -199,8 +201,13 @@
 
 Вынесен из `config_processor.py`. Содержит:
 
+- `append_remark_suffix()` — добавление remark-суффикса `%20t.me%2Frjsxrd`
+- `get_subscription_header()` — генерация subscription-заголовка
+- `write_configs_file()` / `stream_write_configs_file()` — запись файла
 - `_write_config_chunk()` — параллельный worker для чанковой записи
+- `split_configs_to_files()` — разделение на номерные файлы
 - `_write_numbered_file()` — запись номерных файлов (1.txt, 2.txt, ...)
+- `create_numbered_default_files()` — создание номерных файлов default/
 - `_write_protocol_file()` — запись протокол-специфичных файлов
 
 ## system_specs.py — автодетекция ресурсов

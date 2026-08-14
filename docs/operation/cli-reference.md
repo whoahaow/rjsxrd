@@ -97,8 +97,8 @@ python main.py --dry-run --no-proxy-check --verbose
 | `TELEGRAM_BOT_TOKEN` | — | Токен бота для уведомлений (из `.env`) |
 | `MAX_WORKERS` | 50 | Количество потоков для загрузок |
 | `FETCH_TIMEOUT` | 5 | Таймаут HTTP запроса (с) |
-| `FETCH_MAX_ATTEMPTS` | 2 | Количество попыток загрузки URL |
-| `VALIDATION_TCP_CONCURRENCY` | 100 | Параллельность TCP-пинга |
+| `FETCH_MAX_ATTEMPTS` | 3 | Количество попыток загрузки URL |
+| `VALIDATION_TCP_CONCURRENCY` | 300 | Параллельность TCP-пинга |
 | `VALIDATION_HTTP_CONCURRENCY` | 20 | Параллельность HTTP-проверок |
 | `VALIDATION_MAX_WORKERS` | 200 | Максимум потоков верификации |
 | `ASYNC_CONCURRENCY_WIN32` | 50 | Параллельность Xray на Windows |
@@ -106,7 +106,7 @@ python main.py --dry-run --no-proxy-check --verbose
 | `VALIDATION_TCP_TIMEOUT` | 3 | Таймаут TCP-соединения (с) |
 | `VALIDATION_HTTP_TIMEOUT` | 5 | Таймаут HTTP-запроса (с) |
 | `XRAY_BATCH_MODE` | single | Режим тестирования: single или batch |
-| `XRAY_BATCH_SIZE` | 100 | Конфигов на один Xray в batch-режиме |
-| `XRAY_BATCH_PROCESSES` | 10 | Параллельных Xray процессов в batch-режиме |
-| `XRAY_BATCH_STARTUP_DELAY_MS` | 200 | Задержка перед пингом после старта Xray (мс) |
-| `XRAY_BATCH_PORT_RANGE_SIZE` | 300 | Диапазон портов на chunk в batch-режиме |
+| `XRAY_BATCH_SIZE` | 1000 | Конфигов на один Xray в batch-режиме (50-2000) |
+| `XRAY_BATCH_PROCESSES` | 1 | Параллельных Xray процессов в batch-режиме |
+| `XRAY_BATCH_STARTUP_DELAY_MS` | 1000 | Задержка перед пингом после старта Xray (мс) |
+| `XRAY_BATCH_PORT_RANGE_SIZE` | 2000 | Диапазон портов на chunk в batch-режиме |

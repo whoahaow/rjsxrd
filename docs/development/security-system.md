@@ -166,7 +166,9 @@ Raw-файлы → Верификация → Verified-файлы
 Единый `ProcessRegistry` заменил три старых реестра:
 - `_active_testers` (xray_tester.py)
 - `_xray_process_registry` (ip_verifier.py)
-- `_active_proxy_monitors` (proxy_monitor.py — пока остаётся отдельно, т.к. это thread-мониторы, а не процессы)
+- `_active_proxy_monitors` (proxy_monitor.py)
+
+ProxyMonitor-инстансы отслеживаются в том же реестре (`register_monitor()` / `_proxy_monitors`) — при cleanup они останавливаются **до** завершения Xray-процессов, т.к. мониторы зависят от SOCKS-порта.
 
 Сигнал-хендлер регистрируется только в `main.py` — xray_tester больше не регистрирует свой собственный SIGINT (предотвращает race condition).
 

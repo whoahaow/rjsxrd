@@ -10,7 +10,7 @@
 main.py                          # Точка входа, CLI, оркестрация
   │
   ├── config/                    # Настройки и конфигурация
-  │   ├── settings.py           #   Параметры, токены, URL-источники (включая бывшие constants.ts)
+  │   ├── settings.py           #   Параметры, токены, URL-источники (включая бывшие constants.py)
   │   ├── URLS.txt               #   Список URL-источников (секции)
   │   ├── servers.txt            #   Ручные VPN-серверы
   │   ├── tg_proxies.txt         #   Ручные Telegram-прокси
@@ -71,7 +71,7 @@ main.py                          # Точка входа, CLI, оркестра�
   │   ├── benchmark_configs.py
   │   ├── test_telegram_proxies.py
   │   └── setup-vps.sh
-  └── tests/                     # 619 тестов в 25 файлах
+  └── tests/                     # 658 тестов в 26 файлах
 ```
 
 ## Пайплайн обработки
@@ -133,10 +133,9 @@ apply_sni_cidr_filter() → выборка по доменам/CIDR
 При получении SIGINT/SIGTERM срабатывает `_signal_handler()` в `main.py`:
 
 1. **Остановка ResourceMonitor** — фоновый сбор CPU/RAM/сети прекращается
-2. **Остановка ProxyMonitor** — проход по глобальному реестру `_active_proxy_monitors`, вызов `.stop()` на каждом
-3. **Очистка реестра процессов** — `default_registry.cleanup(force=True)` из `process_registry.py`, завершает все Xray-процессы и восстанавливает proxy env vars
-4. **Ожидание 2 с** — `time.sleep(2)`, даёт время процессам завершиться
-5. **`sys.exit(0)`** — чистое завершение
+2. **Очистка реестра процессов** — `default_registry.cleanup(force=True)` из `process_registry.py`. Реестр сначала останавливает ProxyMonitor'ы (они зависят от SOCKS-порта Xray), затем завершает все Xray-процессы и восстанавливает proxy env vars
+3. **Ожидание 2 с** — `time.sleep(2)`, даёт время процессам завершиться
+4. **`sys.exit(0)`** — чистое завершение
 
 **Почему именно такой порядок:** ProxyMonitor зависит от SOCKS-порта Xray. Убить Xray до остановки монитора = паника в мониторе. Signal handler сначала останавливает все watcher'ы, затем чистит процессы.
 

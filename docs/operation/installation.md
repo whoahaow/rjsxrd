@@ -46,10 +46,10 @@ nano ../.env              # укажите GITHUB_TOKEN и REPO_NAME
 | `FRAGMENT_INTERVAL` | 10-20 | Диапазон интервала фрагментов |
 | `XRAY_STARTUP_TIMEOUT` | 3 | Таймаут запуска Xray-core (сек) |
 | `XRAY_BATCH_MODE` | single | Режим тестирования: single или batch |
-| `XRAY_BATCH_SIZE` | 100 | Конфигов на один Xray в batch-режиме |
-| `XRAY_BATCH_PROCESSES` | 10 | Параллельных Xray процессов в batch-режиме |
-| `XRAY_BATCH_STARTUP_DELAY_MS` | 200 | Задержка перед пингом (мс) |
-| `XRAY_BATCH_PORT_RANGE_SIZE` | 300 | Диапазон портов на chunk |
+| `XRAY_BATCH_SIZE` | 1000 | Конфигов на один Xray в batch-режиме (50-2000) |
+| `XRAY_BATCH_PROCESSES` | 1 | Параллельных Xray процессов в batch-режиме |
+| `XRAY_BATCH_STARTUP_DELAY_MS` | 1000 | Задержка перед пингом (мс) |
+| `XRAY_BATCH_PORT_RANGE_SIZE` | 2000 | Диапазон портов на chunk |
 
 ## Запуск
 
@@ -58,6 +58,8 @@ python main.py
 ```
 
 Конфиги появятся в `../githubmirror/`.
+
+> **Примечание:** по умолчанию генератор создаёт только папку `bypass/` (проверенные конфиги). Остальные наборы (`default/`, `bypass-unsecure/`, `split-by-protocols/`, `tg-proxy/`, raw-файлы) включаются feature-флагами `--enable-*` — см. [CLI-справочник](cli-reference.md).
 
 **Локальное тестирование без загрузки:**
 
@@ -74,7 +76,7 @@ python main.py --use-git --no-proxy-check
 **Для GitHub Actions (резервный):**
 
 ```bash
-python main.py --use-git
+python main.py --use-git --no-proxy-check
 ```
 
 ## Развёртывание на VPS

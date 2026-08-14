@@ -1,3 +1,5 @@
+> **Language:** [Русский](cli-reference.md) · [English](cli-reference.en.md)
+
 # CLI-справочник
 
 ## Синтаксис

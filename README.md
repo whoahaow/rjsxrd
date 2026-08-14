@@ -1,3 +1,5 @@
+> **Language:** [Русский](README.md) · [English](README.en.md)
+
 # rjsxrd - Автоматически обновляемые VPN-конфиги
 
 tgc: [t.me/rjsxrd](https://t.me/rjsxrd)

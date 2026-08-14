@@ -1,3 +1,5 @@
+> **Language:** [Русский](performance.md) · [English](performance.en.md)
+
 # Оптимизации и производительность
 
 ## Параллелизм

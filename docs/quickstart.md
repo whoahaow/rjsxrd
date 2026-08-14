@@ -1,3 +1,5 @@
+> **Language:** [Русский](quickstart.md) · [English](quickstart.en.md)
+
 # Быстрый старт
 
 Два шага, чтобы начать пользоваться конфигами.

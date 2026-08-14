@@ -1,3 +1,5 @@
+> **Language:** [Русский](modules.md) · [English](modules.en.md)
+
 # Модули и ключевые функции
 
 ## main.py — точка входа
@@ -115,7 +117,7 @@
 
 ### `extract_host_port(config_line) -> (host, port)`
 
-Извлекает хост и порт из URL любого поддерживаемого протокола. Использует кэширование результатов через `lru_cache`.
+Извлекает хост и порт из URL любого поддерживаемого протокола. Дедупликация использует кэш `lru_cache` в `_get_dedup_key()`.
 
 ### `deduplicate_configs(configs) -> list`
 
@@ -154,7 +156,7 @@
 - `_cleanup_config_file()` — удаление temp файла
 
 **Платформенная диспетчеризация:**
-- Linux/WSL: асинхронный путь, до 150 параллельных конфигов
+- Linux/WSL: асинхронный путь, до 300 параллельных конфигов
 - Windows: ThreadPoolExecutor, до 50 параллельных конфигов
 
 **Retry:** максимум 2 попытки на конфиг, экспоненциальная задержка.
@@ -217,7 +219,7 @@
 **Методы:**
 - `safe_xray_workers()` — RAM-based: `(total - 200) / 24`, capped at `cpu * 40`.
 - `safe_url_workers()` — I/O-bound, generous: до 20.
-| `safe_fetch_workers()` — CPU-bound (TLS handshake), auto-detect. Low-CPU: `cpu * 4 + 4`, min 10. 4+ cores: `cpu * 10 + 10`, clamped [20, 50].
+- `safe_fetch_workers()` — CPU-bound (TLS handshake), auto-detect. Low-CPU: `cpu * 4 + 4`, min 10. 4+ cores: `cpu * 10 + 10`, clamped [20, 50].
 - `safe_tcp_workers()` — очень лёгкий: до 150.
 - `safe_http_workers()` — умеренный: до 20.
 - `summary()` — однострочный отчёт (`"956 MB RAM, 1 CPU cores (container)"`).

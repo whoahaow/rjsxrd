@@ -1,3 +1,5 @@
+> **Language:** [Русский](installation.md) · [English](installation.en.md)
+
 # Установка и запуск генератора
 
 ## Требования

@@ -1,3 +1,5 @@
+> **Language:** [Русский](testing.md) · [English](testing.en.md)
+
 # Тестирование
 
 ## Запуск тестов

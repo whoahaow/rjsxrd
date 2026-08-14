@@ -1,3 +1,5 @@
+> **Language:** [Русский](architecture.md) · [English](architecture.en.md)
+
 # Архитектура
 
 ## Обзор

@@ -1,3 +1,5 @@
+> **Language:** [Русский](import-guide.md) · [English](import-guide.en.md)
+
 # Импорт в VPN-клиенты
 
 ## Android (v2rayNG)

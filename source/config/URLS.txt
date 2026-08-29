@@ -206,6 +206,45 @@ https://raw.githubusercontent.com/10ium/ScrapeAndCategorize/refs/heads/main/outp
 https://raw.githubusercontent.com/10ium/ScrapeAndCategorize/refs/heads/main/output_configs/Tuic.txt
 https://raw.githubusercontent.com/10ium/ScrapeAndCategorize/refs/heads/main/output_configs/Hysteria2.txt
 https://raw.githubusercontent.com/flaafix/AetrisVPN-black-list/refs/heads/main/configs.txt
+https://cyb-portal.com/CP-001
+https://cyb-portal.com/CP-002
+https://cyb-portal.com/CP-003
+https://cyb-portal.com/CP-005
+https://cyb-portal.com/CP-009
+https://cyb-portal.com/CP-010
+https://cyb-portal.com/CP-012
+https://cyb-portal.com/CP-013
+https://cyb-portal.com/CP-014
+https://cyb-portal.com/CP-015
+https://cyb-portal.com/CP-016
+https://cyb-portal.com/CP-017
+https://cyb-portal.com/CP-018
+https://cyb-portal.com/CP-019
+https://cyb-portal.com/CP-020
+https://cyb-portal.com/CP-021
+https://cyb-portal.com/CP-022
+https://cyb-portal.com/CP-023
+https://cyb-portal.com/CP-024
+https://cyb-portal.com/CP-025
+https://cyb-portal.com/CP-026
+https://cyb-portal.com/CP-027
+https://cyb-portal.com/CP-028
+https://cyb-portal.com/CP-029
+https://cyb-portal.com/CP-030
+https://cyb-portal.com/CP-032
+https://cyb-portal.com/CP-033
+https://cyb-portal.com/CP-034
+https://cyb-portal.com/CP-036
+https://cyb-portal.com/CP-037
+https://cyb-portal.com/CP-039
+https://cyb-portal.com/CP-041
+https://cyb-portal.com/CP-043
+https://cyb-portal.com/CP-044
+
+
+
+
+
 
 
 # extra for bypass
@@ -348,6 +387,18 @@ https://raw.githubusercontent.com/free1zona/Keyfreetee/refs/heads/main/razlo4ka7
 https://raw.githubusercontent.com/makardinis2013-cloud/My-vpn/refs/heads/main/Antarktida%20VPN%20%2B%20GS300
 https://raw.githubusercontent.com/yarikdron01-beep/Key-for-vpnFR/refs/heads/main/S-LTE%20configs
 https://raw.githubusercontent.com/yarikdron01-beep/Key-for-vpnFR/refs/heads/main/Key%20for%20S-WIFI
+https://cyb-portal.com/CP-006
+https://cyb-portal.com/CP-007
+https://cyb-portal.com/CP-008
+https://cyb-portal.com/CP-011
+https://cyb-portal.com/CP-031
+https://cyb-portal.com/CP-035
+https://cyb-portal.com/CP-038
+https://cyb-portal.com/CP-040
+https://cyb-portal.com/CP-042
+
+
+
 
 
 

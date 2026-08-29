@@ -1063,6 +1063,18 @@ FAIL2BAN
         log_info "  Backed up sshd_config"
     fi
 
+    # Remove cloud-init SSH overrides that conflict with our hardening
+    # (50-cloud-init.conf often sets PasswordAuthentication no, PermitRootLogin yes)
+    if [ -d /etc/ssh/sshd_config.d ]; then
+        for dropin in /etc/ssh/sshd_config.d/*.conf; do
+            [ -f "$dropin" ] || continue
+            if grep -qi 'PasswordAuthentication\|PermitRootLogin\|AllowUsers' "$dropin" 2>/dev/null; then
+                rm -f "$dropin"
+                log_info "  Removed conflicting drop-in: $dropin"
+            fi
+        done
+    fi
+
     # Apply all hardening directives idempotently
     for directive in \
         "PermitRootLogin no" \

@@ -118,7 +118,11 @@ def _fetch_via_api(
     session: Optional[Session] = None,
     timeout: int = 5,
 ) -> Optional[str]:
-    """Fetch file content via GitHub API (base64 decoded).
+    """Fetch file content via GitHub API.
+
+    <1MB: JSON with base64 content (default)
+    1-100MB: raw content via application/vnd.github.raw+json media type
+    >100MB: not supported by GitHub API
 
     Returns decoded text on success, None on failure.
     """
@@ -128,19 +132,50 @@ def _fetch_via_api(
 
     try:
         sess = session or build_session()
-        headers = {}
+
+        # First, get file metadata (size + sha) via JSON
+        headers = {"Accept": "application/vnd.github.v3+json"}
         if token:
             headers["Authorization"] = f"token {token}"
 
-        resp = sess.get(api_url, timeout=timeout, headers=headers or None)
+        resp = sess.get(api_url, timeout=timeout, headers=headers)
+
+        if resp.status_code == 403:
+            import sys
+            print(f"[github-api] rate limited: {api_url[:80]}", file=sys.stderr)
+            return None
+
+        if resp.status_code == 404:
+            return None
+
         resp.raise_for_status()
         data = resp.json()
 
+        # Small file: base64 encoded content
         if "content" in data and data.get("encoding") == "base64":
             return base64.b64decode(data["content"]).decode("utf-8", errors="ignore")
 
+        # Large file (1-100MB): use raw media type
+        file_size = data.get("size", 0)
+        if file_size > 1_000_000:
+            if file_size > 100_000_000:
+                import sys
+                print(f"[github-api] skipped ({file_size//1024//1024}MB > 100MB limit): {url[:80]}", file=sys.stderr)
+                return None
+
+            # Re-fetch with raw media type
+            raw_headers = {"Accept": "application/vnd.github.raw+json"}
+            if token:
+                raw_headers["Authorization"] = f"token {token}"
+
+            raw_resp = sess.get(api_url, timeout=timeout * 3, headers=raw_headers)
+            raw_resp.raise_for_status()
+            return raw_resp.text
+
         return None
-    except Exception:
+    except Exception as e:
+        import sys
+        print(f"[github-api] error: {api_url[:80]}: {e}", file=sys.stderr)
         return None
 
 

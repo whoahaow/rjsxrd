@@ -2,6 +2,7 @@
 #profile-update-interval: 1
 #support-url: https://t.me/rjsxrd
 #profile-web-page-url: https://github.com/whoahaow/rjsxrd
-#announce: t.me/rjsxrd
+#announce: t.me/rjsxrd · 1 configs · last update: 07:35 30/08/2026
 #subscription-userinfo: upload=0; download=0; total=0; expire=0
 
+vless://2f35965a-9a9b-45fd-ba32-987296dfb6be@89.35.14.30:443?type=grpc&security=reality&fp=firefox&pbk=xWejOQUn2koOUorUPSrHMLM-lyHlZ441KzxKc9bLmkY&sid=221ba6174224ca5b&sni=md1.univesalsrv.com&serviceName=hub.v1.RelayService#%F0%9F%8C%80%20CYBERPORTAL%20%7C%20White%20Keys%20%23387%20t.me%2Frjsxrd

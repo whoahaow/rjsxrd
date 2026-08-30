@@ -220,6 +220,14 @@ def fetch_data(url: str, timeout: int = 5, max_attempts: int = 3, session=None, 
     if request_token:
         extra_headers["Authorization"] = f"token {request_token}"
 
+    # If API fallback enabled and URL is GitHub — go straight to API, skip retries
+    if GITHUB_API_FALLBACK and _is_github_url(url):
+        api_token = request_token or _get_github_token()
+        api_content = _fetch_via_api(url, token=api_token, session=sess, timeout=timeout)
+        if api_content:
+            return FetchResult(text=api_content, status_code=200)
+        # API also failed — fall through to normal retry loop as last resort
+
     for attempt in range(1, max_attempts + 1):
         try:
             modified_url = url
@@ -248,12 +256,5 @@ def fetch_data(url: str, timeout: int = 5, max_attempts: int = 3, session=None, 
             if attempt < max_attempts:
                 time.sleep(1)
                 continue
-
-            # Attempt 4: GitHub API fallback for raw/blob GitHub URLs
-            if GITHUB_API_FALLBACK and _is_github_url(url):
-                api_token = request_token or _get_github_token()
-                api_content = _fetch_via_api(url, token=api_token, session=sess, timeout=timeout)
-                if api_content:
-                    return FetchResult(text=api_content, status_code=200)
 
             return FetchResult(text="", status_code=_extract_status(exc), error=str(exc), success=False)

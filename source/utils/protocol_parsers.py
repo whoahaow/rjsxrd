@@ -515,7 +515,7 @@ def parse_shadowsocks_to_outbound(url: str, tag: str = "proxy") -> dict | None:
                 "headers": {"Host": unquote(params.get("host", [hostname])[0])},
             }
 
-        outbound = {
+        return {
             "tag": tag,
             "protocol": "shadowsocks",
             "settings": {
@@ -530,8 +530,6 @@ def parse_shadowsocks_to_outbound(url: str, tag: str = "proxy") -> dict | None:
             },
             "streamSettings": stream_settings,
         }
-
-        return outbound
     except (
         ValueError,
         IndexError,

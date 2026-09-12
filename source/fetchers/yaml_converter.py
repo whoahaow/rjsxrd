@@ -38,9 +38,7 @@ def convert_yaml_to_vpn_configs(yaml_content: str) -> list[str]:
                     configs.extend(_extract_configs_from_dict(item))
 
         # Filter out invalid configs
-        valid_configs = [config for config in configs if is_valid_vpn_config_url(config)]
-
-        return valid_configs
+        return [config for config in configs if is_valid_vpn_config_url(config)]
 
     except yaml.YAMLError as e:
         log(f"Error parsing YAML: {e}")
@@ -306,8 +304,7 @@ def _build_shadowsocksr_url(config: dict[str, Any]) -> str:
         if "name" in config:
             query_parts.append(f"remarks={base64.b64encode(config['name'].encode()).decode()}")
 
-        url = f"ssr://{params}/?" + "&".join(query_parts)
-        return url
+        return f"ssr://{params}/?" + "&".join(query_parts)
     except (TypeError, ValueError) as e:
         log(f"Error building ShadowsocksR URL: {e}")
         return ""

@@ -220,7 +220,6 @@ def _run_pipeline_and_upload(
         upload_fn=upload_fn,
     )
 
-    pipeline_ok = False
     if not dry_run and file_pairs:
         if use_git:
             assert updater is not None
@@ -241,9 +240,7 @@ def _run_pipeline_and_upload(
                 log(f"ERROR: {failures} upload(s) failed")
                 notify_error(f"{failures} upload(s) failed")
                 sys.exit(1)
-    pipeline_ok = True
-
-    return pipeline_ok
+    return True
 
 
 def main(

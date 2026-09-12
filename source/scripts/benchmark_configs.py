@@ -112,9 +112,10 @@ def resolve_path(local: bool) -> str:
         log(f"failed to fetch: {e}")
         sys.exit(1)
 
-    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding="utf-8")
-    tmp.write(content)
-    tmp.close()
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".txt", delete=False, encoding="utf-8"
+    ) as tmp:
+        tmp.write(content)
     count = len(
         [line for line in content.splitlines() if line.strip() and not line.strip().startswith("#")]
     )

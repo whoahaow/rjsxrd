@@ -25,8 +25,14 @@ testpaths = ["source/tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+addopts = "-v --tb=short --strict-markers"
 markers = [
-    "unit: marks tests as unit tests",
-    "integration: marks tests as integration tests",
-    "slow: marks tests as slow",
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests (require network/external services)",
+    "unit: marks tests as unit tests (pure logic, no external dependencies)",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+    "ignore::ResourceWarning",
 ]

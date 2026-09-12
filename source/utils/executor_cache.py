@@ -101,7 +101,7 @@ class ExecutorCache:
         lock = cls._get_lock()
 
         with lock:
-            for name, executor in cls._executors.items():
+            for executor in cls._executors.values():
                 with contextlib.suppress(OSError, RuntimeError):
                     executor.shutdown(wait=True)
             cls._executors.clear()

@@ -16,7 +16,7 @@ warnings.filterwarnings("ignore", category=RuntimeWarning, module="asyncio")
 warnings.filterwarnings("ignore", category=ResourceWarning, module="socket")
 logging.getLogger("asyncio").setLevel(logging.ERROR)
 
-from utils.curl_import import CURL_CFFI_AVAILABLE, AsyncSession
+from utils.curl_import import CURL_CFFI_AVAILABLE, AsyncSession  # noqa: E402 - filters run first
 
 # Test URL for SOCKS5 HTTP verification (same as config verification)
 TEST_URL = "https://www.gstatic.com/generate_204"

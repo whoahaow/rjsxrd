@@ -9,7 +9,7 @@ from dotenv import find_dotenv, load_dotenv
 # Must be before any os.environ.get() calls below
 load_dotenv(find_dotenv(usecwd=True))
 
-from utils.logger import log
+from utils.logger import log  # noqa: E402 - dotenv load must come first
 
 # Lazy-load caches for file-based configuration
 _SNI_DOMAINS_CACHE = None

@@ -19,7 +19,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 sys.path.insert(0, PROJECT_ROOT)
 
-from fetchers.fetcher import fetch_data
+from fetchers.fetcher import fetch_data  # noqa: E402 - must follow the sys.path insert
 
 
 def check_url(url: str, timeout: int) -> tuple[str, bool]:

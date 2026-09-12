@@ -501,7 +501,8 @@ source/               - исходный код генератора
  │   ├─ xray_helpers.py - вспомогательные функции Xray
  │   └─ xray_tester.py - Xray-core тестирование с сортировкой по скорости
  ├─ xray/             - Xray-core бандл (xray, geoip.dat, geosite.dat, LICENSE)
- └─ requirements.txt  - зависимости проекта
+ ├─ requirements.txt  - рантайм-зависимости
+ └─ requirements-dev.txt - линтер, статическая типизация и тестовый тулчейн
 .github/workflows/    - CI/CD (авто-обновление ежедневно)
 .env                  - переменные окружения (gitignored)
 .env.example          - шаблон переменных окружения
@@ -621,12 +622,17 @@ python main.py --verbose
 - `tqdm` - прогресс бары для верификации конфигов и Telegram прокси
 - `pytdbot[tdjson]` - Telegram бот API
 
-Для разработки и тестирования:
+Для разработки и тестирования (`source/requirements-dev.txt`, ставится поверх рантайм-зависимостей):
 - `pytest` - фреймворк для тестирования
 - `pytest-cov` - отчет о покрытии кода
 - `pytest-asyncio` - поддержка async тестов
 - `pytest-xdist` - параллельный запуск тестов
 - `pytest-mock` - mocking утилиты
+- `hypothesis` - property-based тесты
+- `ruff` - линтер
+- `mypy` - статическая проверка типов
+- `pip-audit` - проверка зависимостей на уязвимости
+- `pre-commit` - git-хуки
 
 ---
 

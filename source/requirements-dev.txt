@@ -1,0 +1,14 @@
+# Development and test toolchain. Installed on top of the runtime dependencies:
+#   uv pip install --python .venv/Scripts/python.exe -r source/requirements-dev.txt
+-r requirements.txt
+
+ruff==0.16.7  # Linter
+mypy==2.3.1  # Static type checking
+pytest==9.1.1  # Test runner
+pytest-cov==7.1.0  # Coverage report
+pytest-asyncio==1.4.0  # Async test support
+pytest-xdist==3.8.0  # Parallel test execution
+pytest-mock==3.15.1  # Mocking utilities
+pip-audit==2.10.1  # Dependency vulnerability scan
+pre-commit==4.6.2  # Git hook runner
+hypothesis==6.168.0  # Property-based testing

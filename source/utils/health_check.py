@@ -100,10 +100,7 @@ def check_xray_binary(xray_path: str) -> bool:
     if not os.path.exists(xray_path):
         return False
 
-    if not os.access(xray_path, os.X_OK):
-        return False
-
-    return True
+    return os.access(xray_path, os.X_OK)
 
 
 def check_github_token(token: str) -> bool:
@@ -118,10 +115,7 @@ def check_github_token(token: str) -> bool:
     if not token:
         return False
 
-    if len(token) < 10:
-        return False
-
-    return True
+    return len(token) >= 10
 
 
 def health_check(xray_path: str = None, github_token: str = None) -> dict[str, bool]:

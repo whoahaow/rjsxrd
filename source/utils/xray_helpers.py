@@ -20,18 +20,14 @@ def quick_validate_url(url: str) -> bool:
     """Quick pre-validation: check URL has protocol prefix."""
     if not url or not url.strip():
         return False
-    if "://" not in url:
-        return False
-    return True
+    return "://" in url
 
 
 def validate_response(response: str, test_url: str = "") -> bool:
     """Basic validation that response looks like real HTTP content."""
     if not response:
         return False
-    if len(response) < 20:
-        return False
-    return True
+    return len(response) >= 20
 
 
 def tcp_ping(host: str, port: int, timeout: float = 3.0) -> tuple[bool, float]:

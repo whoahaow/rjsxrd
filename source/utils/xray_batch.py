@@ -362,10 +362,12 @@ class BatchRunner:
             )
 
             default_timeout = VALIDATION_HTTP_TIMEOUT
+            max_concurrency_win32 = ASYNC_CONCURRENCY_WIN32
+            max_concurrency_linux = ASYNC_CONCURRENCY_LINUX
         except ImportError:
             default_timeout = 10.0
-            ASYNC_CONCURRENCY_WIN32 = 50
-            ASYNC_CONCURRENCY_LINUX = 300
+            max_concurrency_win32 = 50
+            max_concurrency_linux = 300
 
         timeout = timeout or default_timeout
         if concurrency is None:
@@ -376,12 +378,12 @@ class BatchRunner:
             log(f"Auto-detected xray concurrency: {concurrency} (system: {specs.summary()})")
 
         if sys.platform == "win32":
-            concurrency = min(concurrency, ASYNC_CONCURRENCY_WIN32)
+            concurrency = min(concurrency, max_concurrency_win32)
             log(
                 f"Testing {len(urls)} configs (Windows, concurrency={concurrency}, timeout={timeout}s) - Progress bar enabled"
             )
         else:
-            concurrency = min(concurrency, ASYNC_CONCURRENCY_LINUX)
+            concurrency = min(concurrency, max_concurrency_linux)
             log(
                 f"Testing {len(urls)} configs (Linux/WSL, concurrency={concurrency}, timeout={timeout}s) - Progress bar enabled"
             )

@@ -502,7 +502,8 @@ source/               - исходный код генератора
  │   └─ xray_tester.py - Xray-core тестирование с сортировкой по скорости
  ├─ xray/             - Xray-core бандл (xray, geoip.dat, geosite.dat, LICENSE)
  ├─ requirements.txt  - рантайм-зависимости
- └─ requirements-dev.txt - линтер, статическая типизация и тестовый тулчейн
+ ├─ requirements-dev.txt - линтер, статическая типизация и тестовый тулчейн
+ └─ requirements.lock - lock рантайм-зависимостей с хешами
 .github/workflows/    - CI/CD (авто-обновление ежедневно)
 .env                  - переменные окружения (gitignored)
 .env.example          - шаблон переменных окружения

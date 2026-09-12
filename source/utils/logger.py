@@ -201,7 +201,7 @@ def extract_source_name(url: str) -> str:
 
 def print_logs() -> None:
     """Print all collected logs in ordered manner by file index."""
-    ordered_keys = sorted(k for k in LOGS_BY_FILE.keys() if k != 0)
+    ordered_keys = sorted(k for k in LOGS_BY_FILE if k != 0)
     output_lines = []
 
     for k in ordered_keys:

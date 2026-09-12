@@ -218,10 +218,7 @@ def _check_ss_cipher(config_line: str, config_lower: str) -> bool:
             if "@" in url_clean:
                 encoded_part = url_clean.split("@")[0]
                 rem = 4 - len(encoded_part) % 4
-                if rem != 4:
-                    padded_encoded_part = encoded_part + "=" * rem
-                else:
-                    padded_encoded_part = encoded_part
+                padded_encoded_part = encoded_part + "=" * rem if rem != 4 else encoded_part
                 try:
                     decoded_credentials = base64.b64decode(padded_encoded_part).decode("utf-8")
                     if ":" in decoded_credentials:

@@ -366,7 +366,6 @@ def run(dry_run: bool, stale_days: int) -> None:
     save_cache(cache)
 
     stale_urls = [(url, d) for url, d, s in results if s]
-    fresh_urls = [(url, d) for url, d, s in results if not s and d]
 
     print()
     fresh_print = fresh_count

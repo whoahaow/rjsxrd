@@ -5,6 +5,7 @@ Returns results in the same format as XrayTester.test_batch() for drop-in replac
 """
 
 import asyncio
+import contextlib
 import socket
 import sys
 import time
@@ -127,10 +128,9 @@ class SimpleTester:
         all_results = await asyncio.gather(*tasks)
 
         if pbar:
-            try:
+            # best-effort cleanup
+            with contextlib.suppress(RuntimeError, OSError):
                 await asyncio.get_event_loop().run_in_executor(None, pbar.close)
-            except (RuntimeError, OSError):
-                pass  # best-effort cleanup
 
         working = [(url, ok, rtt) for url, ok, rtt in all_results if ok]
         working.sort(key=lambda x: x[2])

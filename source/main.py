@@ -1,6 +1,7 @@
 """Main module for VPN config generator with refactored, streamlined logic."""
 
 import argparse
+import contextlib
 import os
 import signal
 import sys
@@ -347,10 +348,9 @@ def main(
         # Stop proxy monitor first (it depends on SOCKS port)
         if proxy_monitor:
             proxy_monitor.running = False
-            try:
+            # best-effort cleanup
+            with contextlib.suppress(AttributeError, RuntimeError):
                 proxy_monitor.stop()
-            except (AttributeError, RuntimeError):
-                pass  # best-effort cleanup
         # Cleanup proxy resources (registry also restores proxy env vars)
         if proxy_cleanup_needed:
             try:

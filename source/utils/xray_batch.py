@@ -7,6 +7,7 @@ to the parent XrayTester instance.
 
 import asyncio
 import concurrent.futures
+import contextlib
 import sys
 import threading
 import time
@@ -551,10 +552,8 @@ class BatchRunner:
             )
 
         if pbar:
-            try:
+            with contextlib.suppress(RuntimeError, OSError):
                 await asyncio.get_event_loop().run_in_executor(None, pbar.close)
-            except (RuntimeError, OSError):
-                pass
 
         for i, result in enumerate(task_results):
             if isinstance(result, Exception):

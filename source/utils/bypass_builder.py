@@ -264,7 +264,7 @@ def verify_config_file(
                     stats.record_config_verification(src, cfg, is_working)
             stats.record_verified_yield(dict(source_counts))
 
-        working = [(cfg, s, l) for cfg, s, l in all_results if s]
+        working = [(cfg, s, lat) for cfg, s, lat in all_results if s]
         working.sort(key=lambda x: x[2])
         sorted_configs = [cfg for cfg, _, _ in working]
         log(f"Verification: {len(sorted_configs)}/{len(configs)} working (tcp_ping={tcp_ping})")

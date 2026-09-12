@@ -50,6 +50,7 @@ rjsxrd собирает, фильтрует и верифицирует тыся
 | [Безопасность](development/security-system.md) | Фильтрация небезопасных конфигов и SNI/CIDR |
 | [Производительность](development/performance.md) | Параллелизм, batch-режим, совместимость с Xray |
 | [Тестирование](development/testing.md) | Набор тестов и сценарии проверки |
+| [Окружение для разработки](development/development-environment.md) | Развёртывание окружения через uv и проверки перед коммитом |
 
 ---
 

@@ -519,9 +519,9 @@ git clone https://github.com/whoahaow/rjsxrd
 cd rjsxrd
 cp .env.example .env          # создайте и заполните .env своими настройками
 nano .env                      # укажите GITHUB_TOKEN и REPO_NAME
-cd source
-python -m pip install -r requirements.txt
-python main.py                 # конфиги появятся в ../githubmirror
+uv venv --python 3.12 .venv
+uv pip install --python .venv/Scripts/python.exe -r source/requirements.txt
+cd source && ../.venv/Scripts/python.exe main.py   # конфиги появятся в ../githubmirror
 ```
 
 > **Важно:** Скопируйте `.env.example` в `.env` и заполните `GITHUB_TOKEN` (токен с доступом repo) и `REPO_NAME` (формат `owner/repo`). Telegram-уведомления и тюнинг производительности — опционально.
@@ -531,16 +531,18 @@ python main.py                 # конфиги появятся в ../githubmir
 Проект включает набор unit-тестов для проверки корректности работы основных модулей (658 тестов, 26 файлов):
 
 ```bash
+# тестовый тулчейн — из корня репозитория
+uv pip install --python .venv/Scripts/python.exe -r source/requirements-dev.txt
+
 cd source
-pip install pytest pytest-cov pytest-asyncio pytest-xdist pytest-mock
-pytest                              # Запустить все тесты
-pytest -v                           # Подробный вывод
-pytest --cov=fetchers --cov=utils   # С отчетом о покрытии
-pytest -m unit                      # Только быстрые unit-тесты
-pytest -n auto                      # Параллельный запуск
+../.venv/Scripts/python.exe -m pytest                       # Запустить все тесты
+../.venv/Scripts/python.exe -m pytest -v                     # Подробный вывод
+../.venv/Scripts/python.exe -m pytest --cov=fetchers --cov=utils   # С отчетом о покрытии
+../.venv/Scripts/python.exe -m pytest -m unit                # Только быстрые unit-тесты
+../.venv/Scripts/python.exe -m pytest -n auto                # Параллельный запуск
 ```
 
-Подробная документация по тестам — в [`docs/development/testing.md`](docs/development/testing.md).
+Подробная документация по тестам — в [`docs/development/testing.md`](docs/development/testing.md). Настройка окружения — в [`docs/development/development-environment.md`](docs/development/development-environment.md).
 
 #### Режимы запуска
 

@@ -186,3 +186,11 @@ source/data/
 # MSYS/bash crash dumps (leave a dirty working tree otherwise)
 *.stackdump
 
+# Windows crash / error-report dumps
+*.dmp
+core.*
+
+# Tool caches (ruff writes its own .gitignore inside .ruff_cache; state it explicitly
+# so the protection does not depend on a tool's internal file)
+.ruff_cache/
+

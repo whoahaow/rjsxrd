@@ -274,7 +274,7 @@ def setup_proxy_chain(proxy_urls: list, timeout: float = 8.0) -> dict:
         return result
 
     try:
-        VALID_PROTOCOLS = [
+        valid_protocols = [
             "vless",
             "vmess",
             "trojan",
@@ -289,7 +289,7 @@ def setup_proxy_chain(proxy_urls: list, timeout: float = 8.0) -> dict:
                 result["error"] = f"Invalid proxy URL at position {i + 1}"
                 return result
             protocol = url.split("://")[0].lower()
-            if protocol not in VALID_PROTOCOLS:
+            if protocol not in valid_protocols:
                 result["error"] = f"Unsupported protocol '{protocol}' at position {i + 1}"
                 return result
 
@@ -314,28 +314,28 @@ def setup_proxy_chain(proxy_urls: list, timeout: float = 8.0) -> dict:
             result["error"] = "Xray-core not installed"
             return result
 
-        ENTRY_SOCKS_PORT = 22000
+        entry_socks_port = 22000
         log("Setting up proxy chain (EXPERIMENTAL)...")
         tester = XrayTester(xray_path=xray_path)
-        config = tester.create_chain_config(proxy_urls=proxy_urls, socks_port=ENTRY_SOCKS_PORT)
+        config = tester.create_chain_config(proxy_urls=proxy_urls, socks_port=entry_socks_port)
 
         if not config:
             result["error"] = "Failed to create chain config (Reality not supported)"
             return result
 
         log("Starting Xray instance...")
-        success, process, error = tester.start_xray_instance(config, ENTRY_SOCKS_PORT, verbose=True)
+        success, process, error = tester.start_xray_instance(config, entry_socks_port, verbose=True)
         if not success:
             result["error"] = f"Xray failed: {error}"
             return result
 
-        if not _wait_for_tcp_port("127.0.0.1", ENTRY_SOCKS_PORT, timeout=3.0):
+        if not _wait_for_tcp_port("127.0.0.1", entry_socks_port, timeout=3.0):
             result["error"] = "Xray port not listening"
             tester.stop_xray_process(process)
             return result
 
-        log(f"  * Xray ready on port {ENTRY_SOCKS_PORT}")
-        socks_url = f"socks5h://127.0.0.1:{ENTRY_SOCKS_PORT}"
+        log(f"  * Xray ready on port {entry_socks_port}")
+        socks_url = f"socks5h://127.0.0.1:{entry_socks_port}"
 
         # Test hop 1 alone
         log("  Testing hop 1...")
@@ -436,7 +436,7 @@ def setup_proxy_chain(proxy_urls: list, timeout: float = 8.0) -> dict:
             os.environ[var] = socks_url
 
         result["active"] = True
-        result["socks_port"] = ENTRY_SOCKS_PORT
+        result["socks_port"] = entry_socks_port
         return result
 
     except (

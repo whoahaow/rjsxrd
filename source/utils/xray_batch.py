@@ -281,7 +281,7 @@ class BatchRunner:
                                 sorted_working = [
                                     u
                                     for u, _s, _l in sorted(
-                                        [(u, s, l) for u, s, l in all_results if s],
+                                        [(u, s, lat) for u, s, lat in all_results if s],
                                         key=lambda x: x[1],
                                     )
                                 ]
@@ -313,9 +313,9 @@ class BatchRunner:
         pbar.close()
 
         # Sort final results: working first (by latency), failed last
-        working = [(url, s, l) for url, s, l in all_results if s]
+        working = [(url, s, lat) for url, s, lat in all_results if s]
         working.sort(key=lambda x: x[2])
-        failed = [(url, s, l) for url, s, l in all_results if not s]
+        failed = [(url, s, lat) for url, s, lat in all_results if not s]
         sorted_results = working + failed
 
         success_rate = len(working) / len(urls) * 100 if urls else 0
@@ -425,7 +425,7 @@ class BatchRunner:
 
             time.sleep(0.5)
 
-            working = [(url, s, l) for url, s, l in results if s]
+            working = [(url, s, lat) for url, s, lat in results if s]
             working.sort(key=lambda x: x[2])
 
             success_rate = len(working) / len(urls) * 100 if urls else 0
@@ -865,7 +865,7 @@ class BatchRunner:
 
         t.cleanup()
 
-        working = [(url, s, l) for url, s, l in results if s]
+        working = [(url, s, lat) for url, s, lat in results if s]
         working.sort(key=lambda x: x[2])
 
         elapsed = time.time() - start_time

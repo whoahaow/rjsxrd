@@ -114,9 +114,9 @@ def normalize_error(error_str: str) -> str:
     """
     lines = error_str.strip().split("\n")
     meaningful = [
-        l
-        for l in lines
-        if l.strip() and "info" not in l.lower()[:20] and "warning" not in l.lower()[:20]
+        line
+        for line in lines
+        if line.strip() and "info" not in line.lower()[:20] and "warning" not in line.lower()[:20]
     ]
     text = meaningful[0] if meaningful else lines[0] if lines else error_str
     text = re.sub(r"\d+\.\d+", "X.X", text)

@@ -81,12 +81,12 @@ def split_and_replace_file(filepath: str, max_size_mb: float = 49.0) -> list[str
         return [filepath]
 
     with open(filepath, encoding="utf-8", buffering=65536) as f:
-        lines = [l.strip() + "\n" for l in f if l.strip()]
+        lines = [line.strip() + "\n" for line in f if line.strip()]
 
     if not lines:
         return [filepath]
 
-    avg = sum(len(l) for l in lines) / len(lines)
+    avg = sum(len(line) for line in lines) / len(lines)
     per_chunk = max(1, int(max_bytes * 0.9 / (avg + 1)))
     num_chunks = math.ceil(len(lines) / per_chunk)
     log(f"Splitting into {num_chunks} parts (~{per_chunk} lines each)")

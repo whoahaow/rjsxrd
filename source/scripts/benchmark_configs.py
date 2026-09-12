@@ -115,7 +115,7 @@ def resolve_path(local: bool) -> str:
     tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding="utf-8")
     tmp.write(content)
     tmp.close()
-    count = len([l for l in content.splitlines() if l.strip() and not l.strip().startswith("#")])
+    count = len([line for line in content.splitlines() if line.strip() and not line.strip().startswith("#")])
     log(f"fetched {count} configs from bypass-all.txt")
     return tmp.name
 

@@ -1,7 +1,3 @@
-[tool.black]
-line-length = 100
-target-version = ['py311']
-
 [tool.ruff]
 line-length = 100
 target-version = "py311"
@@ -15,6 +11,10 @@ ignore = ["E501"]
 [tool.ruff.lint.per-file-ignores]
 "source/scripts/*.py" = ["I"]  # scripts handle imports independently
 "source/tests/*" = ["ARG", "S101"]
+
+[tool.ruff.format]
+quote-style = "double"
+docstring-code-format = true
 
 [tool.mypy]
 python_version = "3.11"

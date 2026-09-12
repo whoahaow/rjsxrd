@@ -1,3 +1,8 @@
+# Directories holding generated or mirrored product output. Their content is
+# published as-is, so no hook may rewrite it; pyproject.toml lists the same
+# three paths in [tool.ruff] extend-exclude.
+exclude: ^(githubmirror|qr-codes|source/xray)/
+
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.16.7

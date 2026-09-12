@@ -191,8 +191,7 @@ def load_sni_domains() -> list[str]:
     whitelist_path = os.path.join(config_dir, "whitelist-all.txt")
     try:
         with open(whitelist_path, encoding="utf-8") as f:
-            domains = [line.strip() for line in f if line.strip()]
-        return domains
+            return [line.strip() for line in f if line.strip()]
     except FileNotFoundError:
         log(f"whitelist-all.txt not found at {whitelist_path}, using empty list")
         return []

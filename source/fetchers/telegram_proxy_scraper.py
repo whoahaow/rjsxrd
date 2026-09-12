@@ -218,9 +218,7 @@ class TelegramProxyScraper:
         query_params = tg_url[len("tg://proxy?") :]
 
         # Build the t.me/proxy URL
-        telegram_url = f"https://t.me/proxy?{query_params}"
-
-        return telegram_url
+        return f"https://t.me/proxy?{query_params}"
 
     @staticmethod
     def _convert_tg_socks_to_telegram_format(tg_url: str) -> str:
@@ -232,9 +230,7 @@ class TelegramProxyScraper:
         query_params = tg_url[len("tg://socks?") :]
 
         # Build the t.me/socks URL
-        telegram_url = f"https://t.me/socks?{query_params}"
-
-        return telegram_url
+        return f"https://t.me/socks?{query_params}"
 
     @staticmethod
     def _convert_socks5_to_telegram_format(socks5_url: str) -> str:

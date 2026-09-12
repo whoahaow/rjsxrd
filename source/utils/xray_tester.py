@@ -207,11 +207,11 @@ def _xray_incompatible_reason(cfg: str) -> str:
 
     # ── Protocol-level rejects ────────────────────────────────────
     # Hysteria2: removed from xray-core, no longer supported
-    if cfg_lower.startswith("hysteria2://") or cfg_lower.startswith("hy2://"):
+    if cfg_lower.startswith(("hysteria2://", "hy2://")):
         return "hysteria2 unsupported by xray"
 
     # ── UUID validation (vless, vmess) ────────────────────────────
-    if cfg_lower.startswith("vless://") or cfg_lower.startswith("vmess://"):
+    if cfg_lower.startswith(("vless://", "vmess://")):
         # Extract UUID: vless://uuid@host or vmess base64
         if cfg_lower.startswith("vless://"):
             try:

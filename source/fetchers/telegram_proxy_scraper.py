@@ -168,11 +168,7 @@ class TelegramProxyScraper:
     def _is_valid_mtproto_proxy(url: str) -> bool:
         """Validate MTProto proxy URL format."""
         # Check if it's a valid MTProto proxy format
-        if not (
-            url.startswith("https://t.me/proxy?")
-            or url.startswith("http://t.me/proxy?")
-            or url.startswith("tg://proxy?")
-        ):
+        if not url.startswith(("https://t.me/proxy?", "http://t.me/proxy?", "tg://proxy?")):
             return False
 
         # Extract parameters
@@ -180,7 +176,7 @@ class TelegramProxyScraper:
             return False
 
         # Determine the parameter part depending on the URL scheme
-        if url.startswith("https://t.me/proxy?") or url.startswith("tg://proxy?"):
+        if url.startswith(("https://t.me/proxy?", "tg://proxy?")):
             params = url.split("?", 1)[1]
         else:
             return False
@@ -286,11 +282,7 @@ class TelegramProxyScraper:
     def _is_valid_socks5_proxy(url: str) -> bool:
         """Validate SOCKS5 proxy URL format."""
         # Check if it's a valid SOCKS5 proxy format
-        if not (
-            url.startswith("https://t.me/socks?")
-            or url.startswith("http://t.me/socks?")
-            or url.startswith("socks5://")
-        ):
+        if not url.startswith(("https://t.me/socks?", "http://t.me/socks?", "socks5://")):
             return False
 
         # Handle t.me/socks format

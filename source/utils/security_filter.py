@@ -143,18 +143,16 @@ def _check_insecure_general(config_lower: str) -> bool:
 
 def _check_security_none(config_lower: str) -> bool:
     """Check for security=none (no encryption)."""
-    if "security=none" in config_lower:
-        return True
-    return False
+    return "security=none" in config_lower
 
 
 def _check_encryption_none(config_lower: str) -> bool:
     """Check for encryption=none in VLESS configs (when not using TLS/REALITY)."""
-    if "encryption=none" in config_lower and (
-        "security=tls" not in config_lower and "security=reality" not in config_lower
-    ):
-        return True
-    return False
+    return bool(
+        "encryption=none" in config_lower
+        and "security=tls" not in config_lower
+        and "security=reality" not in config_lower
+    )
 
 
 def _check_vless_no_tls(config_lower: str) -> bool:
@@ -264,12 +262,10 @@ def _check_catch_all(config_lower: str) -> bool:
         or config_lower.split("?")[-1].split("&")[0] == "insecure=1"
     ):
         return True
-    if (
+    return bool(
         _VERIFY_CATCH_RE.search(config_lower)
         or config_lower.split("?")[-1].split("&")[0] == "verify=0"
-    ):
-        return True
-    return False
+    )
 
 
 @lru_cache(maxsize=65536)
@@ -305,10 +301,7 @@ def has_insecure_setting(config_line: str) -> bool:
         return True
     if _check_ssr_method(config_line, config_lower):
         return True
-    if _check_catch_all(config_lower):
-        return True
-
-    return False
+    return _check_catch_all(config_lower)
 
 
 def filter_secure_configs(configs: list[str]) -> list[str]:

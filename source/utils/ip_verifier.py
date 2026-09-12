@@ -304,7 +304,7 @@ def setup_proxy_chain(proxy_urls: list, timeout: float = 8.0) -> dict:
         if not result["real_ip"]:
             result["error"] = "Failed to get real IP"
             return result
-        log("Real IP detected: {0}".format(_mask_ip(result["real_ip"])))
+        log("Real IP detected: {}".format(_mask_ip(result["real_ip"])))
 
         from utils.download_xray import ensure_xray_installed
         from utils.xray_tester import XrayTester
@@ -370,8 +370,8 @@ def setup_proxy_chain(proxy_urls: list, timeout: float = 8.0) -> dict:
                     result["proxy_ip"] = data.get("ip")
                     result["country"] = data.get("country")
                     result["asn"] = data.get("asn", {}).get("org", "")
-                    log("  * Chain IP: {0}".format(_mask_ip(result["proxy_ip"])))
-                    log("     Country: {0}, ASN: {1}".format(result["country"], result["asn"]))
+                    log("  * Chain IP: {}".format(_mask_ip(result["proxy_ip"])))
+                    log("     Country: {}, ASN: {}".format(result["country"], result["asn"]))
                     chain_success = True
                     break
                 if "ipify" in url:
@@ -409,7 +409,7 @@ def setup_proxy_chain(proxy_urls: list, timeout: float = 8.0) -> dict:
                             )
                             hop1_details = resp.json()
                             log(
-                                "  Hop 1 details: {0}, ASN: {1}".format(
+                                "  Hop 1 details: {}, ASN: {}".format(
                                     hop1_details.get("country"),
                                     hop1_details.get("asn", {}).get("org", ""),
                                 )
@@ -431,7 +431,7 @@ def setup_proxy_chain(proxy_urls: list, timeout: float = 8.0) -> dict:
             tester.stop_xray_process(process)
             return result
 
-        log("  * Chain working ({0})".format(result.get("country", "Unknown")))
+        log("  * Chain working ({})".format(result.get("country", "Unknown")))
         for var in _PROXY_ENV_VARS:
             os.environ[var] = socks_url
 

@@ -182,9 +182,7 @@ class TelegramProxyVerifier:
 
             # Single HTTP request through SOCKS5 proxy
             async with AsyncSession(impersonate="chrome124", trust_env=False) as session:
-                response = await session.get(
-                    TEST_URL, proxies=proxies, timeout=timeout, allow_redirects=True
-                )
+                await session.get(TEST_URL, proxies=proxies, timeout=timeout, allow_redirects=True)
 
                 latency = (time.perf_counter() - start_time) * 1000
                 return True, latency

@@ -290,7 +290,6 @@ class BatchRunner:
                 # Update progress bar
                 wc = working_count[0]
                 done = len(all_results)
-                rate = done / (time.time() - pbar.start_t + 0.01)
                 pbar.set_description(f"Testing | Working: {wc}/{done} ({wc / done * 100:.1f}%)")
                 pbar.update(len(chunk_urls))
 

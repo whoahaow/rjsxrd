@@ -204,7 +204,6 @@ def _xray_incompatible_reason(cfg: str) -> str:
     Returns empty string if OK, or a short reason string if rejected.
     """
     cfg_lower = cfg.lower()
-    cfg_stripped = cfg.strip()
 
     # ── Protocol-level rejects ────────────────────────────────────
     # Hysteria2: removed from xray-core, no longer supported

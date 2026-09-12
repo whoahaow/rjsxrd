@@ -1,6 +1,5 @@
 """Tests for utils/logger.py — thread-safe logging."""
 
-
 from utils.logger import (
     CURRENT_LOG_LEVEL,
     LOGS_BY_FILE,
@@ -37,6 +36,7 @@ class TestLogLevel:
     def test_critical_value(self):
         assert LogLevel.CRITICAL == 50
 
+
 class TestExtractIndex:
     """Extract file index from log messages."""
 
@@ -51,6 +51,7 @@ class TestExtractIndex:
 
     def test_extracts_from_full_path(self):
         assert _extract_index("path/to/githubmirror/5.txt updated") == 5
+
 
 class TestFormatMessage:
     """Format log messages with level prefix."""
@@ -73,8 +74,10 @@ class TestFormatMessage:
     def test_unknown_level_falls_back_to_info(self):
         class FakeLevel:
             value = 99  # Not a real LogLevel
+
         result = _format_message(FakeLevel(), "msg")
         assert "[INFO]" in result
+
 
 class TestLog:
     """Test the core log function."""
@@ -109,6 +112,7 @@ class TestLog:
         finally:
             set_log_level(original)
 
+
 class TestConvenienceFunctions:
     """debug(), info(), warning(), error(), critical() each call log() with right level."""
 
@@ -140,17 +144,20 @@ class TestConvenienceFunctions:
         critical("critical test")
         assert any("critical test" in msg for msgs in LOGS_BY_FILE.values() for msg in msgs)
 
+
 class TestSetLogLevel:
     """set_log_level changes the global log level."""
 
     def test_changes_level(self):
         import utils.logger as logger_mod
+
         original = logger_mod.CURRENT_LOG_LEVEL
         try:
             set_log_level(LogLevel.DEBUG)
             assert logger_mod.CURRENT_LOG_LEVEL == LogLevel.DEBUG
         finally:
             set_log_level(original)
+
 
 class TestExtractSourceName:
     """Extract human-readable name from URL."""
@@ -167,6 +174,7 @@ class TestExtractSourceName:
         # Pass an object that breaks urlparse
         result = extract_source_name(None)  # type: ignore
         assert result == "Unknown source"
+
 
 class TestPrintLogs:
     """print_logs outputs sorted by file index."""

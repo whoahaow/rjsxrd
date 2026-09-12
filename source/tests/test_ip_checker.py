@@ -21,11 +21,13 @@ class TestMakeRequestImportPath:
     def test_make_request_signature(self):
         """The function takes (url, proxies=, timeout=) — explicit params."""
         import inspect
+
         sig = inspect.signature(_make_request)
         params = list(sig.parameters.keys())
-        assert params == ['url', 'proxies', 'timeout'], (
+        assert params == ["url", "proxies", "timeout"], (
             f"expected [url, proxies, timeout], got {params}"
         )
+
 
 class TestMakeRequestNormalPath:
     """When curl_cffi is available, it is preferred."""
@@ -42,16 +44,15 @@ class TestMakeRequestNormalPath:
 
         # requests is imported inside the function body, so we patch
         # the top-level module to catch any accidental fallback calls.
-        with patch('curl_cffi.requests.Session', return_value=mock_session):
-            with patch('requests.get') as mock_requests_get:
-                result = _make_request(
-                    'https://example.com', timeout=5.0
-                )
+        with patch("curl_cffi.requests.Session", return_value=mock_session):
+            with patch("requests.get") as mock_requests_get:
+                result = _make_request("https://example.com", timeout=5.0)
                 assert result.status_code == 200
                 mock_requests_get.assert_not_called()
                 mock_session.get.assert_called_once_with(
-                    'https://example.com', proxies=None, timeout=5.0
+                    "https://example.com", proxies=None, timeout=5.0
                 )
+
 
 class TestMakeRequestFallback:
     """When curl_cffi is missing, falls back to requests."""
@@ -66,28 +67,27 @@ class TestMakeRequestFallback:
         # the import machinery finds these fake modules in sys.modules,
         # then fails to get 'Session' — raises ImportError, triggering
         # the fallback to requests.get.
-        fake_curl_cffi = types.ModuleType('curl_cffi')
-        fake_requests_sub = types.ModuleType('curl_cffi.requests')
+        fake_curl_cffi = types.ModuleType("curl_cffi")
+        fake_requests_sub = types.ModuleType("curl_cffi.requests")
         fake_curl_cffi.requests = fake_requests_sub
         # No 'Session' attribute set — this is by design.
 
         fake_modules = {
-            'curl_cffi': fake_curl_cffi,
-            'curl_cffi.requests': fake_requests_sub,
+            "curl_cffi": fake_curl_cffi,
+            "curl_cffi.requests": fake_requests_sub,
         }
 
-        with patch.dict('sys.modules', fake_modules):
-            with patch('requests.get') as mock_requests_get:
+        with patch.dict("sys.modules", fake_modules):
+            with patch("requests.get") as mock_requests_get:
                 mock_response = MagicMock()
                 mock_response.status_code = 200
                 mock_requests_get.return_value = mock_response
-                result = _make_request(
-                    'https://example.com', timeout=5.0
-                )
+                result = _make_request("https://example.com", timeout=5.0)
                 assert result.status_code == 200
                 mock_requests_get.assert_called_once_with(
-                    'https://example.com', proxies=None, timeout=5.0
+                    "https://example.com", proxies=None, timeout=5.0
                 )
+
 
 class TestMakeRequestRuntimeSmoke:
     """A real HTTP request — the 10th-pass lesson in action.
@@ -99,11 +99,10 @@ class TestMakeRequestRuntimeSmoke:
     def test_real_request_to_public_endpoint(self):
         """Can actually make a real HTTP GET to a public endpoint."""
         try:
-            response = _make_request(
-                'https://ifconfig.me/ip', timeout=3.0
-            )
+            response = _make_request("https://ifconfig.me/ip", timeout=3.0)
         except (socket.gaierror, OSError, ConnectionError) as e:
             import pytest
+
             pytest.skip(f"no internet for smoke test: {e}")
 
         assert response is not None
@@ -113,6 +112,7 @@ class TestMakeRequestRuntimeSmoke:
         )
         body = response.text.strip()
         assert body, "response body should be non-empty"
+
 
 class TestGetRealIP:
     """Test get_real_ip with mocked HTTP responses."""
@@ -124,10 +124,10 @@ class TestGetRealIP:
         from utils.ip_verifier import get_real_ip
 
         mock_response = MagicMock()
-        mock_response.json.return_value = {'ip': '1.2.3.4'}
-        with patch('utils.ip_verifier._make_request', return_value=mock_response):
+        mock_response.json.return_value = {"ip": "1.2.3.4"}
+        with patch("utils.ip_verifier._make_request", return_value=mock_response):
             ip = get_real_ip(timeout=5.0)
-        assert ip == '1.2.3.4'
+        assert ip == "1.2.3.4"
 
     def test_falls_back_to_ipify(self):
         """If ipwho.is fails, try api.ipify.org."""
@@ -136,17 +136,18 @@ class TestGetRealIP:
         from utils.ip_verifier import get_real_ip
 
         call_count = [0]
+
         def mock_request(url, **kw):
             call_count[0] += 1
-            if 'ipwho.is' in url:
+            if "ipwho.is" in url:
                 raise ConnectionError("first URL failed")
             mock_resp = MagicMock()
-            mock_resp.json.return_value = {'ip': '5.6.7.8'}
+            mock_resp.json.return_value = {"ip": "5.6.7.8"}
             return mock_resp
 
-        with patch('utils.ip_verifier._make_request', side_effect=mock_request):
+        with patch("utils.ip_verifier._make_request", side_effect=mock_request):
             ip = get_real_ip(timeout=5.0)
-        assert ip == '5.6.7.8'
+        assert ip == "5.6.7.8"
 
     def test_falls_back_to_ifconfig(self):
         """If ipwho.is and ipify fail, try ifconfig.me."""
@@ -155,18 +156,19 @@ class TestGetRealIP:
         from utils.ip_verifier import get_real_ip
 
         call_count = [0]
+
         def mock_request(url, **kw):
             call_count[0] += 1
-            if 'ifconfig.me' in url:
+            if "ifconfig.me" in url:
                 mock_resp = MagicMock()
-                mock_resp.text = '9.10.11.12\n'
+                mock_resp.text = "9.10.11.12\n"
                 mock_resp.json.side_effect = ValueError("not json")
                 return mock_resp
             raise ConnectionError(f"{url} failed")
 
-        with patch('utils.ip_verifier._make_request', side_effect=mock_request):
+        with patch("utils.ip_verifier._make_request", side_effect=mock_request):
             ip = get_real_ip(timeout=5.0)
-        assert ip == '9.10.11.12'
+        assert ip == "9.10.11.12"
 
     def test_returns_none_when_all_fail(self):
         """If all URLs fail, returns None."""
@@ -174,9 +176,10 @@ class TestGetRealIP:
 
         from utils.ip_verifier import get_real_ip
 
-        with patch('utils.ip_verifier._make_request', side_effect=ConnectionError("no net")):
+        with patch("utils.ip_verifier._make_request", side_effect=ConnectionError("no net")):
             ip = get_real_ip(timeout=5.0)
         assert ip is None
+
 
 class TestGetProxyIP:
     """Test get_proxy_ip with mocked HTTP responses."""
@@ -188,10 +191,10 @@ class TestGetProxyIP:
         from utils.ip_verifier import get_proxy_ip
 
         mock_response = MagicMock()
-        mock_response.json.return_value = {'ip': '1.2.3.4'}
-        with patch('utils.ip_verifier._make_request', return_value=mock_response):
-            ip = get_proxy_ip('socks5h://127.0.0.1:1080', timeout=5.0)
-        assert ip == '1.2.3.4'
+        mock_response.json.return_value = {"ip": "1.2.3.4"}
+        with patch("utils.ip_verifier._make_request", return_value=mock_response):
+            ip = get_proxy_ip("socks5h://127.0.0.1:1080", timeout=5.0)
+        assert ip == "1.2.3.4"
 
     def test_passes_proxies_to_request(self):
         """The proxy URL is passed as proxies dict to _make_request."""
@@ -200,13 +203,15 @@ class TestGetProxyIP:
         from utils.ip_verifier import get_proxy_ip
 
         mock_response = MagicMock()
-        mock_response.json.return_value = {'ip': '1.2.3.4'}
-        with patch('utils.ip_verifier._make_request', return_value=mock_response) as mock_req:
-            get_proxy_ip('socks5h://127.0.0.1:1080', timeout=5.0)
+        mock_response.json.return_value = {"ip": "1.2.3.4"}
+        with patch("utils.ip_verifier._make_request", return_value=mock_response) as mock_req:
+            get_proxy_ip("socks5h://127.0.0.1:1080", timeout=5.0)
         # _make_request should be called with proxies matching the URL
         _, kwargs = mock_req.call_args
-        assert kwargs.get('proxies') == {'http': 'socks5h://127.0.0.1:1080',
-                                          'https': 'socks5h://127.0.0.1:1080'}
+        assert kwargs.get("proxies") == {
+            "http": "socks5h://127.0.0.1:1080",
+            "https": "socks5h://127.0.0.1:1080",
+        }
 
     def test_returns_none_when_all_fail(self):
         """If all URLs fail, returns None."""
@@ -214,9 +219,10 @@ class TestGetProxyIP:
 
         from utils.ip_verifier import get_proxy_ip
 
-        with patch('utils.ip_verifier._make_request', side_effect=ConnectionError("no net")):
-            ip = get_proxy_ip('socks5h://127.0.0.1:1080', timeout=5.0)
+        with patch("utils.ip_verifier._make_request", side_effect=ConnectionError("no net")):
+            ip = get_proxy_ip("socks5h://127.0.0.1:1080", timeout=5.0)
         assert ip is None
+
 
 class TestVerifyProtection:
     """Test verify_protection — the high-level wrapper."""
@@ -228,31 +234,34 @@ class TestVerifyProtection:
         from utils.ip_verifier import verify_protection
 
         call_count = [0]
+
         def mock_request(url, proxies=None, timeout=5.0):
             call_count[0] += 1
             mock_resp = MagicMock()
-            if 'ipwho.is' in url:
+            if "ipwho.is" in url:
                 if call_count[0] <= 2:
                     # First call = no proxy (get_real_ip), second = with proxy (get_proxy_ip)
                     # Third call = country check
                     pass
-                mock_resp.json.return_value = {'ip': '5.5.5.5' if call_count[0] > 1 else '1.2.3.4',
-                                                'country': 'ProxyLand'}
-            elif 'ipify' in url:
-                mock_resp.json.return_value = {'ip': '1.2.3.4'}
+                mock_resp.json.return_value = {
+                    "ip": "5.5.5.5" if call_count[0] > 1 else "1.2.3.4",
+                    "country": "ProxyLand",
+                }
+            elif "ipify" in url:
+                mock_resp.json.return_value = {"ip": "1.2.3.4"}
             else:
-                mock_resp.text = '1.2.3.4'
+                mock_resp.text = "1.2.3.4"
                 mock_resp.json.side_effect = ValueError("not json")
             return mock_resp
 
-        with patch('utils.ip_verifier._make_request', side_effect=mock_request):
-            result = verify_protection(proxy_host='127.0.0.1', proxy_port=1080, timeout=5.0)
+        with patch("utils.ip_verifier._make_request", side_effect=mock_request):
+            result = verify_protection(proxy_host="127.0.0.1", proxy_port=1080, timeout=5.0)
 
-        assert result['active'] is True
-        assert result['different'] is True
-        assert result['real_ip'] is not None
-        assert result['proxy_ip'] is not None
-        assert result['error'] is None
+        assert result["active"] is True
+        assert result["different"] is True
+        assert result["real_ip"] is not None
+        assert result["proxy_ip"] is not None
+        assert result["error"] is None
 
     def test_returns_error_on_failure(self):
         """If get_real_ip raises, error is captured."""
@@ -260,7 +269,7 @@ class TestVerifyProtection:
 
         from utils.ip_verifier import verify_protection
 
-        with patch('utils.ip_verifier.get_real_ip', side_effect=RuntimeError("test error")):
+        with patch("utils.ip_verifier.get_real_ip", side_effect=RuntimeError("test error")):
             result = verify_protection(timeout=5.0)
-        assert result['error'] is not None
-        assert result['active'] is False
+        assert result["error"] is not None
+        assert result["active"] is False

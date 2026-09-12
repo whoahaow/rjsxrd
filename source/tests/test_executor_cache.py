@@ -1,6 +1,5 @@
 """Tests for executor_cache.py — cached thread pool executors."""
 
-
 from utils.executor_cache import (
     ExecutorCache,
     _get_optimal_workers,
@@ -25,6 +24,7 @@ class TestGetOptimalWorkers:
         workers = _get_optimal_workers(default=1)
         assert workers >= 2
 
+
 class TestExecutorCache:
     """Test executor creation, caching, and shutdown."""
 
@@ -34,35 +34,35 @@ class TestExecutorCache:
 
     def test_get_creates_new_executor(self):
         """First get() creates and caches an executor."""
-        exec1 = ExecutorCache.get('test_create')
+        exec1 = ExecutorCache.get("test_create")
         assert exec1 is not None
-        assert 'test_create' in ExecutorCache._executors
+        assert "test_create" in ExecutorCache._executors
 
     def test_get_returns_cached_executor(self):
         """Second get() returns the same instance."""
-        exec1 = ExecutorCache.get('test_cache')
-        exec2 = ExecutorCache.get('test_cache')
+        exec1 = ExecutorCache.get("test_cache")
+        exec2 = ExecutorCache.get("test_cache")
         assert exec1 is exec2
 
     def test_different_names_different_executors(self):
         """Different names produce different executors."""
-        exec1 = ExecutorCache.get('test_name_a')
-        exec2 = ExecutorCache.get('test_name_b')
+        exec1 = ExecutorCache.get("test_name_a")
+        exec2 = ExecutorCache.get("test_name_b")
         assert exec1 is not exec2
 
     def test_get_with_custom_max_workers(self):
         """Passing max_workers explicitly should be respected."""
-        exec1 = ExecutorCache.get('test_custom', max_workers=4)
+        exec1 = ExecutorCache.get("test_custom", max_workers=4)
         assert exec1._max_workers == 4
 
     def test_get_without_max_workers_auto_optimizes(self):
         """Omitting max_workers triggers auto-optimization via _get_optimal_workers."""
-        exec1 = ExecutorCache.get('test_auto')
+        exec1 = ExecutorCache.get("test_auto")
         assert exec1._max_workers >= 2
 
     def test_shutdown_all_clears_executors(self):
         """shutdown_all stops all executors and clears the cache."""
-        ExecutorCache.get('test_shutdown')
+        ExecutorCache.get("test_shutdown")
         assert len(ExecutorCache._executors) == 1
         ExecutorCache.shutdown_all()
         assert len(ExecutorCache._executors) == 0
@@ -78,11 +78,12 @@ class TestExecutorCache:
         ExecutorCache._executors.clear()
         # Register two executors, one that raises on shutdown
         from unittest.mock import MagicMock
+
         bad_executor = MagicMock()
         bad_executor.shutdown.side_effect = RuntimeError("shutdown failed")
         good_executor = MagicMock()
-        ExecutorCache._executors['bad'] = bad_executor
-        ExecutorCache._executors['good'] = good_executor
+        ExecutorCache._executors["bad"] = bad_executor
+        ExecutorCache._executors["good"] = good_executor
         ExecutorCache.shutdown_all()
         # Both should have been attempted; cache is cleared
         assert len(ExecutorCache._executors) == 0
@@ -93,6 +94,7 @@ class TestExecutorCache:
         lock = ExecutorCache._get_lock()
         assert lock is not None
         ExecutorCache._lock = None  # Restore for other tests
+
 
 class TestConvenienceFunctions:
     """Test the module-level get_*_executor helpers."""

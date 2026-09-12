@@ -16,6 +16,7 @@ from urllib.parse import urlparse
 
 class LogLevel(IntEnum):
     """Standard logging levels matching Python logging module."""
+
     DEBUG = 10
     INFO = 20
     WARNING = 30
@@ -46,7 +47,7 @@ _GITHUBMIRROR_INDEX_RE = re.compile(r"githubmirror/(\d+)\.txt")
 updated_files = set()
 
 # --- Stdlib logging setup (thin backend) ---
-_logger = logging.getLogger('rjsxrd')
+_logger = logging.getLogger("rjsxrd")
 _logger.setLevel(logging.INFO)
 
 
@@ -190,7 +191,7 @@ def extract_source_name(url: str) -> str:
     """
     try:
         parsed = urlparse(url)
-        path_parts = parsed.path.split('/')
+        path_parts = parsed.path.split("/")
         if len(path_parts) > 2:
             return f"{path_parts[1]}/{path_parts[2]}"
         return parsed.netloc

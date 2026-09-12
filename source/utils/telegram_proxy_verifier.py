@@ -11,9 +11,9 @@ from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import parse_qs, urlparse
 
 # Suppress asyncio and socket cleanup warnings/errors
-warnings.filterwarnings('ignore', category=RuntimeWarning, module='asyncio')
-warnings.filterwarnings('ignore', category=ResourceWarning, module='socket')
-logging.getLogger('asyncio').setLevel(logging.ERROR)
+warnings.filterwarnings("ignore", category=RuntimeWarning, module="asyncio")
+warnings.filterwarnings("ignore", category=ResourceWarning, module="socket")
+logging.getLogger("asyncio").setLevel(logging.ERROR)
 
 from utils.curl_import import CURL_CFFI_AVAILABLE, AsyncSession
 
@@ -25,9 +25,9 @@ class TelegramProxyVerifier:
     """Optimized Telegram proxy verifier with curl_ciffe and parallel endpoint testing."""
 
     TELEGRAM_ENDPOINTS = [
-        ('149.154.175.50', 443),
-        ('149.154.167.50', 443),
-        ('149.154.175.100', 443),
+        ("149.154.175.50", 443),
+        ("149.154.167.50", 443),
+        ("149.154.175.100", 443),
     ]
 
     # Class-level executor for MTProto socket operations
@@ -37,7 +37,9 @@ class TelegramProxyVerifier:
     def _get_socket_executor(cls) -> ThreadPoolExecutor:
         """Get or create dedicated thread pool for socket operations (250 threads)."""
         if cls._socket_executor is None:
-            cls._socket_executor = ThreadPoolExecutor(max_workers=250, thread_name_prefix="mtproto_socket")
+            cls._socket_executor = ThreadPoolExecutor(
+                max_workers=250, thread_name_prefix="mtproto_socket"
+            )
         return cls._socket_executor
 
     @classmethod
@@ -51,30 +53,30 @@ class TelegramProxyVerifier:
     def parse_proxy_url(url: str) -> dict:
         """Parse proxy URL and return dict with server, port, secret, username, password."""
         # Convert tg:// to https://t.me format
-        if url.startswith('tg://'):
-            url = 'https://t.me' + url[4:]
+        if url.startswith("tg://"):
+            url = "https://t.me" + url[4:]
         # Convert socks5:// to t.me/socks format for proper parsing
-        elif url.startswith('socks5://'):
+        elif url.startswith("socks5://"):
             parsed_raw = urlparse(url)
-            host = parsed_raw.hostname or ''
+            host = parsed_raw.hostname or ""
             port = parsed_raw.port or 1080
-            user = parsed_raw.username or ''
-            passwd = parsed_raw.password or ''
+            user = parsed_raw.username or ""
+            passwd = parsed_raw.password or ""
             if user and passwd:
-                url = f'https://t.me/socks?server={host}&port={port}&user={user}&pass={passwd}'
+                url = f"https://t.me/socks?server={host}&port={port}&user={user}&pass={passwd}"
             else:
-                url = f'https://t.me/socks?server={host}&port={port}'
+                url = f"https://t.me/socks?server={host}&port={port}"
 
         parsed = urlparse(url)
         params = parse_qs(parsed.query)
 
         return {
-            'server': params.get('server', [None])[0],
-            'port': int(params.get('port', [0])[0]),
-            'secret': params.get('secret', [''])[0],
-            'username': params.get('user', [None])[0],
-            'password': params.get('pass', [None])[0],
-            'type': 'socks5' if 'socks' in parsed.path.lower() else 'mtproto'
+            "server": params.get("server", [None])[0],
+            "port": int(params.get("port", [0])[0]),
+            "secret": params.get("secret", [""])[0],
+            "username": params.get("user", [None])[0],
+            "password": params.get("pass", [None])[0],
+            "type": "socks5" if "socks" in parsed.path.lower() else "mtproto",
         }
 
     def _create_handshake_packet(self, secret: str) -> bytes:
@@ -82,7 +84,7 @@ class TelegramProxyVerifier:
         random_data = os.urandom(56)
 
         try:
-            if len(secret) == 32 and all(c in '0123456789abcdefABCDEF' for c in secret):
+            if len(secret) == 32 and all(c in "0123456789abcdefABCDEF" for c in secret):
                 secret_bytes = bytes.fromhex(secret)
             else:
                 secret_bytes = base64.b64decode(secret)
@@ -91,7 +93,9 @@ class TelegramProxyVerifier:
 
         return random_data[:8] + secret_bytes[:16] + random_data[24:]
 
-    def mtproto_connectivity_test(self, host: str, port: int, secret: str, timeout: int = 5) -> tuple[bool, float]:
+    def mtproto_connectivity_test(
+        self, host: str, port: int, secret: str, timeout: int = 5
+    ) -> tuple[bool, float]:
         """Test MTProto proxy connectivity - FIXED: Require actual handshake response."""
         sock = None
         try:
@@ -135,9 +139,9 @@ class TelegramProxyVerifier:
         except (TimeoutError, OSError):
             return False, 0.0
 
-
-
-    async def async_verify_mtproto(self, host: str, port: int, secret: str, timeout: float = 5.0) -> tuple[bool, float]:
+    async def async_verify_mtproto(
+        self, host: str, port: int, secret: str, timeout: float = 5.0
+    ) -> tuple[bool, float]:
         """Async MTProto verification - runs sync test in DEDICATED executor (250 threads)."""
         try:
             loop = asyncio.get_event_loop()
@@ -152,8 +156,14 @@ class TelegramProxyVerifier:
         except (RuntimeError, OSError):
             return False, 0.0
 
-    async def async_verify_socks5_http(self, host: str, port: int, username: str | None = None,
-                                        password: str | None = None, timeout: float = 3.0) -> tuple[bool, float]:
+    async def async_verify_socks5_http(
+        self,
+        host: str,
+        port: int,
+        username: str | None = None,
+        password: str | None = None,
+        timeout: float = 3.0,
+    ) -> tuple[bool, float]:
         """SOCKS5 verification using curl_cffi HTTP test - same as config verification."""
         if not CURL_CFFI_AVAILABLE:
             # Fallback to basic TCP connect test
@@ -168,21 +178,12 @@ class TelegramProxyVerifier:
             else:
                 proxy_url = f"socks5h://{host}:{port}"
 
-            proxies = {
-                "http": proxy_url,
-                "https": proxy_url
-            }
+            proxies = {"http": proxy_url, "https": proxy_url}
 
             # Single HTTP request through SOCKS5 proxy
-            async with AsyncSession(
-                impersonate="chrome124",
-                trust_env=False
-            ) as session:
+            async with AsyncSession(impersonate="chrome124", trust_env=False) as session:
                 response = await session.get(
-                    TEST_URL,
-                    proxies=proxies,
-                    timeout=timeout,
-                    allow_redirects=True
+                    TEST_URL, proxies=proxies, timeout=timeout, allow_redirects=True
                 )
 
                 latency = (time.perf_counter() - start_time) * 1000
@@ -191,8 +192,14 @@ class TelegramProxyVerifier:
         except (TimeoutError, OSError, ValueError):
             return False, 0.0
 
-    async def _async_verify_socks5_tcp(self, host: str, port: int, username: str | None = None,
-                                        password: str | None = None, timeout: float = 3.0) -> tuple[bool, float]:
+    async def _async_verify_socks5_tcp(
+        self,
+        host: str,
+        port: int,
+        username: str | None = None,
+        password: str | None = None,
+        timeout: float = 3.0,
+    ) -> tuple[bool, float]:
         """Fallback: Basic SOCKS5 TCP connect test (no HTTP)."""
         has_auth = username is not None and password is not None
 
@@ -201,16 +208,15 @@ class TelegramProxyVerifier:
 
             # Connect to SOCKS5 proxy
             reader, writer = await asyncio.wait_for(
-                asyncio.open_connection(host, port),
-                timeout=timeout
+                asyncio.open_connection(host, port), timeout=timeout
             )
             connect_time = (time.perf_counter() - start_time) * 1000
 
             # SOCKS5 handshake
-            request = b'\x05\x02\x00\x02' if has_auth else b'\x05\x01\x00'
+            request = b"\x05\x02\x00\x02" if has_auth else b"\x05\x01\x00"
             writer.write(request)
-            await asyncio.wait_for(writer.drain(), timeout=timeout/2)
-            response = await asyncio.wait_for(reader.read(2), timeout=timeout/2)
+            await asyncio.wait_for(writer.drain(), timeout=timeout / 2)
+            response = await asyncio.wait_for(reader.read(2), timeout=timeout / 2)
 
             # Check handshake response
             if len(response) < 2 or response[1] == 0xFF:
@@ -223,10 +229,16 @@ class TelegramProxyVerifier:
 
             # Auth if needed
             if has_auth:
-                auth_data = b'\x01' + bytes([len(username)]) + username.encode() + bytes([len(password)]) + password.encode()
+                auth_data = (
+                    b"\x01"
+                    + bytes([len(username)])
+                    + username.encode()
+                    + bytes([len(password)])
+                    + password.encode()
+                )
                 writer.write(auth_data)
-                await asyncio.wait_for(writer.drain(), timeout=timeout/2)
-                response = await asyncio.wait_for(reader.read(2), timeout=timeout/2)
+                await asyncio.wait_for(writer.drain(), timeout=timeout / 2)
+                response = await asyncio.wait_for(reader.read(2), timeout=timeout / 2)
                 if len(response) < 2 or response[1] != 0:
                     writer.close()
                     try:
@@ -248,16 +260,27 @@ class TelegramProxyVerifier:
         except (ConnectionError, RuntimeError):
             return False, 0.0
 
-    async def verify_proxy_async(self, server: str, port: int, hex_secret: str = None,
-                                  timeout: float = 3.0, proxy_type: str = 'mtproto',
-                                  username: str | None = None, password: str | None = None) -> tuple[bool, str]:
+    async def verify_proxy_async(
+        self,
+        server: str,
+        port: int,
+        hex_secret: str = None,
+        timeout: float = 3.0,
+        proxy_type: str = "mtproto",
+        username: str | None = None,
+        password: str | None = None,
+    ) -> tuple[bool, str]:
         """Verify single proxy asynchronously."""
         try:
-            if proxy_type == 'mtproto':
-                is_connected, latency = await self.async_verify_mtproto(server, port, hex_secret, timeout)
+            if proxy_type == "mtproto":
+                is_connected, latency = await self.async_verify_mtproto(
+                    server, port, hex_secret, timeout
+                )
             else:
                 # Use curl_cffi HTTP test (same as config verification)
-                is_connected, latency = await self.async_verify_socks5_http(server, port, username, password, timeout)
+                is_connected, latency = await self.async_verify_socks5_http(
+                    server, port, username, password, timeout
+                )
 
             if is_connected:
                 return True, f"OK - {latency:.0f}ms"
@@ -270,21 +293,31 @@ class TelegramProxyVerifier:
         except (OSError, ConnectionError, RuntimeError) as e:
             return False, f"ERROR: {str(e)}"
 
-    def verify_proxy(self, server: str, port: int, hex_secret: str = None, timeout: float = 3.0,
-                     proxy_type: str = 'mtproto', username: str | None = None,
-                     password: str | None = None) -> tuple[bool, str]:
+    def verify_proxy(
+        self,
+        server: str,
+        port: int,
+        hex_secret: str = None,
+        timeout: float = 3.0,
+        proxy_type: str = "mtproto",
+        username: str | None = None,
+        password: str | None = None,
+    ) -> tuple[bool, str]:
         """Verify single proxy synchronously."""
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             return loop.run_until_complete(
-                self.verify_proxy_async(server, port, hex_secret, timeout, proxy_type, username, password)
+                self.verify_proxy_async(
+                    server, port, hex_secret, timeout, proxy_type, username, password
+                )
             )
         finally:
             loop.close()
 
-    async def verify_proxy_list_async(self, proxy_urls: list[str], timeout: float = 3.0,
-                                       max_concurrent: int = 400) -> list[tuple[str, bool, str]]:
+    async def verify_proxy_list_async(
+        self, proxy_urls: list[str], timeout: float = 3.0, max_concurrent: int = 400
+    ) -> list[tuple[str, bool, str]]:
         """Verify list of proxies asynchronously with pipelined execution."""
         from utils.logger import log
 
@@ -293,11 +326,17 @@ class TelegramProxyVerifier:
 
         # Custom exception handler to suppress cleanup noise
         loop = asyncio.get_event_loop()
+
         def exception_handler(loop, context) -> None:
-            msg = str(context.get('message', ''))
-            if 'transport' in msg.lower() or 'connection_lost' in msg.lower() or 'proactor' in str(context.get('source', '')).lower():
+            msg = str(context.get("message", ""))
+            if (
+                "transport" in msg.lower()
+                or "connection_lost" in msg.lower()
+                or "proactor" in str(context.get("source", "")).lower()
+            ):
                 return
             log(f"Error: {context.get('message', 'Unknown error')}")
+
         loop.set_exception_handler(exception_handler)
 
         semaphore = asyncio.Semaphore(max_concurrent)
@@ -311,13 +350,13 @@ class TelegramProxyVerifier:
                     parsed = self.parse_proxy_url(proxy_url)
 
                     result = await self.verify_proxy_async(
-                        server=parsed['server'],
-                        port=parsed['port'],
-                        hex_secret=parsed['secret'],
+                        server=parsed["server"],
+                        port=parsed["port"],
+                        hex_secret=parsed["secret"],
                         timeout=timeout,
-                        proxy_type=parsed['type'],
-                        username=parsed['username'],
-                        password=parsed['password']
+                        proxy_type=parsed["type"],
+                        username=parsed["username"],
+                        password=parsed["password"],
                     )
 
                     completed[0] += 1
@@ -328,7 +367,9 @@ class TelegramProxyVerifier:
                         async with report_lock:
                             if current_percent >= last_reported[0] + 10:
                                 last_reported[0] = current_percent
-                                log(f"Progress: {current_percent}% ({completed[0]}/{len(proxy_urls)})")
+                                log(
+                                    f"Progress: {current_percent}% ({completed[0]}/{len(proxy_urls)})"
+                                )
 
                     return (proxy_url, result[0], result[1])
 
@@ -351,8 +392,9 @@ class TelegramProxyVerifier:
         log(f"Verification complete: {len(processed)} proxies processed")
         return processed
 
-    def verify_proxy_list(self, proxy_urls: list[str], timeout: float = 3.0,
-                          max_concurrent: int = 400) -> list[tuple[str, bool, str]]:
+    def verify_proxy_list(
+        self, proxy_urls: list[str], timeout: float = 3.0, max_concurrent: int = 400
+    ) -> list[tuple[str, bool, str]]:
         """Verify list of proxies synchronously with concurrent processing."""
         import concurrent.futures
 
@@ -364,7 +406,11 @@ class TelegramProxyVerifier:
                     self.verify_proxy_list_async(proxy_urls, timeout, max_concurrent)
                 )
             finally:
-                pending = asyncio.all_tasks(loop) if hasattr(asyncio, 'all_tasks') else asyncio.Task.all_tasks(loop)
+                pending = (
+                    asyncio.all_tasks(loop)
+                    if hasattr(asyncio, "all_tasks")
+                    else asyncio.Task.all_tasks(loop)
+                )
                 for task in pending:
                     task.cancel()
                 try:

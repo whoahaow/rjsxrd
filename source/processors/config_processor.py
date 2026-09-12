@@ -4,6 +4,7 @@ Core of the config generation pipeline. Defines ConfigPipeline (11 named stages)
 and process_all_configs() entry point. Helper utilities (base64 decode, dedup,
 flag resolution, path building) live in utils/config_helpers.py.
 """
+
 from __future__ import annotations
 
 import concurrent.futures
@@ -109,7 +110,9 @@ def _fetch_and_process_urls(
             _thread_local.session = build_session()
         return fetch_data(url, session=_thread_local.session, token=token)
 
-    executor = ExecutorCache.get('url_fetch', max_workers=min(get_specs().safe_fetch_workers(), max(1, len(urls))))
+    executor = ExecutorCache.get(
+        "url_fetch", max_workers=min(get_specs().safe_fetch_workers(), max(1, len(urls)))
+    )
     future_to_url = {executor.submit(_fetch_with_session, url): url for url in urls}
     for future in concurrent.futures.as_completed(future_to_url):
         result = future.result()
@@ -145,7 +148,9 @@ def _fetch_and_process_urls(
             continue
 
         if tagger is not None:
-            source_label = label if label == corresponding_url else f"{label}:{corresponding_url[:60]}"
+            source_label = (
+                label if label == corresponding_url else f"{label}:{corresponding_url[:60]}"
+            )
             tagger.tag_batch(unique_configs, source=source_label)
 
         if add_to_all:
@@ -160,16 +165,20 @@ def _fetch_and_process_urls(
                 all_mtproto.extend(mtproto)
                 all_socks5.extend(socks5)
             except (ValueError, TypeError, IndexError) as e:
-                log(f"  telegram scrape failed for {corresponding_url[:60]}: {type(e).__name__}: {str(e)[:80]}")
+                log(
+                    f"  telegram scrape failed for {corresponding_url[:60]}: {type(e).__name__}: {str(e)[:80]}"
+                )
 
         result.text = ""
 
 
-def download_all_configs(output_dir: str = "../githubmirror",
-                         scan_for_telegram_proxies: bool = False,
-                         stats: URLStats | None = None,
-                         flag_overrides: dict | None = None,
-                         tagger=None) -> tuple[list[str], list[str], list[tuple[list[str], str]], list[str], list[str], float]:
+def download_all_configs(
+    output_dir: str = "../githubmirror",
+    scan_for_telegram_proxies: bool = False,
+    stats: URLStats | None = None,
+    flag_overrides: dict | None = None,
+    tagger=None,
+) -> tuple[list[str], list[str], list[tuple[list[str], str]], list[str], list[str], float]:
     """Downloads all configs from all sources into in-memory lists."""
     fetch_start_time = time.time()
     all_configs = []
@@ -183,53 +192,84 @@ def download_all_configs(output_dir: str = "../githubmirror",
 
     os.makedirs(path_in_output(output_dir, "bypass"), exist_ok=True)
     os.makedirs("../qr-codes", exist_ok=True)
-    if resolve_flag('ENABLE_DEFAULT_FILES', flag_overrides, ENABLE_DEFAULT_FILES):
+    if resolve_flag("ENABLE_DEFAULT_FILES", flag_overrides, ENABLE_DEFAULT_FILES):
         os.makedirs(path_in_output(output_dir, "default"), exist_ok=True)
-    if resolve_flag('ENABLE_BYPASS_UNSECURE', flag_overrides, ENABLE_BYPASS_UNSECURE):
+    if resolve_flag("ENABLE_BYPASS_UNSECURE", flag_overrides, ENABLE_BYPASS_UNSECURE):
         os.makedirs(path_in_output(output_dir, "bypass-unsecure"), exist_ok=True)
-    if resolve_flag('ENABLE_PROTOCOL_SPLIT', flag_overrides, ENABLE_PROTOCOL_SPLIT):
+    if resolve_flag("ENABLE_PROTOCOL_SPLIT", flag_overrides, ENABLE_PROTOCOL_SPLIT):
         os.makedirs(path_in_output(output_dir, "split-by-protocols"), exist_ok=True)
-    if resolve_flag('ENABLE_TG_PROXY', flag_overrides, ENABLE_TG_PROXY):
+    if resolve_flag("ENABLE_TG_PROXY", flag_overrides, ENABLE_TG_PROXY):
         os.makedirs(path_in_output(output_dir, "tg-proxy"), exist_ok=True)
 
     from fetchers.telegram_proxy_scraper import TelegramProxyScraper
+
     scraper = TelegramProxyScraper() if scan_for_telegram_proxies else None
 
     # Prepare GitHub token for authenticated requests (reduces rate limiting)
     _fetch_token = GITHUB_TOKEN if GITHUB_TOKEN else None
 
     _fetch_and_process_urls(
-        URLS, target_all=all_configs, target_extra=extra_bypass_configs,
+        URLS,
+        target_all=all_configs,
+        target_extra=extra_bypass_configs,
         numbered_configs_with_urls=numbered_configs_with_urls,
-        all_mtproto=all_mtproto_proxies, all_socks5=all_socks5_proxies,
-        global_seen=global_seen, global_seen_lock=global_seen_lock,
-        stats=stats, scraper=scraper, label="URLs",
-        add_to_all=True, add_to_extra=False, tagger=tagger,
-        token=_fetch_token)
+        all_mtproto=all_mtproto_proxies,
+        all_socks5=all_socks5_proxies,
+        global_seen=global_seen,
+        global_seen_lock=global_seen_lock,
+        stats=stats,
+        scraper=scraper,
+        label="URLs",
+        add_to_all=True,
+        add_to_extra=False,
+        tagger=tagger,
+        token=_fetch_token,
+    )
 
     _fetch_and_process_urls(
-        URLS_EXTRA_BYPASS, target_all=all_configs, target_extra=extra_bypass_configs,
+        URLS_EXTRA_BYPASS,
+        target_all=all_configs,
+        target_extra=extra_bypass_configs,
         numbered_configs_with_urls=numbered_configs_with_urls,
-        all_mtproto=all_mtproto_proxies, all_socks5=all_socks5_proxies,
-        global_seen=global_seen, global_seen_lock=global_seen_lock,
-        stats=stats, scraper=scraper, label="extra bypass URLs",
-        add_to_all=False, add_to_extra=True, tagger=tagger,
-        token=_fetch_token)
+        all_mtproto=all_mtproto_proxies,
+        all_socks5=all_socks5_proxies,
+        global_seen=global_seen,
+        global_seen_lock=global_seen_lock,
+        stats=stats,
+        scraper=scraper,
+        label="extra bypass URLs",
+        add_to_all=False,
+        add_to_extra=True,
+        tagger=tagger,
+        token=_fetch_token,
+    )
 
     if URLS_YAML:
         from fetchers.yaml_converter import convert_yaml_to_vpn_configs
+
         _fetch_and_process_urls(
-            URLS_YAML, target_all=all_configs, target_extra=extra_bypass_configs,
+            URLS_YAML,
+            target_all=all_configs,
+            target_extra=extra_bypass_configs,
             numbered_configs_with_urls=numbered_configs_with_urls,
-            all_mtproto=all_mtproto_proxies, all_socks5=all_socks5_proxies,
-            global_seen=global_seen, global_seen_lock=global_seen_lock,
-            stats=stats, scraper=scraper,
-            yaml_converter=convert_yaml_to_vpn_configs, label="YAML URLs",
-            add_to_all=True, add_to_extra=False, tagger=tagger,
-            token=_fetch_token)
+            all_mtproto=all_mtproto_proxies,
+            all_socks5=all_socks5_proxies,
+            global_seen=global_seen,
+            global_seen_lock=global_seen_lock,
+            stats=stats,
+            scraper=scraper,
+            yaml_converter=convert_yaml_to_vpn_configs,
+            label="YAML URLs",
+            add_to_all=True,
+            add_to_extra=False,
+            tagger=tagger,
+            token=_fetch_token,
+        )
 
     try:
-        daily_configs = fetch_configs_from_daily_repo(patterns=DAILY_DATE_PATTERNS, seen=global_seen, seen_lock=global_seen_lock)
+        daily_configs = fetch_configs_from_daily_repo(
+            patterns=DAILY_DATE_PATTERNS, seen=global_seen, seen_lock=global_seen_lock
+        )
         if daily_configs:
             all_configs.extend(daily_configs)
             numbered_configs_with_urls.append((daily_configs, "DAILY_REPO"))
@@ -261,7 +301,9 @@ def download_all_configs(output_dir: str = "../githubmirror",
         log(f"Error scraping sstap.org: {str(e)[:200]}...")
 
     try:
-        upstream_configs = fetch_upstream_dynamic_configs(seen=global_seen, seen_lock=global_seen_lock)
+        upstream_configs = fetch_upstream_dynamic_configs(
+            seen=global_seen, seen_lock=global_seen_lock
+        )
         if upstream_configs:
             all_configs.extend(upstream_configs)
             numbered_configs_with_urls.append((upstream_configs, "UPSTREAM_AGGREGATOR"))
@@ -286,17 +328,37 @@ def download_all_configs(output_dir: str = "../githubmirror",
 
     total_downloaded = sum(len(cfgs) for cfgs, _ in numbered_configs_with_urls)
     fetch_elapsed = time.time() - fetch_start_time
-    log(f"DOWNLOAD COMPLETE: {total_downloaded} configs from {len(numbered_configs_with_urls)} sources in {fetch_elapsed:.2f}s")
+    log(
+        f"DOWNLOAD COMPLETE: {total_downloaded} configs from {len(numbered_configs_with_urls)} sources in {fetch_elapsed:.2f}s"
+    )
 
     if scan_for_telegram_proxies:
         all_mtproto_proxies = scraper.deduplicate_proxies(all_mtproto_proxies)
         all_socks5_proxies = scraper.deduplicate_proxies(all_socks5_proxies)
-        log(f"Scanned URLs for Telegram proxies: {len(all_mtproto_proxies)} MTProto, {len(all_socks5_proxies)} SOCKS5")
-        return all_configs, extra_bypass_configs, numbered_configs_with_urls, all_mtproto_proxies, all_socks5_proxies, fetch_elapsed
-    return all_configs, extra_bypass_configs, numbered_configs_with_urls, all_mtproto_proxies, all_socks5_proxies, fetch_elapsed
+        log(
+            f"Scanned URLs for Telegram proxies: {len(all_mtproto_proxies)} MTProto, {len(all_socks5_proxies)} SOCKS5"
+        )
+        return (
+            all_configs,
+            extra_bypass_configs,
+            numbered_configs_with_urls,
+            all_mtproto_proxies,
+            all_socks5_proxies,
+            fetch_elapsed,
+        )
+    return (
+        all_configs,
+        extra_bypass_configs,
+        numbered_configs_with_urls,
+        all_mtproto_proxies,
+        all_socks5_proxies,
+        fetch_elapsed,
+    )
 
 
-def _write_subscription_file(configs: list[str], label: str, output_dir: str = "../githubmirror", max_size_mb: float = 49.0) -> list[str]:
+def _write_subscription_file(
+    configs: list[str], label: str, output_dir: str = "../githubmirror", max_size_mb: float = 49.0
+) -> list[str]:
     """Write a subscription file (all.txt / all-secure.txt), splitting if oversized.
 
     Args:
@@ -312,10 +374,17 @@ def _write_subscription_file(configs: list[str], label: str, output_dir: str = "
     estimated_size = sum(len(cfg) + 1 for cfg in configs)
     max_size_bytes = int(max_size_mb * 1024 * 1024)
     if estimated_size > max_size_bytes:
-        log(f"Estimated size ({estimated_size / (1024*1024):.2f} MB) exceeds limit, splitting directly")
+        log(
+            f"Estimated size ({estimated_size / (1024 * 1024):.2f} MB) exceeds limit, splitting directly"
+        )
         num_files_needed = math.ceil(estimated_size / max_size_bytes)
         max_cfg_per_file = max(1, len(configs) // num_files_needed)
-        return split_configs_to_files(configs, path_in_output(output_dir, "default"), label, max_configs_per_file=max_cfg_per_file)
+        return split_configs_to_files(
+            configs,
+            path_in_output(output_dir, "default"),
+            label,
+            max_configs_per_file=max_cfg_per_file,
+        )
     try:
         header = get_subscription_header(label, config_count=len(configs))
         write_configs_file(filepath, configs, header)
@@ -326,27 +395,33 @@ def _write_subscription_file(configs: list[str], label: str, output_dir: str = "
         return []
 
 
-def create_all_configs_file(all_configs: list[str], output_dir: str = "../githubmirror", max_size_mb: float = 49.0) -> list[str]:
+def create_all_configs_file(
+    all_configs: list[str], output_dir: str = "../githubmirror", max_size_mb: float = 49.0
+) -> list[str]:
     """Creates the all.txt file with all unique configs. Splits if file exceeds size limit."""
     return _write_subscription_file(all_configs, "all", output_dir, max_size_mb)
 
 
-def create_secure_configs_file(all_configs: list[str], output_dir: str = "../githubmirror", max_size_mb: float = 49.0) -> list[str]:
+def create_secure_configs_file(
+    all_configs: list[str], output_dir: str = "../githubmirror", max_size_mb: float = 49.0
+) -> list[str]:
     """Creates the all-secure.txt file with only secure configs. Splits if file exceeds size limit."""
     secure_configs = filter_secure_configs(all_configs)
     return _write_subscription_file(secure_configs, "all-secure", output_dir, max_size_mb)
 
 
-def create_protocol_split_files(all_configs: list[str], output_dir: str = '../githubmirror',
-                                 max_size_mb: float = 49.0) -> list[tuple[str, str]]:
-    '''Creates protocol-specific files in the split-by-protocols folder, both secure and unsecure versions.'''
+def create_protocol_split_files(
+    all_configs: list[str], output_dir: str = "../githubmirror", max_size_mb: float = 49.0
+) -> list[tuple[str, str]]:
+    """Creates protocol-specific files in the split-by-protocols folder, both secure and unsecure versions."""
     from utils.file_utils import SUPPORTED_PROTOCOLS
+
     protocols = list(SUPPORTED_PROTOCOLS)
     protocol_set = frozenset(protocols)
     protocol_configs: dict = {protocol: [] for protocol in protocols}
     protocol_secure_configs: dict = {protocol: [] for protocol in protocols}
     for config in all_configs:
-        sep_idx = config.find('://')
+        sep_idx = config.find("://")
         if sep_idx <= 0:
             continue
         scheme = config[:sep_idx].lower()
@@ -365,7 +440,7 @@ def create_protocol_split_files(all_configs: list[str], output_dir: str = '../gi
             write_tasks.append((protocol, configs, output_dir, max_size_mb, True))
 
     all_file_pairs = []
-    executor = ExecutorCache.get('write_tasks', max_workers=min(8, len(write_tasks)))
+    executor = ExecutorCache.get("write_tasks", max_workers=min(8, len(write_tasks)))
     results = list(executor.map(_write_protocol_file, write_tasks))
     for file_pairs in results:
         all_file_pairs.extend(file_pairs)
@@ -375,12 +450,15 @@ def create_protocol_split_files(all_configs: list[str], output_dir: str = '../gi
 class ConfigPipeline:
     """Orchestrates the full config generation pipeline as named stages."""
 
-    def __init__(self, output_dir: str = "../githubmirror",
-                 skip_xray: bool = False,
-                 tcp_ping: bool = False,
-                 verbose: bool = False,
-                 flag_overrides: dict | None = None,
-                 upload_fn: Callable[[str, str], None] | None = None) -> None:
+    def __init__(
+        self,
+        output_dir: str = "../githubmirror",
+        skip_xray: bool = False,
+        tcp_ping: bool = False,
+        verbose: bool = False,
+        flag_overrides: dict | None = None,
+        upload_fn: Callable[[str, str], None] | None = None,
+    ) -> None:
         self.output_dir = output_dir
         self.skip_xray = skip_xray
         self.tcp_ping = tcp_ping
@@ -388,11 +466,19 @@ class ConfigPipeline:
         self.flag_overrides = flag_overrides
         self.upload_fn = upload_fn
 
-        self.enable_default_files = resolve_flag('ENABLE_DEFAULT_FILES', flag_overrides, ENABLE_DEFAULT_FILES)
-        self.enable_bypass_unsecure = resolve_flag('ENABLE_BYPASS_UNSECURE', flag_overrides, ENABLE_BYPASS_UNSECURE)
-        self.enable_protocol_split = resolve_flag('ENABLE_PROTOCOL_SPLIT', flag_overrides, ENABLE_PROTOCOL_SPLIT)
-        self.enable_tg_proxy = resolve_flag('ENABLE_TG_PROXY', flag_overrides, ENABLE_TG_PROXY)
-        self.publish_raw_files = resolve_flag('PUBLISH_RAW_FILES', flag_overrides, PUBLISH_RAW_FILES)
+        self.enable_default_files = resolve_flag(
+            "ENABLE_DEFAULT_FILES", flag_overrides, ENABLE_DEFAULT_FILES
+        )
+        self.enable_bypass_unsecure = resolve_flag(
+            "ENABLE_BYPASS_UNSECURE", flag_overrides, ENABLE_BYPASS_UNSECURE
+        )
+        self.enable_protocol_split = resolve_flag(
+            "ENABLE_PROTOCOL_SPLIT", flag_overrides, ENABLE_PROTOCOL_SPLIT
+        )
+        self.enable_tg_proxy = resolve_flag("ENABLE_TG_PROXY", flag_overrides, ENABLE_TG_PROXY)
+        self.publish_raw_files = resolve_flag(
+            "PUBLISH_RAW_FILES", flag_overrides, PUBLISH_RAW_FILES
+        )
 
         self.stats = URLStats()
         self.timing: dict[str, float] = {}
@@ -413,18 +499,30 @@ class ConfigPipeline:
         log("Downloading all configs from all sources (with Telegram proxy scanning)...")
         start = time.time()
         result = download_all_configs(
-            self.output_dir, scan_for_telegram_proxies=True,
-            stats=self.stats, flag_overrides=self.flag_overrides,
-            tagger=self._tagger)
-        (self.all_configs, self.extra_bypass_configs,
-         self.numbered_configs_with_urls,
-         self.mtproto_proxies, self.socks5_proxies, fetch_elapsed) = result
+            self.output_dir,
+            scan_for_telegram_proxies=True,
+            stats=self.stats,
+            flag_overrides=self.flag_overrides,
+            tagger=self._tagger,
+        )
+        (
+            self.all_configs,
+            self.extra_bypass_configs,
+            self.numbered_configs_with_urls,
+            self.mtproto_proxies,
+            self.socks5_proxies,
+            fetch_elapsed,
+        ) = result
         elapsed = time.time() - start
-        log(f"Downloaded {len(self.all_configs)} total configs, "
+        log(
+            f"Downloaded {len(self.all_configs)} total configs, "
             f"{len(self.extra_bypass_configs)} extra bypass configs, "
-            f"and {len(self.numbered_configs_with_urls)} sources for numbered files")
-        log(f"Found {len(self.mtproto_proxies)} MTProto and "
-            f"{len(self.socks5_proxies)} SOCKS5 Telegram proxies during download")
+            f"and {len(self.numbered_configs_with_urls)} sources for numbered files"
+        )
+        log(
+            f"Found {len(self.mtproto_proxies)} MTProto and "
+            f"{len(self.socks5_proxies)} SOCKS5 Telegram proxies during download"
+        )
         return elapsed
 
     def stage_default_files(self) -> float:
@@ -433,7 +531,8 @@ class ConfigPipeline:
             return 0.0
         log("Creating numbered default files...")
         self.numbered_default_files = create_numbered_default_files(
-            self.numbered_configs_with_urls, self.output_dir)
+            self.numbered_configs_with_urls, self.output_dir
+        )
         log("Creating all.txt file...")
         s = time.time()
         self.all_txt_files = create_all_configs_file(self.all_configs, self.output_dir)
@@ -480,8 +579,12 @@ class ConfigPipeline:
             header = get_subscription_header("bypass-all-raw", config_count=len(self.secure_bypass))
             log(f"Writing bypass raw file ({len(self.secure_bypass)} configs)...")
             stream_write_configs_file(bypass_raw_path, self.secure_bypass, header, add_suffix=False)
-            log(f"Created {bypass_raw_path} with {len(self.secure_bypass)} unique secure bypass configs")
-            self.bypass_raw_files = split_file_by_size(bypass_raw_path, max_size_mb=MAX_FILE_SIZE_MB)
+            log(
+                f"Created {bypass_raw_path} with {len(self.secure_bypass)} unique secure bypass configs"
+            )
+            self.bypass_raw_files = split_file_by_size(
+                bypass_raw_path, max_size_mb=MAX_FILE_SIZE_MB
+            )
         except OSError as e:
             log(f"Error creating bypass-all-raw.txt: {e}")
             self.bypass_raw_files = []
@@ -497,12 +600,18 @@ class ConfigPipeline:
         start = time.time()
         all_unsecure = self._sni_cidr_filtered + self.extra_bypass_configs
         log(f"Total bypass-unsecure configs: {len(all_unsecure)}")
-        unsecure_path = path_in_output(self.output_dir, "bypass-unsecure", "raw", "bypass-unsecure-all-raw.txt")
+        unsecure_path = path_in_output(
+            self.output_dir, "bypass-unsecure", "raw", "bypass-unsecure-all-raw.txt"
+        )
         try:
-            header = get_subscription_header("bypass-unsecure-all-raw", config_count=len(all_unsecure))
+            header = get_subscription_header(
+                "bypass-unsecure-all-raw", config_count=len(all_unsecure)
+            )
             stream_write_configs_file(unsecure_path, all_unsecure, header, add_suffix=False)
             log(f"Created {unsecure_path} with {len(all_unsecure)} configs")
-            self.bypass_unsecure_raw_files = split_file_by_size(unsecure_path, max_size_mb=MAX_FILE_SIZE_MB)
+            self.bypass_unsecure_raw_files = split_file_by_size(
+                unsecure_path, max_size_mb=MAX_FILE_SIZE_MB
+            )
         except OSError as e:
             log(f"Error creating bypass-unsecure-all-raw.txt: {e}")
             self.bypass_unsecure_raw_files = []
@@ -539,8 +648,12 @@ class ConfigPipeline:
                 if tg_socks5:
                     self.socks5_proxies = list(set(self.socks5_proxies + tg_socks5))
             self.telegram_proxy_files = processor.create_proxy_files(
-                self.mtproto_proxies, self.socks5_proxies,
-                verify_mtproto=True, verify_socks5=True, max_workers=200)
+                self.mtproto_proxies,
+                self.socks5_proxies,
+                verify_mtproto=True,
+                verify_socks5=True,
+                max_workers=200,
+            )
         except (OSError, ValueError, RuntimeError) as e:
             log(f"Error processing Telegram proxies: {e}")
             self.telegram_proxy_files = []
@@ -565,7 +678,9 @@ class ConfigPipeline:
         if self.enable_bypass_unsecure and self.publish_raw_files:
             for f in self.bypass_unsecure_raw_files:
                 if f:
-                    self.file_pairs.append((f, f"githubmirror/bypass-unsecure/raw/{os.path.basename(f)}"))
+                    self.file_pairs.append(
+                        (f, f"githubmirror/bypass-unsecure/raw/{os.path.basename(f)}")
+                    )
         if self.enable_protocol_split:
             self.file_pairs.extend(self.protocol_files)
         if self.enable_tg_proxy:
@@ -593,12 +708,18 @@ class ConfigPipeline:
             unsecure_raw_dir = path_in_output(self.output_dir, "bypass-unsecure", "raw")
             if os.path.isdir(unsecure_raw_dir):
                 import shutil
+
                 shutil.rmtree(unsecure_raw_dir, ignore_errors=True)
-        self.verified_bypass_files, self.verified_bypass_unsecure_files = create_working_config_files(
-            self.output_dir, tcp_ping=self.tcp_ping,
-            config_to_sources=self.config_to_sources,
-            stats=self.stats, verbose=self.verbose,
-            upload_file=self.upload_fn)
+        self.verified_bypass_files, self.verified_bypass_unsecure_files = (
+            create_working_config_files(
+                self.output_dir,
+                tcp_ping=self.tcp_ping,
+                config_to_sources=self.config_to_sources,
+                stats=self.stats,
+                verbose=self.verbose,
+                upload_file=self.upload_fn,
+            )
+        )
         # Bypass-N.txt already uploaded progressively during verification
         # (every 300 working configs via write_progressive_bypass_files).
         # Skip re-adding them to file_pairs to avoid double upload.
@@ -614,9 +735,13 @@ class ConfigPipeline:
             return
         # bypass-unsecure-N.txt already uploaded progressively during verification.
         # Only bypass-unsecure-all.txt needs final upload.
-        unsecure_all_path = path_in_output(self.output_dir, "bypass-unsecure", "bypass-unsecure-all.txt")
+        unsecure_all_path = path_in_output(
+            self.output_dir, "bypass-unsecure", "bypass-unsecure-all.txt"
+        )
         if os.path.exists(unsecure_all_path):
-            self.file_pairs.append((unsecure_all_path, "githubmirror/bypass-unsecure/bypass-unsecure-all.txt"))
+            self.file_pairs.append(
+                (unsecure_all_path, "githubmirror/bypass-unsecure/bypass-unsecure-all.txt")
+            )
 
     def stage_report(self) -> None:
         """Print timing, cleanup dead URLs, print health report, flush stats."""
@@ -626,13 +751,13 @@ class ConfigPipeline:
         log("TIMING SUMMARY")
         log("=" * 60)
         stages = [
-            ("Fetching URLs", self.timing.get('fetch', 0)),
-            ("Default files", self.timing.get('defaults', 0)),
-            ("Bypass raw", self.timing.get('bypass_raw', 0)),
-            ("Bypass-unsecure raw", self.timing.get('bypass_unsecure_raw', 0)),
-            ("Protocol split", self.timing.get('protocol_split', 0)),
-            ("Telegram proxy", self.timing.get('tg_proxy', 0)),
-            ("Verification", self.timing.get('verify', 0)),
+            ("Fetching URLs", self.timing.get("fetch", 0)),
+            ("Default files", self.timing.get("defaults", 0)),
+            ("Bypass raw", self.timing.get("bypass_raw", 0)),
+            ("Bypass-unsecure raw", self.timing.get("bypass_unsecure_raw", 0)),
+            ("Protocol split", self.timing.get("protocol_split", 0)),
+            ("Telegram proxy", self.timing.get("tg_proxy", 0)),
+            ("Verification", self.timing.get("verify", 0)),
         ]
         for name, elapsed in stages:
             if elapsed is not None:
@@ -648,7 +773,7 @@ class ConfigPipeline:
 
     def _free_download_data(self) -> None:
         """Free tagger after download stages."""
-        if hasattr(self, '_tagger') and self._tagger is not None:
+        if hasattr(self, "_tagger") and self._tagger is not None:
             self._tagger.reset()
             del self._tagger
             self._tagger = None
@@ -656,9 +781,14 @@ class ConfigPipeline:
 
     def _free_pre_verify_data(self) -> None:
         """Free all config lists before verification (frees ~150MB)."""
-        for attr in ('all_configs', 'extra_bypass_configs',
-                     'numbered_configs_with_urls', '_sni_cidr_filtered',
-                     'mtproto_proxies', 'socks5_proxies'):
+        for attr in (
+            "all_configs",
+            "extra_bypass_configs",
+            "numbered_configs_with_urls",
+            "_sni_cidr_filtered",
+            "mtproto_proxies",
+            "socks5_proxies",
+        ):
             if hasattr(self, attr):
                 try:
                     delattr(self, attr)
@@ -669,13 +799,13 @@ class ConfigPipeline:
     def run(self) -> list[tuple[str, str]]:
         """Execute all pipeline stages in order. Returns file_pairs."""
         self._overall_start = time.time()
-        self.timing['fetch'] = self.stage_download()
-        self.timing['defaults'] = self.stage_default_files()
-        self.timing['bypass_raw'] = self.stage_bypass_raw()
-        self.timing['bypass_unsecure_raw'] = self.stage_bypass_unsecure_raw()
+        self.timing["fetch"] = self.stage_download()
+        self.timing["defaults"] = self.stage_default_files()
+        self.timing["bypass_raw"] = self.stage_bypass_raw()
+        self.timing["bypass_unsecure_raw"] = self.stage_bypass_unsecure_raw()
         self._free_download_data()
-        self.timing['protocol_split'] = self.stage_protocol_split()
-        self.timing['tg_proxy'] = self.stage_telegram_proxy()
+        self.timing["protocol_split"] = self.stage_protocol_split()
+        self.timing["tg_proxy"] = self.stage_telegram_proxy()
         self.stage_build_file_pairs()
         self.stage_build_config_sources()
         # Upload pre-verify files (defaults, raw, protocols, tg proxies)
@@ -686,7 +816,7 @@ class ConfigPipeline:
                 except (OSError, RuntimeError) as e:
                     log(f"Pre-verify upload warning for {remote}: {e}")
         self._free_pre_verify_data()
-        self.timing['verify'] = self.stage_verify()
+        self.timing["verify"] = self.stage_verify()
         self.stage_verified_unsecure()
         self.stage_report()
         # Source config files may have been cleaned (dead URLs removed).
@@ -696,10 +826,14 @@ class ConfigPipeline:
         return self.file_pairs
 
 
-def process_all_configs(output_dir: str = "../githubmirror", skip_xray: bool = False,
-                         tcp_ping: bool = False, verbose: bool = False,
-                         flag_overrides: dict | None = None,
-                         upload_fn: Callable[[str, str], None] | None = None) -> list[tuple[str, str]]:
+def process_all_configs(
+    output_dir: str = "../githubmirror",
+    skip_xray: bool = False,
+    tcp_ping: bool = False,
+    verbose: bool = False,
+    flag_overrides: dict | None = None,
+    upload_fn: Callable[[str, str], None] | None = None,
+) -> list[tuple[str, str]]:
     """Main processing function that orchestrates the entire config generation process.
 
     Args:
@@ -713,8 +847,11 @@ def process_all_configs(output_dir: str = "../githubmirror", skip_xray: bool = F
                    Called with (local_path, remote_path) for each file.
     """
     pipeline = ConfigPipeline(
-        output_dir=output_dir, skip_xray=skip_xray,
-        tcp_ping=tcp_ping, verbose=verbose,
+        output_dir=output_dir,
+        skip_xray=skip_xray,
+        tcp_ping=tcp_ping,
+        verbose=verbose,
         flag_overrides=flag_overrides,
-        upload_fn=upload_fn)
+        upload_fn=upload_fn,
+    )
     return pipeline.run()

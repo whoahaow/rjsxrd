@@ -40,6 +40,7 @@ class TestProgressAvailable:
         finally:
             pbar.close()
 
+
 class TestProgressFallback:
     """If tqdm were missing, get_*_pbar would return None.
 

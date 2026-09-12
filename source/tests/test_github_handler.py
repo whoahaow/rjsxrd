@@ -21,7 +21,7 @@ class FakeGitHubClient(_GitHubClient):
     """
 
     def __init__(self):
-        self.files = {}       # path -> {"content": str, "sha": str}
+        self.files = {}  # path -> {"content": str, "sha": str}
         self._sha_counter = 0
         self._remaining = 5000
         self._limit = 5000
@@ -74,6 +74,7 @@ class FakeGitHubClient(_GitHubClient):
         if entry["sha"] != sha:
             # Simulate 409 Conflict
             from github import GithubException
+
             exc = GithubException(409, {"message": "SHA mismatch"}, None)
             raise exc
         self._sha_counter += 1

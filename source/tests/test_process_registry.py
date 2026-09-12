@@ -1,4 +1,5 @@
 """Tests for the shared ProcessRegistry (utils/process_registry.py)."""
+
 import subprocess
 import threading
 import time
@@ -13,6 +14,7 @@ class _FakeProcess:
     Mimics the parts of the API the registry cares about: poll() and
     terminate/kill. Does NOT actually spawn a process.
     """
+
     def __init__(self, pid=1000, exit_code=None, ignore_terminate=False):
         self.pid = pid
         self._exit_code = exit_code
@@ -41,6 +43,7 @@ class _FakeProcess:
             self.wait_timeouts += 1
             raise subprocess.TimeoutExpired(cmd="fake", timeout=timeout)
         return self._exit_code
+
 
 class TestProcessRegistryRegister:
     """Test the register/unregister API."""
@@ -87,6 +90,7 @@ class TestProcessRegistryRegister:
         """Concurrent registration from many threads must not lose entries."""
         reg = ProcessRegistry(name="test_thread")
         errors = []
+
         def worker(i):
             try:
                 for _ in range(50):
@@ -94,11 +98,15 @@ class TestProcessRegistryRegister:
                     reg.register(MagicMock(), proc)
             except Exception as e:
                 errors.append(e)
+
         threads = [threading.Thread(target=worker, args=(i,)) for i in range(10)]
-        for t in threads: t.start()
-        for t in threads: t.join()
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
         assert not errors
         assert len(reg) == 500  # 10 threads × 50 entries
+
 
 class TestProcessRegistryCleanup:
     """Test the cleanup method — graceful + force paths."""
@@ -150,8 +158,10 @@ class TestProcessRegistryCleanup:
         proc = _FakeProcess(pid=1005)
         reg.register(MagicMock(), proc)
         order = []
+
         def callback():
             order.append("callback")
+
         # Wrap stop_xray_process to record order
         tester = MagicMock()
         tester.stop_xray_process.side_effect = lambda p: order.append("stop")
@@ -169,8 +179,10 @@ class TestProcessRegistryCleanup:
         reg = ProcessRegistry(name="test_callback_exc")
         proc = _FakeProcess(pid=1006)
         tester = MagicMock()
+
         def bad_callback():
             raise RuntimeError("simulated callback failure")
+
         reg.register_callback(bad_callback)
         reg.register(tester, proc)
         # Must not raise
@@ -206,22 +218,24 @@ class TestProcessRegistryCleanup:
 
     def test_cleanup_fallback_calls_tester_cleanup(self):
         """If tester has cleanup() but not stop_xray_process, call cleanup().
-        
+
         Some testers (or old-style objects) have a generic cleanup() method
         instead of the per-process stop_xray_process. The registry falls
         back to calling cleanup() on the tester.
         """
         reg = ProcessRegistry(name="test_cleanup_fallback")
         proc = _FakeProcess(pid=1010)
+
         # Use an object with only cleanup(), no stop_xray_process
         class _TesterWithCleanup:
             def cleanup(self):
                 self.ran = True
+
         tester = _TesterWithCleanup()
         reg.register(tester, proc)
         reg.cleanup(force=False)
-        assert getattr(tester, 'ran', False), "cleanup() should have been called"
-        assert not hasattr(tester, 'stop_xray_process')
+        assert getattr(tester, "ran", False), "cleanup() should have been called"
+        assert not hasattr(tester, "stop_xray_process")
 
     def test_cleanup_force_kill_on_timeout(self):
         """Force cleanup: if terminate + wait times out, must kill."""
@@ -300,6 +314,7 @@ class TestProcessRegistryCleanup:
         # With force=True, ManagedProcess handles the termination
         assert proc.terminated or proc.killed
 
+
 class TestProcessRegistryConcurrency:
     """Test cleanup safety under concurrent registration."""
 
@@ -353,6 +368,7 @@ class TestProcessRegistryConcurrency:
             f"stop-check), got {final}. pre_count={pre_count[0]}"
         )
 
+
 class TestInstallSignalHandler:
     """Test the install_signal_handler function."""
 
@@ -365,6 +381,7 @@ class TestInstallSignalHandler:
         import signal as _signal
 
         import utils.process_registry as _pr
+
         original = _signal.getsignal(_signal.SIGINT)
         try:
             install_signal_handler()
@@ -380,6 +397,7 @@ class TestInstallSignalHandler:
         import signal as _signal
 
         import utils.process_registry as _pr
+
         if _signal.getsignal(_signal.SIGINT) != _signal.default_int_handler:
             # Another test already installed a handler — can't test this
             return
@@ -393,6 +411,7 @@ class TestInstallSignalHandler:
             _pr._signal_handler_installed = False
             _signal.signal(_signal.SIGINT, _signal.default_int_handler)
 
+
 class TestDefaultRegistrySingleton:
     """The default_registry is a module-level singleton — same instance
     for all importers."""
@@ -400,6 +419,7 @@ class TestDefaultRegistrySingleton:
     def test_same_instance(self):
         from utils.process_registry import default_registry as r1
         from utils.process_registry import default_registry as r2
+
         assert r1 is r2
 
     def test_default_registry_is_process_registry(self):

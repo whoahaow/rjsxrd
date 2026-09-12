@@ -7,6 +7,7 @@ Usage:
     python scripts/analyze_url_stats.py --dead       # only show dead URLs
     python scripts/analyze_url_stats.py --top 10      # show top N sources
 """
+
 import argparse
 import json
 import os
@@ -58,13 +59,15 @@ def run(top_n: int, dead_only: bool) -> None:
                 no_yield_unknown.append(url)
             continue
 
-        by_yield.append((
-            yd.get("raw", 0),
-            yd.get("secure", 0),
-            yd.get("verified", 0),
-            section_map.get(url, "?"),
-            url,
-        ))
+        by_yield.append(
+            (
+                yd.get("raw", 0),
+                yd.get("secure", 0),
+                yd.get("verified", 0),
+                section_map.get(url, "?"),
+                url,
+            )
+        )
 
     if dead_only:
         _print_dead(dead)
@@ -126,7 +129,9 @@ def _print_wasteful(by_yield: list) -> None:
     print()
 
 
-def _print_totals(by_yield: list, dead: list, no_yield_failed: list, no_yield_unknown: list) -> None:
+def _print_totals(
+    by_yield: list, dead: list, no_yield_failed: list, no_yield_unknown: list
+) -> None:
     all_raw = sum(r for r, _, _, _, _ in by_yield)
     all_sec = sum(s for _, s, _, _, _ in by_yield)
     all_ver = sum(v for _, _, v, _, _ in by_yield)
@@ -153,7 +158,9 @@ def _print_by_section(by_yield: list) -> None:
         return
     print("=== by section ===")
     for sn, s in sorted(sections.items(), key=lambda x: -x[1]["ver"]):
-        print(f"  [{sn:>12}] urls={s['urls']:>4} raw={s['raw']:>8,} sec={s['sec']:>8,} ver={s['ver']:>5,}")
+        print(
+            f"  [{sn:>12}] urls={s['urls']:>4} raw={s['raw']:>8,} sec={s['sec']:>8,} ver={s['ver']:>5,}"
+        )
     print()
 
 

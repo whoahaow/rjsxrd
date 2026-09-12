@@ -20,11 +20,13 @@ from utils.logger import log
 
 class RateLimitStatus(NamedTuple):
     """Result of a rate limit check."""
+
     has_capacity: bool
     seconds_to_wait: int
 
 
 # ── Client abstraction ────────────────────────────────────────────────
+
 
 class _GitHubClient(ABC):
     """Interface for GitHub API operations used by GitHubHandler.
@@ -68,6 +70,7 @@ class _PyGithubClient(_GitHubClient):
 
     def __init__(self) -> None:
         from config.settings import GITHUB_TOKEN
+
         if GITHUB_TOKEN:
             self.g = Github(auth=Auth.Token(GITHUB_TOKEN))
         else:
@@ -112,6 +115,7 @@ class _PyGithubClient(_GitHubClient):
 
 # ── Handler ───────────────────────────────────────────────────────────
 
+
 class GitHubHandler:
     def __init__(self, client: _GitHubClient = None) -> None:
         """Initialize GitHub handler.
@@ -124,6 +128,7 @@ class GitHubHandler:
         self._client = client or _PyGithubClient()
 
         from config.settings import REPO_NAME
+
         self.repo = self._client.get_repo(REPO_NAME)
 
         # Check GitHub API limits
@@ -155,7 +160,9 @@ class GitHubHandler:
             if remaining < required_requests:
                 wait_seconds = max(0, reset_time - time.time())
                 if wait_seconds > 0:
-                    log(f"Rate limit reached. Waiting {wait_seconds:.0f}s for reset... ({remaining}/{limit} remaining)")
+                    log(
+                        f"Rate limit reached. Waiting {wait_seconds:.0f}s for reset... ({remaining}/{limit} remaining)"
+                    )
                     return RateLimitStatus(False, int(wait_seconds))
                 return RateLimitStatus(False, 0)
 
@@ -189,8 +196,8 @@ class GitHubHandler:
         if getattr(e, "status", None) == 403:
             # Check for Retry-After header
             retry_after = None
-            if hasattr(e, 'headers') and e.headers:
-                retry_after = e.headers.get('Retry-After')
+            if hasattr(e, "headers") and e.headers:
+                retry_after = e.headers.get("Retry-After")
 
             if retry_after:
                 wait_time = int(retry_after)
@@ -199,7 +206,7 @@ class GitHubHandler:
                 return True
 
             # Exponential backoff if no Retry-After header
-            wait_time = min(60, 2 ** attempt)
+            wait_time = min(60, 2**attempt)
             log(f"Rate limited (403). Waiting {wait_time}s (attempt {attempt})...")
             time.sleep(wait_time)
             return True
@@ -264,7 +271,8 @@ class GitHubHandler:
                     try:
                         basename = self._get_basename(remote_path)
                         self._client.create_file(
-                            self.repo, remote_path,
+                            self.repo,
+                            remote_path,
                             f"auto: add {basename}: {self._get_timestamp()}",
                             content,
                         )
@@ -281,8 +289,10 @@ class GitHubHandler:
                             # Race: file was created between our get_contents
                             # and create_file. Retry outer loop to re-read SHA.
                             if attempt < max_retries:
-                                log(f"File {remote_path} already exists, retrying with update "
-                                    f"(attempt {attempt}/{max_retries})")
+                                log(
+                                    f"File {remote_path} already exists, retrying with update "
+                                    f"(attempt {attempt}/{max_retries})"
+                                )
                                 time.sleep(0.5)
                                 continue
                             log(f"Could not create {remote_path} after {max_retries} attempts")
@@ -303,9 +313,11 @@ class GitHubHandler:
                 basename = self._get_basename(remote_path)
                 try:
                     self._client.update_file(
-                        self.repo, remote_path,
+                        self.repo,
+                        remote_path,
                         f"auto: update {basename}: {self._get_timestamp()}",
-                        content, current_sha,
+                        content,
+                        current_sha,
                     )
                     log(f"File {remote_path} updated in repository.")
                     self._add_to_updated_files(remote_path)
@@ -316,7 +328,9 @@ class GitHubHandler:
                         # Conflict - retry with backoff
                         if attempt < max_retries:
                             wait_time = 0.5 * (2 ** (attempt - 1))
-                            log(f"SHA conflict for {remote_path}, attempt {attempt}/{max_retries}, waiting {wait_time} sec")
+                            log(
+                                f"SHA conflict for {remote_path}, attempt {attempt}/{max_retries}, waiting {wait_time} sec"
+                            )
                             time.sleep(wait_time)
                             continue
                         log(f"Could not update {remote_path} after {max_retries} attempts")
@@ -356,16 +370,14 @@ class GitHubHandler:
         failures = 0
 
         # Use cached executor for network I/O
-        executor = ExecutorCache.get('github_upload', max_workers=max_workers_upload)
+        executor = ExecutorCache.get("github_upload", max_workers=max_workers_upload)
         upload_futures = []
 
         for local_path, remote_path in file_pairs:
             if dry_run:
                 log(f"Dry-run: skipping upload of {remote_path} (local path {local_path})")
             else:
-                upload_futures.append(
-                    executor.submit(self.upload_file, local_path, remote_path)
-                )
+                upload_futures.append(executor.submit(self.upload_file, local_path, remote_path))
 
         for uf in concurrent.futures.as_completed(upload_futures):
             try:

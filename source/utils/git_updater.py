@@ -27,12 +27,7 @@ class GitUpdater:
 
         try:
             result = subprocess.run(
-                cmd,
-                cwd=self.repo_dir,
-                capture_output=True,
-                text=True,
-                check=check,
-                timeout=timeout
+                cmd, cwd=self.repo_dir, capture_output=True, text=True, check=check, timeout=timeout
             )
 
             if result.stdout:
@@ -86,8 +81,10 @@ class GitUpdater:
                 # Rebase conflict or other failure — likely caused by force-push
                 # squashing auto commits on remote. Since this machine only ever
                 # creates auto commits, it's safe to reset to remote state.
-                log(f"Pull/rebase failed ({e.stderr.strip()[-200:]}) — "
-                    f"resetting to origin/{branch} (safe — only auto commits lost)")
+                log(
+                    f"Pull/rebase failed ({e.stderr.strip()[-200:]}) — "
+                    f"resetting to origin/{branch} (safe — only auto commits lost)"
+                )
                 self._run_git("fetch", "origin", check=False)
                 self._run_git("reset", "--hard", f"origin/{branch}", check=False)
                 log(f"Reset to origin/{branch}")
@@ -132,7 +129,9 @@ class GitUpdater:
         self._run_git("commit", "-m", message)
         return True
 
-    def push(self, branch: str | None = None, force: bool = False, force_lease: bool = False) -> None:
+    def push(
+        self, branch: str | None = None, force: bool = False, force_lease: bool = False
+    ) -> None:
         """Push commits to remote."""
         if branch is None:
             result = self._run_git("rev-parse", "--abbrev-ref", "HEAD")
@@ -163,9 +162,12 @@ class GitUpdater:
         self._run_git("commit", "--allow-empty", "-m", message)
         self.push()
 
-    def commit_and_push_files(self, file_pairs: list[tuple[str, str]],
-                               commit_message: str = "auto: update configs",
-                               max_retries: int = 3) -> bool:
+    def commit_and_push_files(
+        self,
+        file_pairs: list[tuple[str, str]],
+        commit_message: str = "auto: update configs",
+        max_retries: int = 3,
+    ) -> bool:
         """Complete workflow with retry logic for push conflicts."""
 
         # Append timestamp to match github_handler.py format
@@ -182,8 +184,10 @@ class GitUpdater:
             # (fix:, feat:, chore:, merge:) are never touched.
             squashed = squash_auto_commits(self.repo_dir)
             if squashed:
-                log(f"[auto-clean] squashed {squashed} old auto commits, "
-                    f"next commit will replace them")
+                log(
+                    f"[auto-clean] squashed {squashed} old auto commits, "
+                    f"next commit will replace them"
+                )
 
             # Pull latest from remote before running.
             # In GitHub Actions the checkout action already has fresh code,
@@ -214,7 +218,9 @@ class GitUpdater:
                         return True
                     except subprocess.CalledProcessError as e:
                         if attempt < max_retries - 1:
-                            log(f"Push failed (attempt {attempt + 1}/{max_retries}), pulling latest changes...")
+                            log(
+                                f"Push failed (attempt {attempt + 1}/{max_retries}), pulling latest changes..."
+                            )
                             # Reconcile with remote before retry — pull --rebase handles
                             # divergent histories that a plain sleep can't fix
                             self.pull()

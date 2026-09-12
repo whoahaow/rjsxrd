@@ -20,7 +20,7 @@ def quick_validate_url(url: str) -> bool:
     """Quick pre-validation: check URL has protocol prefix."""
     if not url or not url.strip():
         return False
-    if '://' not in url:
+    if "://" not in url:
         return False
     return True
 
@@ -82,7 +82,7 @@ def wait_for_ports(ports: list[int], timeout: float = None) -> bool:
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.settimeout(_XRAY_PORT_CHECK_SLEEP)
-                result = sock.connect_ex(('127.0.0.1', port))
+                result = sock.connect_ex(("127.0.0.1", port))
                 sock.close()
                 if result == 0:
                     pending_ports.discard(port)
@@ -112,11 +112,15 @@ def normalize_error(error_str: str) -> str:
     """Normalize the error string: extract the first meaningful line
     and remove precise numbers that change between runs.
     """
-    lines = error_str.strip().split('\n')
-    meaningful = [l for l in lines if l.strip() and 'info' not in l.lower()[:20] and 'warning' not in l.lower()[:20]]
+    lines = error_str.strip().split("\n")
+    meaningful = [
+        l
+        for l in lines
+        if l.strip() and "info" not in l.lower()[:20] and "warning" not in l.lower()[:20]
+    ]
     text = meaningful[0] if meaningful else lines[0] if lines else error_str
-    text = re.sub(r'\d+\.\d+', 'X.X', text)
-    text = re.sub(r'port\s+\d+', 'port X', text, flags=re.IGNORECASE)
+    text = re.sub(r"\d+\.\d+", "X.X", text)
+    text = re.sub(r"port\s+\d+", "port X", text, flags=re.IGNORECASE)
     return text[:120]
 
 

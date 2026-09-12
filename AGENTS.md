@@ -841,7 +841,7 @@ on:
 ```python
 # utils/security_filter.py:11-29 (single source of truth, imported by xray_tester.py and protocol_parsers.py)
 SS_SECURE_CIPHERS = {...}  # AEAD шифры
-SS_WEAK_CIPHERS = {...}    # Слабые шифры (отвергаются) — единый список
+SS_WEAK_CIPHERS = {...}  # Слабые шифры (отвергаются) — единый список
 ```
 
 ---

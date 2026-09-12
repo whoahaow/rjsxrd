@@ -20,8 +20,8 @@ class TestProxyMonitorConstants:
 
     def test_ip_check_url_is_https(self):
         """IP_CHECK_URL is an HTTPS endpoint for ipwho.is."""
-        assert IP_CHECK_URL.startswith('https://')
-        assert 'ipwho' in IP_CHECK_URL
+        assert IP_CHECK_URL.startswith("https://")
+        assert "ipwho" in IP_CHECK_URL
 
     def test_default_check_interval_positive(self):
         """DEFAULT_CHECK_INTERVAL is a positive integer."""
@@ -41,20 +41,20 @@ class TestProxyMonitorConstants:
         """ERROR_TRUNCATE_LEN is a positive number."""
         assert ERROR_TRUNCATE_LEN > 0
 
+
 class TestCheckProxyErrorPaths:
     """check_proxy() handles network and parse errors gracefully."""
 
     def _make_monitor(self, **kwargs):
         """Helper: create a ProxyMonitor without starting the monitor thread."""
-        defaults = {'socks_port': 12345, 'real_ip': '5.5.5.5'}
+        defaults = {"socks_port": 12345, "real_ip": "5.5.5.5"}
         defaults.update(kwargs)
         return ProxyMonitor(**defaults)
 
     def test_returns_false_on_network_timeout(self):
         """A network timeout returns False, not a swallowed exception."""
         monitor = self._make_monitor()
-        with patch('utils.proxy_monitor._make_request',
-                   side_effect=requests.Timeout("timed out")):
+        with patch("utils.proxy_monitor._make_request", side_effect=requests.Timeout("timed out")):
             assert monitor.check_proxy() is False
 
     def test_returns_false_on_non_json_response(self):
@@ -63,7 +63,7 @@ class TestCheckProxyErrorPaths:
         mock_response = MagicMock()
         mock_response.status_code = 502
         mock_response.json.side_effect = json.JSONDecodeError("no json", "", 0)
-        with patch('utils.proxy_monitor._make_request', return_value=mock_response):
+        with patch("utils.proxy_monitor._make_request", return_value=mock_response):
             assert monitor.check_proxy() is False
 
     def test_returns_false_on_missing_ip_field(self):
@@ -71,27 +71,28 @@ class TestCheckProxyErrorPaths:
         monitor = self._make_monitor()
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {'country': 'XX', 'asn': {}}  # no 'ip'
-        with patch('utils.proxy_monitor._make_request', return_value=mock_response):
+        mock_response.json.return_value = {"country": "XX", "asn": {}}  # no 'ip'
+        with patch("utils.proxy_monitor._make_request", return_value=mock_response):
             assert monitor.check_proxy() is False
 
     def test_returns_true_when_ip_matches_proxy(self):
         """Valid response with a different IP than real_ip returns True."""
-        monitor = self._make_monitor(real_ip='5.5.5.5')
+        monitor = self._make_monitor(real_ip="5.5.5.5")
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {'ip': '6.6.6.6', 'country': 'XX', 'asn': {}}
-        with patch('utils.proxy_monitor._make_request', return_value=mock_response):
+        mock_response.json.return_value = {"ip": "6.6.6.6", "country": "XX", "asn": {}}
+        with patch("utils.proxy_monitor._make_request", return_value=mock_response):
             assert monitor.check_proxy() is True
 
     def test_returns_false_when_real_ip_exposed(self):
         """Valid response returning the real_ip (proxy leaked) returns False."""
-        monitor = self._make_monitor(real_ip='5.5.5.5')
+        monitor = self._make_monitor(real_ip="5.5.5.5")
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {'ip': '5.5.5.5', 'country': 'XX', 'asn': {}}
-        with patch('utils.proxy_monitor._make_request', return_value=mock_response):
+        mock_response.json.return_value = {"ip": "5.5.5.5", "country": "XX", "asn": {}}
+        with patch("utils.proxy_monitor._make_request", return_value=mock_response):
             assert monitor.check_proxy() is False
+
 
 class TestProxyMonitorShutdown:
     """The monitor thread shuts down cleanly — no sys.exit(), just a clean
@@ -103,9 +104,9 @@ class TestProxyMonitorShutdown:
         check_proxy and prompt_for_new_proxy_chain so we don't hit real
         network or stdin."""
         defaults = {
-            'socks_port': 12345,
-            'real_ip': '5.5.5.5',
-            'check_interval': 0.01,  # near-instant for tests
+            "socks_port": 12345,
+            "real_ip": "5.5.5.5",
+            "check_interval": 0.01,  # near-instant for tests
         }
         defaults.update(kwargs)
         return ProxyMonitor(**defaults)
@@ -113,8 +114,8 @@ class TestProxyMonitorShutdown:
     def test_init_creates_stop_event(self):
         """Every ProxyMonitor starts with a threading.Event for shutdown signals."""
         monitor = self._make_monitor()
-        assert hasattr(monitor, '_stop_event')
-        assert isinstance(monitor._stop_event, __import__('threading').Event)
+        assert hasattr(monitor, "_stop_event")
+        assert isinstance(monitor._stop_event, __import__("threading").Event)
 
     def test_quit_returns_cleanly_not_sys_exit(self):
         """When prompt_for_new_proxy_chain returns ('quit', None),
@@ -127,9 +128,7 @@ class TestProxyMonitorShutdown:
         monitor.check_proxy = MagicMock(return_value=False)
         # Mock prompt_for_new_proxy_chain to return 'quit' immediately
         # (instead of blocking on real input())
-        monitor.prompt_for_new_proxy_chain = MagicMock(
-            return_value=('quit', None)
-        )
+        monitor.prompt_for_new_proxy_chain = MagicMock(return_value=("quit", None))
 
         # Call monitor_loop directly (NOT in a thread) — it should
         # detect proxy failure, call the prompt, get 'quit', log, and
@@ -155,41 +154,37 @@ class TestProxyMonitorShutdown:
         monitor = self._make_monitor()
         monitor.running = True
         monitor.check_proxy = MagicMock(return_value=False)
-        monitor.prompt_for_new_proxy_chain = MagicMock(
-            return_value=('quit', None)
-        )
+        monitor.prompt_for_new_proxy_chain = MagicMock(return_value=("quit", None))
 
-        with patch('utils.proxy_monitor.log') as mock_log:
+        with patch("utils.proxy_monitor.log") as mock_log:
             monitor.monitor_loop()
 
-        shutdown_calls = [
-            c for c in mock_log.call_args_list
-            if 'Shutdown requested' in str(c)
-        ]
+        shutdown_calls = [c for c in mock_log.call_args_list if "Shutdown requested" in str(c)]
         assert shutdown_calls, (
-            f"Expected 'Shutdown requested' in log after quit, got: "
-            f"{mock_log.call_args_list}"
+            f"Expected 'Shutdown requested' in log after quit, got: {mock_log.call_args_list}"
         )
 
     def test_no_sys_exit_in_source(self):
         """sys.exit() should not appear anywhere in the proxy_monitor source.
         Regression test for the audit bug (8th pass)."""
         import inspect
+
         source = inspect.getsource(ProxyMonitor)
-        assert 'sys.exit' not in source, (
+        assert "sys.exit" not in source, (
             "sys.exit() found in ProxyMonitor source — should use clean "
             "return + stop_event.set() instead"
         )
+
 
 class TestProxyMonitorLifecycle:
     """Test start/stop lifecycle of ProxyMonitor."""
 
     def _make_monitor(self, **kwargs):
         defaults = {
-            'socks_port': 12345,
-            'real_ip': '5.5.5.5',
-            'check_interval': 0.01,
-            'timeout': 5.0,
+            "socks_port": 12345,
+            "real_ip": "5.5.5.5",
+            "check_interval": 0.01,
+            "timeout": 5.0,
         }
         defaults.update(kwargs)
         return ProxyMonitor(**defaults)
@@ -238,16 +233,17 @@ class TestProxyMonitorLifecycle:
 
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {'ip': '6.6.6.6', 'country': 'XX'}
+        mock_response.json.return_value = {"ip": "6.6.6.6", "country": "XX"}
 
         log_calls = []
+
         def capture_log(msg, *a, **kw):
             log_calls.append(str(msg))
 
-        with patch('utils.proxy_monitor._make_request', return_value=mock_response):
-            with patch('utils.proxy_monitor.log', side_effect=capture_log):
+        with patch("utils.proxy_monitor._make_request", return_value=mock_response):
+            with patch("utils.proxy_monitor.log", side_effect=capture_log):
                 result = monitor.check_proxy()
 
         assert result is True
-        recovery_msgs = [m for m in log_calls if 'recovered' in m.lower()]
+        recovery_msgs = [m for m in log_calls if "recovered" in m.lower()]
         assert len(recovery_msgs) > 0, f"expected recovery log, got: {log_calls}"

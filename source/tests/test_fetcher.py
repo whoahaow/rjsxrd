@@ -19,31 +19,35 @@ class TestGetEnvProxy:
 
     def test_https_proxy(self):
         """Test HTTPS_PROXY env var."""
-        with patch.dict(os.environ, {'HTTPS_PROXY': 'socks5h://localhost:1080'}):
+        with patch.dict(os.environ, {"HTTPS_PROXY": "socks5h://localhost:1080"}):
             result = _get_env_proxy()
-            assert result == 'socks5h://localhost:1080'
+            assert result == "socks5h://localhost:1080"
 
     def test_http_proxy(self):
         """Test HTTP_PROXY env var."""
-        with patch.dict(os.environ, {'HTTP_PROXY': 'http://proxy.example.com:8080'}):
+        with patch.dict(os.environ, {"HTTP_PROXY": "http://proxy.example.com:8080"}):
             result = _get_env_proxy()
-            assert result == 'http://proxy.example.com:8080'
+            assert result == "http://proxy.example.com:8080"
 
     def test_all_proxy(self):
         """Test ALL_PROXY env var."""
-        with patch.dict(os.environ, {'ALL_PROXY': 'socks5://proxy:1080'}):
+        with patch.dict(os.environ, {"ALL_PROXY": "socks5://proxy:1080"}):
             result = _get_env_proxy()
-            assert result == 'socks5://proxy:1080'
+            assert result == "socks5://proxy:1080"
 
     def test_priority_order(self):
         """Test priority order: HTTPS_PROXY > HTTP_PROXY > ALL_PROXY."""
-        with patch.dict(os.environ, {
-            'HTTPS_PROXY': 'https://first:443',
-            'HTTP_PROXY': 'http://second:80',
-            'ALL_PROXY': 'socks://third:1080'
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "HTTPS_PROXY": "https://first:443",
+                "HTTP_PROXY": "http://second:80",
+                "ALL_PROXY": "socks://third:1080",
+            },
+        ):
             result = _get_env_proxy()
-            assert result == 'https://first:443'
+            assert result == "https://first:443"
+
 
 class TestBuildSession:
     """Test build_session function."""
@@ -52,23 +56,23 @@ class TestBuildSession:
         """Test session creation without proxy."""
         session = build_session()
         assert session is not None
-        assert hasattr(session, 'get')
-        assert hasattr(session, 'post')
+        assert hasattr(session, "get")
+        assert hasattr(session, "post")
         # Check curl_cffi session type
-        assert 'curl_cffi' in str(type(session))
+        assert "curl_cffi" in str(type(session))
 
     def test_session_with_proxy(self):
         """Test session creation with proxy."""
-        proxy = 'socks5h://localhost:1080'
+        proxy = "socks5h://localhost:1080"
         session = build_session(proxy_url=proxy)
         assert session is not None
-        assert session.proxies == {'http': proxy, 'https': proxy}
+        assert session.proxies == {"http": proxy, "https": proxy}
 
     def test_session_user_agent(self):
         """Test session has user agent set."""
         session = build_session()
-        assert 'User-Agent' in session.headers
-        assert session.headers['User-Agent']  # Should not be empty
+        assert "User-Agent" in session.headers
+        assert session.headers["User-Agent"]  # Should not be empty
 
     def test_session_max_pool_size_param(self):
         """Test max_pool_size parameter is accepted (for compatibility)."""
@@ -76,81 +80,83 @@ class TestBuildSession:
         session = build_session(max_pool_size=10)
         assert session is not None
 
+
 class TestFetchData:
     """Test fetch_data function."""
 
-    @patch('fetchers.fetcher.build_session')
+    @patch("fetchers.fetcher.build_session")
     def test_fetch_success(self, mock_build_session):
         """Test successful fetch."""
         mock_session = MagicMock()
-        mock_session.get.return_value.text = 'test content'
+        mock_session.get.return_value.text = "test content"
         mock_session.get.return_value.raise_for_status = MagicMock()
         mock_build_session.return_value = mock_session
 
-        result = fetch_data('https://example.com/config.txt')
+        result = fetch_data("https://example.com/config.txt")
 
-        assert result.text == 'test content'
+        assert result.text == "test content"
         assert result.success is True
         mock_session.get.assert_called_once()
 
-    @patch('fetchers.fetcher.build_session')
+    @patch("fetchers.fetcher.build_session")
     def test_fetch_with_custom_timeout(self, mock_build_session):
         """Test fetch with custom timeout."""
         mock_session = MagicMock()
-        mock_session.get.return_value.text = 'content'
+        mock_session.get.return_value.text = "content"
         mock_session.get.return_value.raise_for_status = MagicMock()
         mock_build_session.return_value = mock_session
 
-        fetch_data('https://example.com', timeout=15)
+        fetch_data("https://example.com", timeout=15)
 
         call_kwargs = mock_session.get.call_args[1]
-        assert call_kwargs['timeout'] == 15
+        assert call_kwargs["timeout"] == 15
 
-    @patch('fetchers.fetcher.build_session')
+    @patch("fetchers.fetcher.build_session")
     def test_fetch_retry_logic(self, mock_build_session):
         """Test retry on failure."""
         mock_session = MagicMock()
         # First two calls fail, third succeeds
         mock_session.get.side_effect = [
-            ConnectionError('timeout'),
-            ConnectionError('connection error'),
-            MagicMock(text='success', raise_for_status=MagicMock())
+            ConnectionError("timeout"),
+            ConnectionError("connection error"),
+            MagicMock(text="success", raise_for_status=MagicMock()),
         ]
         mock_build_session.return_value = mock_session
 
-        result = fetch_data('https://example.com', max_attempts=3)
+        result = fetch_data("https://example.com", max_attempts=3)
 
-        assert result.text == 'success'
+        assert result.text == "success"
         assert result.success is True
         assert mock_session.get.call_count == 3
 
-    @patch('fetchers.fetcher.build_session')
+    @patch("fetchers.fetcher.build_session")
     def test_fetch_all_retries_fail(self, mock_build_session):
         """Test when all retries fail."""
         mock_session = MagicMock()
-        mock_session.get.side_effect = ConnectionError('permanent error')
+        mock_session.get.side_effect = ConnectionError("permanent error")
         mock_build_session.return_value = mock_session
 
-        result = fetch_data('https://example.com', max_attempts=3, timeout=1)
+        result = fetch_data("https://example.com", max_attempts=3, timeout=1)
         assert result.success is False
         assert result.text == ""
 
-    @patch('fetchers.fetcher._get_env_proxy')
-    @patch('fetchers.fetcher.build_session')
+    @patch("fetchers.fetcher._get_env_proxy")
+    @patch("fetchers.fetcher.build_session")
     def test_fetch_uses_proxy_from_env(self, mock_build_session, mock_get_env):
         """Test fetch uses proxy from environment."""
-        mock_get_env.return_value = 'socks5://env-proxy:1080'
+        mock_get_env.return_value = "socks5://env-proxy:1080"
         mock_session = MagicMock()
-        mock_session.get.return_value.text = 'content'
+        mock_session.get.return_value.text = "content"
         mock_session.get.return_value.raise_for_status = MagicMock()
         mock_build_session.return_value = mock_session
 
-        fetch_data('https://example.com', proxy_url=None)
+        fetch_data("https://example.com", proxy_url=None)
 
         # Should call build_session with proxy from env
         mock_build_session.assert_called()
         call_args = mock_build_session.call_args[1]
-        assert call_args['proxy_url'] == 'socks5://env-proxy:1080'
+        assert call_args["proxy_url"] == "socks5://env-proxy:1080"
+
 
 class TestFetchDataWithRealURL:
     """Integration tests with real URLs (may fail in isolated environments)."""
@@ -158,7 +164,7 @@ class TestFetchDataWithRealURL:
     def test_fetch_real_url(self):
         """Test fetching a real URL (skipped if network unavailable)."""
         try:
-            result = fetch_data('https://httpbin.org/ip', timeout=5)
+            result = fetch_data("https://httpbin.org/ip", timeout=5)
             assert result.success is True
             assert len(result.text) > 0
         except Exception:

@@ -10,11 +10,11 @@ from utils.logger import log
 from utils.process_registry import default_registry
 
 # IP check endpoint used to verify the proxy is actually hiding the real IP
-IP_CHECK_URL = 'https://ipwho.is/'
+IP_CHECK_URL = "https://ipwho.is/"
 
 # Defaults for ProxyMonitor instances
 DEFAULT_CHECK_INTERVAL = 30  # seconds between proxy health checks
-DEFAULT_TIMEOUT = 5.0        # seconds for each IP check request
+DEFAULT_TIMEOUT = 5.0  # seconds for each IP check request
 
 # Shutdown behavior
 STOP_JOIN_TIMEOUT = 2  # seconds to wait for monitor thread to join on stop()
@@ -26,7 +26,13 @@ ERROR_TRUNCATE_LEN = 100  # chars of error message to include in logs
 class ProxyMonitor:
     """Monitor proxy health and prompt for replacement if failed."""
 
-    def __init__(self, socks_port: int, real_ip: str, check_interval: int = DEFAULT_CHECK_INTERVAL, timeout: float = DEFAULT_TIMEOUT) -> None:
+    def __init__(
+        self,
+        socks_port: int,
+        real_ip: str,
+        check_interval: int = DEFAULT_CHECK_INTERVAL,
+        timeout: float = DEFAULT_TIMEOUT,
+    ) -> None:
         self.socks_port = socks_port
         self.real_ip = real_ip
         self.check_interval = check_interval
@@ -46,7 +52,7 @@ class ProxyMonitor:
         """Check if proxy is still working AND hiding real IP."""
         try:
             socks_url = f"socks5h://127.0.0.1:{self.socks_port}"
-            proxies = {'http': socks_url, 'https': socks_url}
+            proxies = {"http": socks_url, "https": socks_url}
 
             response = _make_request(IP_CHECK_URL, proxies=proxies, timeout=self.timeout)
             try:
@@ -54,7 +60,7 @@ class ProxyMonitor:
             except (json.JSONDecodeError, ValueError):
                 log(f"Monitor: Non-JSON response from IP check ({response.status_code})")
                 return False
-            proxy_ip = data.get('ip')
+            proxy_ip = data.get("ip")
 
             if not proxy_ip:
                 log("Monitor: Failed to get IP through proxy")
@@ -93,28 +99,29 @@ class ProxyMonitor:
             log("\n--- Hop 1 (Entry Proxy) ---")
             proxy1 = input("Enter first proxy URL (or 'quit' to exit): ").strip()
 
-            if proxy1.lower() == 'quit':
-                return ('quit', None)
-            if not proxy1 or '://' not in proxy1:
+            if proxy1.lower() == "quit":
+                return ("quit", None)
+            if not proxy1 or "://" not in proxy1:
                 log("Invalid format. Use: vless://uuid@host:port")
                 continue
 
             log("\n--- Hop 2 (Exit Proxy) ---")
             proxy2 = input("Enter second proxy URL (or 'quit' to exit): ").strip()
 
-            if proxy2.lower() == 'quit':
-                return ('quit', None)
-            if not proxy2 or '://' not in proxy2:
+            if proxy2.lower() == "quit":
+                return ("quit", None)
+            if not proxy2 or "://" not in proxy2:
                 log("Invalid format. Use: vless://uuid@host:port")
                 continue
 
             log("\nTesting proxy chain...")
             from utils.ip_verifier import setup_proxy_chain
+
             result = setup_proxy_chain([proxy1, proxy2], timeout=8.0)
 
-            if result['active']:
+            if result["active"]:
                 log(f"[OK] Proxy chain working ({result.get('country', 'Unknown')})")
-                return ('ok', [proxy1, proxy2])
+                return ("ok", [proxy1, proxy2])
             log(f"[FAIL] Proxy chain failed: {result.get('error', 'Unknown error')}")
             log("\nTry different proxies. Common issues:")
             log("  • One or both proxies are offline")
@@ -148,7 +155,7 @@ class ProxyMonitor:
                 self.proxy_failed = True
                 status, new_chain = self.prompt_for_new_proxy_chain()
 
-                if status == 'quit':
+                if status == "quit":
                     log("\nShutdown requested — monitor exiting...")
                     self.running = False
                     # Clean thread exit. The daemon thread
@@ -158,7 +165,7 @@ class ProxyMonitor:
                     # But returning is still cleaner because stop() knows
                     # the thread has exited rather than dying silently.
                     return
-                if status == 'ok' and new_chain:
+                if status == "ok" and new_chain:
                     log("\n✓ Proxy chain restored - resuming fetch...")
                     self.proxy_failed = False
                     self.last_check_ok = True

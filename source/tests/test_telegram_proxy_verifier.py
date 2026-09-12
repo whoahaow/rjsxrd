@@ -67,9 +67,7 @@ class TestParseProxyUrl:
 
     def test_socks5_uri_no_auth(self):
         """socks5://host:1080"""
-        result = TelegramProxyVerifier.parse_proxy_url(
-            "socks5://noauth.example.com:1080"
-        )
+        result = TelegramProxyVerifier.parse_proxy_url("socks5://noauth.example.com:1080")
         assert result["server"] == "noauth.example.com"
         assert result["port"] == 1080
         assert result["username"] is None
@@ -119,6 +117,7 @@ class TestCreateHandshakePacket:
     def test_base64_secret(self):
         """Base64-encoded secret should be decoded and placed at positions 8-23."""
         import base64
+
         secret_bytes = b"a" * 16
         secret_b64 = base64.b64encode(secret_bytes).decode()
         packet = TelegramProxyVerifier()._create_handshake_packet(secret_b64)

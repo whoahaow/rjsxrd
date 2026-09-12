@@ -13,6 +13,7 @@ The fix: a single ProcessRegistry class. xray_tester, ip_verifier, and
 proxy_monitor all use it. Cleanup is centralized. atexit and signal handling
 live here too (so they don't fight each other).
 """
+
 import atexit
 import signal
 import subprocess
@@ -112,7 +113,7 @@ class ProcessRegistry:
         # Stop proxy monitors first (they depend on SOCKS ports from xray)
         for monitor in monitors:
             try:
-                if hasattr(monitor, 'stop'):
+                if hasattr(monitor, "stop"):
                     monitor.stop()
             except (AttributeError, RuntimeError) as e:
                 log(f"Warning: failed to stop proxy monitor: {e}")
@@ -133,9 +134,9 @@ class ProcessRegistry:
                     mp.stop(force=True, kill_timeout=2, force_kill_timeout=1)
                 else:
                     # Graceful: ask the tester to stop the process
-                    if hasattr(tester, 'stop_xray_process'):
+                    if hasattr(tester, "stop_xray_process"):
                         tester.stop_xray_process(process)
-                    elif hasattr(tester, 'cleanup'):
+                    elif hasattr(tester, "cleanup"):
                         # Fallback: tester has a cleanup() that takes no args
                         tester.cleanup()
             except (OSError, subprocess.TimeoutExpired, AttributeError, RuntimeError) as e:
@@ -171,12 +172,14 @@ def install_signal_handler() -> None:
     global _signal_handler_installed
     if _signal_handler_installed:
         return
+
     def _handler(signum, frame) -> None:
         default_registry.cleanup(force=True)
         # Don't sys.exit — let the next-registered handler decide policy.
         # Re-raise the signal as a KeyboardInterrupt so the interpreter
         # still terminates, but at the priority of the LAST handler.
         raise KeyboardInterrupt
+
     try:
         if signal.getsignal(signal.SIGINT) == signal.default_int_handler:
             signal.signal(signal.SIGINT, _handler)

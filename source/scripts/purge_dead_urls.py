@@ -9,6 +9,7 @@ Usage:
     python scripts/purge_dead_urls.py --apply       # actually remove
     python scripts/purge_dead_urls.py --timeout 10 --apply
 """
+
 import argparse
 import os
 import sys
@@ -66,7 +67,9 @@ def run(dry_run: bool, timeout: int, max_workers: int) -> None:
             if done % 100 == 0 or done == len(url_indices):
                 alive_count = sum(1 for _, _, a in results if a)
                 dead_count = sum(1 for _, _, a in results if not a)
-                print(f"  progress: {done}/{len(url_indices)} (alive={alive_count}, dead={dead_count})")
+                print(
+                    f"  progress: {done}/{len(url_indices)} (alive={alive_count}, dead={dead_count})"
+                )
 
     # Sort results back to line order
     results.sort(key=lambda x: x[0])
@@ -119,7 +122,9 @@ def run(dry_run: bool, timeout: int, max_workers: int) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Remove dead URLs from URLS.txt")
     parser.add_argument("--apply", action="store_true", help="actually remove (default: dry run)")
-    parser.add_argument("--timeout", type=int, default=7, help="fetch timeout per URL in seconds (default: 7)")
+    parser.add_argument(
+        "--timeout", type=int, default=7, help="fetch timeout per URL in seconds (default: 7)"
+    )
     parser.add_argument("--workers", type=int, default=32, help="concurrent fetchers (default: 32)")
     args = parser.parse_args()
     run(dry_run=not args.apply, timeout=args.timeout, max_workers=args.workers)

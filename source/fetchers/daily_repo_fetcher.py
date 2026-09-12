@@ -16,23 +16,36 @@ from utils.logger import log
 
 
 def _substitute_date_pattern(pattern: str, date: datetime.date) -> str:
-    return pattern \
-        .replace("{YYYY}", date.strftime("%Y")) \
-        .replace("{MM}", date.strftime("%m")) \
-        .replace("{M}", str(date.month)) \
-        .replace("{DD}", date.strftime("%d")) \
+    return (
+        pattern.replace("{YYYY}", date.strftime("%Y"))
+        .replace("{MM}", date.strftime("%m"))
+        .replace("{M}", str(date.month))
+        .replace("{DD}", date.strftime("%d"))
         .replace("{YYYYMMDD}", date.strftime("%Y%m%d"))
+    )
 
 
 def _is_yaml_url(url: str) -> bool:
-    return url.endswith(('.yaml', '.yml'))
+    return url.endswith((".yaml", ".yml"))
 
 
 def _decode_if_base64(content: str) -> str:
     try:
         decoded_bytes = base64.b64decode(content.strip())
-        decoded = decoded_bytes.decode('utf-8', errors='ignore')
-        if any(p in decoded for p in ['vless://', 'vmess://', 'trojan://', 'ss://', 'ssr://', 'hysteria://', 'hy2://', 'tuic://']):
+        decoded = decoded_bytes.decode("utf-8", errors="ignore")
+        if any(
+            p in decoded
+            for p in [
+                "vless://",
+                "vmess://",
+                "trojan://",
+                "ss://",
+                "ssr://",
+                "hysteria://",
+                "hy2://",
+                "tuic://",
+            ]
+        ):
             return decoded
     except (ValueError, TypeError, UnicodeDecodeError):
         pass
@@ -50,6 +63,7 @@ def _fetch_single_url(url: str) -> tuple[str, list[str] | None]:
 
     if _is_yaml_url(url):
         from fetchers.yaml_converter import convert_yaml_to_vpn_configs
+
         configs = convert_yaml_to_vpn_configs(content)
         return (url, configs)
 
@@ -79,10 +93,12 @@ def fetch_configs_from_daily_repo(
     dates_to_try.extend(today - datetime.timedelta(days=i) for i in range(1, lookback_days + 1))
 
     all_urls = [u for d in dates_to_try for u in generate_dated_urls(patterns, d)]
-    log(f"Fetching {len(all_urls)} URLs from {len(patterns)} patterns across {len(dates_to_try)} dates ({max_workers} workers)...")
+    log(
+        f"Fetching {len(all_urls)} URLs from {len(patterns)} patterns across {len(dates_to_try)} dates ({max_workers} workers)..."
+    )
 
     all_configs = []
-    executor = ExecutorCache.get('daily_repo_fetch', max_workers=max_workers)
+    executor = ExecutorCache.get("daily_repo_fetch", max_workers=max_workers)
     future_to_url = {executor.submit(_fetch_single_url, url): url for url in all_urls}
     for future in concurrent.futures.as_completed(future_to_url):
         _, configs = future.result()

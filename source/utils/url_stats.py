@@ -19,16 +19,17 @@ from datetime import datetime
 
 from utils.logger import log
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
-STATS_PATH = os.path.join(DATA_DIR, 'url_stats.json')
-URLS_TXT_PATH = os.path.join(os.path.dirname(DATA_DIR), 'config', 'URLS.txt')
-SERVERS_TXT_PATH = os.path.join(os.path.dirname(DATA_DIR), 'config', 'servers.txt')
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+STATS_PATH = os.path.join(DATA_DIR, "url_stats.json")
+URLS_TXT_PATH = os.path.join(os.path.dirname(DATA_DIR), "config", "URLS.txt")
+SERVERS_TXT_PATH = os.path.join(os.path.dirname(DATA_DIR), "config", "servers.txt")
 MAX_HISTORY = 3
 
 
 @dataclass
 class FetchHistoryItem:
     """A single fetch attempt result."""
+
     success: bool
     status: int = 0
     error: str = ""
@@ -38,6 +39,7 @@ class FetchHistoryItem:
 @dataclass
 class FetchStats:
     """Fetch tracking for a single URL."""
+
     consecutive_failures: int = 0
     history: list[FetchHistoryItem] = field(default_factory=list)
 
@@ -45,6 +47,7 @@ class FetchStats:
 @dataclass
 class YieldStats:
     """Config yield tracking for a single URL."""
+
     raw: int = 0
     secure: int = 0
     total_raw: int = 0
@@ -57,6 +60,7 @@ class YieldStats:
 @dataclass
 class ConfigVerification:
     """Per-config verification tracking (for servers.txt)."""
+
     verifications: list[bool] = field(default_factory=list)
     consecutive_failures: int = 0
     preview: str = ""
@@ -65,6 +69,7 @@ class ConfigVerification:
 @dataclass
 class URLEntry:
     """Top-level entry for one URL in the stats database."""
+
     fetch: FetchStats | None = None
     yield_: YieldStats | None = None
     configs: dict[str, ConfigVerification] = field(default_factory=dict)
@@ -138,9 +143,9 @@ class URLStats:
 
     def _save(self) -> None:
         os.makedirs(os.path.dirname(self.path), exist_ok=True)
-        fd, tmp = tempfile.mkstemp(suffix='.json', dir=os.path.dirname(self.path))
+        fd, tmp = tempfile.mkstemp(suffix=".json", dir=os.path.dirname(self.path))
         try:
-            with os.fdopen(fd, 'w') as f:
+            with os.fdopen(fd, "w") as f:
                 json.dump(self.data, f, indent=2)
             os.replace(tmp, self.path)
         except OSError:
@@ -166,10 +171,14 @@ class URLStats:
                 f["consecutive_failures"] = 0
             else:
                 f["consecutive_failures"] = f.get("consecutive_failures", 0) + 1
-            f["history"].append({
-                "success": success, "status": status_code,
-                "error": error[:200], "time": datetime.now().isoformat()
-            })
+            f["history"].append(
+                {
+                    "success": success,
+                    "status": status_code,
+                    "error": error[:200],
+                    "time": datetime.now().isoformat(),
+                }
+            )
             if len(f["history"]) > MAX_HISTORY:
                 f["history"] = f["history"][-MAX_HISTORY:]
             self._dirty = True
@@ -244,7 +253,11 @@ class URLStats:
         with self.lock:
             result = []
             for url, entry in self.data.items():
-                if url.startswith("MANUAL_") or url in ("DAILY_REPO", "SSTAP_ORG", "UPSTREAM_AGGREGATOR"):
+                if url.startswith("MANUAL_") or url in (
+                    "DAILY_REPO",
+                    "SSTAP_ORG",
+                    "UPSTREAM_AGGREGATOR",
+                ):
                     continue
                 cf = entry.get("fetch", {}).get("consecutive_failures", 0)
                 if cf >= threshold:
@@ -266,7 +279,11 @@ class URLStats:
         with self.lock:
             result = []
             for url, entry in self.data.items():
-                if url.startswith("MANUAL_") or url in ("DAILY_REPO", "SSTAP_ORG", "UPSTREAM_AGGREGATOR"):
+                if url.startswith("MANUAL_") or url in (
+                    "DAILY_REPO",
+                    "SSTAP_ORG",
+                    "UPSTREAM_AGGREGATOR",
+                ):
                     continue
                 v = entry.get("yield", {}).get("verified", -1)
                 if v <= max_verified and v >= 0:
@@ -277,7 +294,11 @@ class URLStats:
         with self.lock:
             items = []
             for url, entry in self.data.items():
-                if url.startswith("MANUAL_") or url in ("DAILY_REPO", "SSTAP_ORG", "UPSTREAM_AGGREGATOR"):
+                if url.startswith("MANUAL_") or url in (
+                    "DAILY_REPO",
+                    "SSTAP_ORG",
+                    "UPSTREAM_AGGREGATOR",
+                ):
                     continue
                 v = entry.get("yield", {}).get("verified", 0)
                 items.append((url, v))
@@ -293,7 +314,7 @@ class URLStats:
             return
 
         try:
-            with open(path, encoding='utf-8') as f:
+            with open(path, encoding="utf-8") as f:
                 lines = f.readlines()
         except (OSError, UnicodeDecodeError) as e:
             log(f"URL Stats: cannot read {path}: {e}")
@@ -303,15 +324,15 @@ class URLStats:
         removed = []
         for line in lines:
             stripped = line.strip()
-            if stripped and not stripped.startswith('#') and stripped in dead_urls:
+            if stripped and not stripped.startswith("#") and stripped in dead_urls:
                 removed.append(stripped)
                 continue
             result.append(line)
 
         if removed:
             try:
-                shutil.copy2(path, path + '.backup')
-                with open(path, 'w', encoding='utf-8') as f:
+                shutil.copy2(path, path + ".backup")
+                with open(path, "w", encoding="utf-8") as f:
                     f.writelines(result)
             except OSError as e:
                 log(f"URL Stats: cannot write {path}: {e}")
@@ -325,7 +346,9 @@ class URLStats:
             for r in removed:
                 log(f"  Removed: {r[:100]}")
 
-    def remove_dead_from_servers_txt(self, path: str = SERVERS_TXT_PATH, threshold: int = 3) -> None:
+    def remove_dead_from_servers_txt(
+        self, path: str = SERVERS_TXT_PATH, threshold: int = 3
+    ) -> None:
         if not os.path.exists(path):
             return
         dead_info = self.get_dead_configs(threshold)
@@ -334,7 +357,7 @@ class URLStats:
         dead_hashes = {h for _, h in dead_info}
 
         try:
-            with open(path, encoding='utf-8') as f:
+            with open(path, encoding="utf-8") as f:
                 lines = f.readlines()
         except (OSError, UnicodeDecodeError) as e:
             log(f"URL Stats: cannot read {path}: {e}")
@@ -343,8 +366,8 @@ class URLStats:
         result = []
         removed = []
         for line in lines:
-            stripped = line.rstrip('\n')
-            if stripped and not stripped.startswith('#'):
+            stripped = line.rstrip("\n")
+            if stripped and not stripped.startswith("#"):
                 line_hash = hashlib.sha256(stripped.encode()).hexdigest()[:16]
                 if line_hash in dead_hashes:
                     removed.append(stripped)
@@ -353,8 +376,8 @@ class URLStats:
 
         if removed:
             try:
-                shutil.copy2(path, path + '.backup')
-                with open(path, 'w', encoding='utf-8') as f:
+                shutil.copy2(path, path + ".backup")
+                with open(path, "w", encoding="utf-8") as f:
                     f.writelines(result)
             except OSError as e:
                 log(f"URL Stats: cannot write {path}: {e}")

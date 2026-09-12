@@ -5,6 +5,7 @@ temporary config files (which contain credentials). The 18th-pass bug
 was: stop() returned early for already-exited processes, skipping the
 config file cleanup. These tests prevent that regression.
 """
+
 import os
 import subprocess
 import sys
@@ -28,14 +29,15 @@ class TestManagedProcessConfigCleanup:
         a config (or fails to start), the process exits, and then stop()
         is called. Without this fix, credentials leak indefinitely.
         """
-        with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
             config_path = f.name
             f.write(b'{"creds": "secret"}')
 
         # Simulate an already-exited process
         proc = subprocess.Popen(
-            [sys.executable, '-c', 'import sys; sys.exit(0)'],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            [sys.executable, "-c", "import sys; sys.exit(0)"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
         proc.wait()  # Let it exit before ManagedProcess wraps it
         assert proc.poll() == 0, "process should have exited"
@@ -46,29 +48,27 @@ class TestManagedProcessConfigCleanup:
         mp.stop()  # The 18th-pass fix: cleanup runs before early-return
 
         assert not os.path.exists(config_path), (
-            "config file must be cleaned up after stop(), even when "
-            "the process already exited"
+            "config file must be cleaned up after stop(), even when the process already exited"
         )
 
     def test_config_file_cleaned_up_on_running_process(self):
         """For running processes, stop() must clean config file after
         terminating/killing the process."""
-        with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
             config_path = f.name
             f.write(b'{"creds": "secret"}')
 
         # A process that runs until killed
         proc = subprocess.Popen(
-            [sys.executable, '-c', 'import time; time.sleep(30)'],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            [sys.executable, "-c", "import time; time.sleep(30)"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
         try:
             mp = ManagedProcess(proc, config_file=config_path)
             assert os.path.exists(config_path)
             mp.stop(kill_timeout=1, force_kill_timeout=1)
-            assert not os.path.exists(config_path), (
-                "config file must be cleaned up after stop()"
-            )
+            assert not os.path.exists(config_path), "config file must be cleaned up after stop()"
         finally:
             # Safety: ensure process is dead even if test fails
             if proc.poll() is None:
@@ -79,12 +79,13 @@ class TestManagedProcessConfigCleanup:
         """stop() should not crash if config_file was already removed
         (e.g. by another cleanup pass or manual deletion)."""
         proc = subprocess.Popen(
-            [sys.executable, '-c', 'import sys; sys.exit(0)'],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            [sys.executable, "-c", "import sys; sys.exit(0)"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
         proc.wait()
         # config_file points to a non-existent path
-        mp = ManagedProcess(proc, config_file='/tmp/nonexistent_config.json')
+        mp = ManagedProcess(proc, config_file="/tmp/nonexistent_config.json")
         # Should not raise
         mp.stop()
 
@@ -92,20 +93,23 @@ class TestManagedProcessConfigCleanup:
         """ManagedProcess can be created without a config_file (config_file=None).
         stop() must handle this gracefully."""
         proc = subprocess.Popen(
-            [sys.executable, '-c', 'import sys; sys.exit(0)'],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            [sys.executable, "-c", "import sys; sys.exit(0)"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
         proc.wait()
         mp = ManagedProcess(proc, config_file=None)
         mp.stop()  # Should not raise
+
 
 class TestManagedProcessLifecycle:
     """Process lifecycle management."""
 
     def test_is_running_returns_true_for_active_process(self):
         proc = subprocess.Popen(
-            [sys.executable, '-c', 'import time; time.sleep(5)'],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            [sys.executable, "-c", "import time; time.sleep(5)"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
         try:
             mp = ManagedProcess(proc)
@@ -118,8 +122,9 @@ class TestManagedProcessLifecycle:
 
     def test_is_running_returns_false_for_exited_process(self):
         proc = subprocess.Popen(
-            [sys.executable, '-c', 'import sys; sys.exit(42)'],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            [sys.executable, "-c", "import sys; sys.exit(42)"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
         proc.wait()
         mp = ManagedProcess(proc)
@@ -129,8 +134,9 @@ class TestManagedProcessLifecycle:
     def test_stop_terminates_running_process(self):
         """stop() must actually kill the process, not just return."""
         proc = subprocess.Popen(
-            [sys.executable, '-c', 'import time; time.sleep(30)'],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            [sys.executable, "-c", "import time; time.sleep(30)"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
         try:
             mp = ManagedProcess(proc)
@@ -146,12 +152,13 @@ class TestManagedProcessLifecycle:
     def test_stop_idempotent(self):
         """Calling stop() multiple times is safe."""
         proc = subprocess.Popen(
-            [sys.executable, '-c', 'import sys; sys.exit(0)'],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            [sys.executable, "-c", "import sys; sys.exit(0)"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
-        with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
             config_path = f.name
-            f.write(b'{}')
+            f.write(b"{}")
         proc.wait()
         mp = ManagedProcess(proc, config_file=config_path)
         # First call
@@ -166,11 +173,15 @@ class TestManagedProcessLifecycle:
         """If process ignores TERM, stop() sends KILL."""
         # A process that ignores SIGTERM
         proc = subprocess.Popen(
-            [sys.executable, '-c',
-             'import signal, time; '
-             'signal.signal(signal.SIGTERM, signal.SIG_IGN); '
-             'time.sleep(30)'],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            [
+                sys.executable,
+                "-c",
+                "import signal, time; "
+                "signal.signal(signal.SIGTERM, signal.SIG_IGN); "
+                "time.sleep(30)",
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
         try:
             mp = ManagedProcess(proc)
@@ -186,8 +197,9 @@ class TestManagedProcessLifecycle:
     def test_wait_blocks_until_exit(self):
         """wait() must block until the process exits and return the exit code."""
         proc = subprocess.Popen(
-            [sys.executable, '-c', 'import sys; sys.exit(99)'],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            [sys.executable, "-c", "import sys; sys.exit(99)"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
         mp = ManagedProcess(proc)
         # Process is already running, wait for it
@@ -196,8 +208,9 @@ class TestManagedProcessLifecycle:
 
     def test_pid_property(self):
         proc = subprocess.Popen(
-            [sys.executable, '-c', 'import time; time.sleep(1)'],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            [sys.executable, "-c", "import time; time.sleep(1)"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
         try:
             mp = ManagedProcess(proc)
@@ -210,12 +223,14 @@ class TestManagedProcessLifecycle:
     def test_process_property_exposes_popen(self):
         """The .process property gives access to the underlying Popen."""
         proc = subprocess.Popen(
-            [sys.executable, '-c', 'import sys; sys.exit(0)'],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            [sys.executable, "-c", "import sys; sys.exit(0)"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
         proc.wait()
         mp = ManagedProcess(proc)
         assert mp.process is proc, "should expose the wrapped Popen"
+
 
 class TestManagedProcessErrorHandling:
     """Edge cases and error paths."""
@@ -224,8 +239,9 @@ class TestManagedProcessErrorHandling:
         """If the process was killed externally between poll() and
         terminate(), stop() should not raise."""
         proc = subprocess.Popen(
-            [sys.executable, '-c', 'import time; time.sleep(30)'],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            [sys.executable, "-c", "import time; time.sleep(30)"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
         mp = ManagedProcess(proc)
         # Kill the process externally
@@ -238,24 +254,26 @@ class TestManagedProcessErrorHandling:
     def test_cleanup_config_safe_on_non_existent_path(self):
         """_cleanup_config() should not raise on non-existent files."""
         proc = subprocess.Popen(
-            [sys.executable, '-c', 'import sys; sys.exit(0)'],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            [sys.executable, "-c", "import sys; sys.exit(0)"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
         proc.wait()
-        mp = ManagedProcess(proc, config_file='/definitely/not/a/real/path.json')
+        mp = ManagedProcess(proc, config_file="/definitely/not/a/real/path.json")
         # Should not raise OSError
         mp._cleanup_config()
 
     def test_cleanup_config_removes_file_with_secret_data(self):
         """Verify the config file is actually emptyable/removable
         even when it contains sensitive data."""
-        with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
             config_path = f.name
             f.write(b'{"uuid": "test-uuid-123", "password": "supersecret"}')
         assert os.path.getsize(config_path) > 0
         proc = subprocess.Popen(
-            [sys.executable, '-c', 'import sys; sys.exit(0)'],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            [sys.executable, "-c", "import sys; sys.exit(0)"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
         proc.wait()
         mp = ManagedProcess(proc, config_file=config_path)

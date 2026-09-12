@@ -1,16 +1,15 @@
 """Tests for executor_cache.py — cached thread pool executors."""
 
-import sys
-import os
 
 from utils.executor_cache import (
     ExecutorCache,
+    _get_optimal_workers,
+    get_cpu_bound_executor,
     get_file_io_executor,
     get_network_io_executor,
-    get_cpu_bound_executor,
     get_regex_executor,
-    _get_optimal_workers,
 )
+
 
 class TestGetOptimalWorkers:
     """Test the worker count optimizer."""

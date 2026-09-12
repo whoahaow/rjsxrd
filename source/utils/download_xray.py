@@ -4,18 +4,18 @@
 Supports: Windows (x86_64), Linux (x86_64, arm64), macOS (x86_64, arm64)
 """
 
-import os
-import sys
-import platform
 import json
-import urllib.request
-import urllib.error
-import subprocess
-import zipfile
-import tarfile
+import os
+import platform
 import re
+import subprocess
+import sys
+import tarfile
+import urllib.error
+import urllib.request
+import zipfile
 from pathlib import Path
-from typing import Optional, Tuple
+
 from utils.logger import log
 
 # Xray-core version — override with env XRAY_VERSION to pin a specific version.
@@ -27,7 +27,7 @@ GITHUB_RELEASES_URL = "https://github.com/XTLS/Xray-core/releases/download"
 GITHUB_API_URL = "https://api.github.com/repos/XTLS/Xray-core/releases/latest"
 
 
-def _parse_version(version_str: str) -> Optional[Tuple[int, int, int]]:
+def _parse_version(version_str: str) -> tuple[int, int, int] | None:
     """Parse a version string like 'v26.2.6' or '26.2.6' into (26, 2, 6)."""
     clean = version_str.lstrip("vV")
     match = re.match(r"^(\d+)\.(\d+)\.(\d+)", clean)
@@ -49,7 +49,7 @@ def _compare_versions(a: str, b: str) -> int:
     return 0
 
 
-def get_current_xray_version(xray_path: Path) -> Optional[str]:
+def get_current_xray_version(xray_path: Path) -> str | None:
     """Get the installed xray version by running 'xray version'.
 
     Returns version string like 'v26.2.6' or None if can't determine.
@@ -69,7 +69,7 @@ def get_current_xray_version(xray_path: Path) -> Optional[str]:
         return None
 
 
-def fetch_latest_xray_version() -> Optional[str]:
+def fetch_latest_xray_version() -> str | None:
     """Fetch the latest xray-core release version from GitHub.
 
     Tries two methods:
@@ -117,7 +117,7 @@ def fetch_latest_xray_version() -> Optional[str]:
     return None
 
 
-def get_platform_info() -> tuple[Optional[str], Optional[str], Optional[str]]:
+def get_platform_info() -> tuple[str | None, str | None, str | None]:
     """Detect current platform and return download info.
     
     Returns:
@@ -125,38 +125,38 @@ def get_platform_info() -> tuple[Optional[str], Optional[str], Optional[str]]:
     """
     system = sys.platform
     machine = platform.machine().lower()
-    
+
     # Map platform to Xray release filename
     platform_map = {
         # Windows
         ("win32", "amd64"): ("windows-64", "Xray-windows-64.zip", "xray.exe"),
         ("win32", "x86_64"): ("windows-64", "Xray-windows-64.zip", "xray.exe"),
         ("win32", "arm64"): ("windows-arm64-v8a", "Xray-windows-arm64-v8a.zip", "xray.exe"),
-        
+
         # Linux
         ("linux", "amd64"): ("linux-64", "Xray-linux-64.zip", "xray"),
         ("linux", "x86_64"): ("linux-64", "Xray-linux-64.zip", "xray"),
         ("linux", "arm64"): ("linux-arm64-v8a", "Xray-linux-arm64-v8a.zip", "xray"),
         ("linux", "aarch64"): ("linux-arm64-v8a", "Xray-linux-arm64-v8a.zip", "xray"),
-        
+
         # macOS
         ("darwin", "amd64"): ("macos-64", "Xray-macos-64.zip", "xray"),
         ("darwin", "x86_64"): ("macos-64", "Xray-macos-64.zip", "xray"),
         ("darwin", "arm64"): ("macos-arm64-v8a", "Xray-macos-arm64-v8a.zip", "xray"),
     }
-    
+
     key = (system, machine)
     if key in platform_map:
         return platform_map[key]
-    
+
     # Fallback for unknown architectures
     if system == "win32":
         return ("windows-64", "Xray-windows-64.zip", "xray.exe")
-    elif system == "linux":
+    if system == "linux":
         return ("linux-64", "Xray-linux-64.zip", "xray")
-    elif system == "darwin":
+    if system == "darwin":
         return ("macos-64", "Xray-macos-64.zip", "xray")
-    
+
     return None, None, None
 
 
@@ -174,7 +174,7 @@ def download_file(url, dest_path, show_progress=True) -> bool:
             total_mb = totalsize / 1024 / 1024
             # Use stderr for progress to avoid conflicts with tqdm
             print(f"\rProgress: {percent:5.1f}% ({downloaded_mb:.1f}MB / {total_mb:.1f}MB)", end='', file=sys.stderr, flush=True)
-    
+
     try:
         urllib.request.urlretrieve(url, dest_path, reporthook)
         if show_progress:
@@ -223,7 +223,7 @@ def _clean_xray_dir(xray_dir: Path, xray_exe: str) -> None:
 
 
 def ensure_xray_installed(version=None, xray_dir=None, force=False,
-                          auto_update=True) -> Optional[Path]:
+                          auto_update=True) -> Path | None:
     """Ensure Xray-core is installed and up-to-date.
 
     By default fetches the latest version from GitHub. Override with
@@ -329,7 +329,7 @@ def ensure_xray_installed(version=None, xray_dir=None, force=False,
     return xray_path
 
 
-def download_xray(version=XRAY_VERSION) -> Optional[Path]:
+def download_xray(version=XRAY_VERSION) -> Path | None:
     """Legacy function - use ensure_xray_installed() instead."""
     return ensure_xray_installed(version)
 
@@ -341,7 +341,7 @@ if __name__ == "__main__":
     parser.add_argument("--force", action="store_true", help="Force re-download")
     parser.add_argument("--output", help="Custom output directory")
     args = parser.parse_args()
-    
+
     result = ensure_xray_installed(version=args.version, xray_dir=args.output, force=args.force)
     if result:
         log(f"\nSuccess: {result}")

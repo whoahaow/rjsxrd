@@ -7,7 +7,6 @@ single class. Every caller gets consistent lifecycle behavior.
 
 import os
 import subprocess
-from typing import Optional
 
 
 class ManagedProcess:
@@ -21,7 +20,7 @@ class ManagedProcess:
     (it is — Popen uses its own lock for poll/wait/terminate/kill).
     """
 
-    def __init__(self, process: subprocess.Popen, config_file: Optional[str] = None) -> None:
+    def __init__(self, process: subprocess.Popen, config_file: str | None = None) -> None:
         self._process = process
         self._config_file = config_file
 
@@ -34,7 +33,7 @@ class ManagedProcess:
         """Expose the underlying Popen for callers that need it (e.g. stdout)."""
         return self._process
 
-    def poll(self) -> Optional[int]:
+    def poll(self) -> int | None:
         """Check if process has exited. Returns exit code or None."""
         return self._process.poll()
 
@@ -75,7 +74,7 @@ class ManagedProcess:
         except (OSError, subprocess.TimeoutExpired):
             pass
 
-    def wait(self, timeout: Optional[float] = None) -> Optional[int]:
+    def wait(self, timeout: float | None = None) -> int | None:
         """Wait for process to exit, returning exit code."""
         return self._process.wait(timeout=timeout)
 

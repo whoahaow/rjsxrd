@@ -4,14 +4,13 @@ Extracted from config_processor.py. Pure file-writing functions with no
 pipeline-specific logic. Used by bypass_builder.py, config_processor.py.
 """
 
-import os
 import math
-from datetime import datetime, timezone, timedelta
-from typing import List
-from utils.logger import log
+import os
+from datetime import datetime, timedelta, timezone
+
 from utils.config_helpers import path_in_output
-from config.settings import MAX_FILE_SIZE_MB, MAX_CONFIGS_PER_FILE
 from utils.file_utils import is_valid_vpn_config_url
+from utils.logger import log
 
 
 def append_remark_suffix(config: str, suffix: str = "%20t.me%2Frjsxrd") -> str:
@@ -45,7 +44,7 @@ def get_subscription_header(filename: str, current_file: int = None, total_files
     return "\n".join(lines) + "\n\n"
 
 
-def write_configs_file(filepath: str, configs: List[str], header: str, add_suffix: bool = True) -> None:
+def write_configs_file(filepath: str, configs: list[str], header: str, add_suffix: bool = True) -> None:
     """Write a single configs file with header, optional remark suffix."""
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     if add_suffix:
@@ -56,7 +55,7 @@ def write_configs_file(filepath: str, configs: List[str], header: str, add_suffi
         f.write(header + "\n".join(configs_with_suffix))
 
 
-def stream_write_configs_file(filepath: str, configs: List[str], header: str,
+def stream_write_configs_file(filepath: str, configs: list[str], header: str,
                                add_suffix: bool = True, chunk_size: int = 1000,
                                progress_every: int = 10000) -> None:
     """Stream-write a large configs list to a file in chunks (memory-bounded)."""
@@ -83,8 +82,8 @@ def _write_config_chunk(args) -> tuple[str, int, int, int, int, str | None]:
         return (filename, 0, current_file, num_files, total_configs, str(e))
 
 
-def split_configs_to_files(configs: List[str], output_dir: str, filename_prefix: str,
-                            max_configs_per_file: int = 300, add_suffix: bool = True) -> List[str]:
+def split_configs_to_files(configs: list[str], output_dir: str, filename_prefix: str,
+                            max_configs_per_file: int = 300, add_suffix: bool = True) -> list[str]:
     """Split configs into multiple files with a given prefix using parallel processing."""
     num_configs = len(configs)
     if not num_configs:
@@ -126,8 +125,8 @@ def _write_numbered_file(args) -> str | None:
     return filepath
 
 
-def create_numbered_default_files(numbered_configs_with_urls: List[tuple],
-                                   output_dir: str = "../githubmirror") -> List[str]:
+def create_numbered_default_files(numbered_configs_with_urls: list[tuple],
+                                   output_dir: str = "../githubmirror") -> list[str]:
     """Create numbered default files (1.txt, 2.txt, ...) from sources."""
     from config.settings import MAX_NUMBERED_DEFAULT_FILES
     from utils.executor_cache import ExecutorCache

@@ -4,8 +4,9 @@ import json
 import threading
 
 import requests
-from utils.logger import log
+
 from utils.ip_verifier import _make_request
+from utils.logger import log
 from utils.process_registry import default_registry
 
 # IP check endpoint used to verify the proxy is actually hiding the real IP
@@ -114,12 +115,11 @@ class ProxyMonitor:
             if result['active']:
                 log(f"[OK] Proxy chain working ({result.get('country', 'Unknown')})")
                 return ('ok', [proxy1, proxy2])
-            else:
-                log(f"[FAIL] Proxy chain failed: {result.get('error', 'Unknown error')}")
-                log("\nTry different proxies. Common issues:")
-                log("  • One or both proxies are offline")
-                log("  • Proxies don't support chaining")
-                log("  • Network connectivity issues")
+            log(f"[FAIL] Proxy chain failed: {result.get('error', 'Unknown error')}")
+            log("\nTry different proxies. Common issues:")
+            log("  • One or both proxies are offline")
+            log("  • Proxies don't support chaining")
+            log("  • Network connectivity issues")
 
     def monitor_loop(self) -> None:
         """Main monitoring loop. Runs in a daemon thread.
@@ -158,7 +158,7 @@ class ProxyMonitor:
                     # But returning is still cleaner because stop() knows
                     # the thread has exited rather than dying silently.
                     return
-                elif status == 'ok' and new_chain:
+                if status == 'ok' and new_chain:
                     log("\n✓ Proxy chain restored - resuming fetch...")
                     self.proxy_failed = False
                     self.last_check_ok = True

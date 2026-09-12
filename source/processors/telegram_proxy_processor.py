@@ -1,13 +1,12 @@
 """Telegram proxy processor module for handling proxy collection and file generation."""
 
 import os
-from typing import List, Tuple, Optional
 
-from config.settings import TELEGRAM_PROXY_URLS, DEFAULT_MAX_WORKERS
+from config.settings import DEFAULT_MAX_WORKERS, TELEGRAM_PROXY_URLS
 from fetchers.fetcher import fetch_data
 from fetchers.telegram_proxy_scraper import TelegramProxyScraper
-from utils.logger import log
 from utils.executor_cache import ExecutorCache
+from utils.logger import log
 
 
 class TelegramProxyProcessor:
@@ -16,8 +15,8 @@ class TelegramProxyProcessor:
     def __init__(self, output_dir: str = "../githubmirror") -> None:
         self.output_dir = output_dir
         self.scraper = TelegramProxyScraper()
-    
-    def load_manual_proxies(self, filepath: str = None) -> Tuple[List[str], List[str]]:
+
+    def load_manual_proxies(self, filepath: str = None) -> tuple[list[str], list[str]]:
         """
         Load manual proxies from a text file.
         
@@ -31,30 +30,30 @@ class TelegramProxyProcessor:
             # Default location relative to source directory
             script_dir = os.path.dirname(os.path.abspath(__file__))
             filepath = os.path.join(script_dir, "..", "config", "tg_proxies.txt")
-        
+
         if not os.path.exists(filepath):
             log(f"Manual proxies file not found: {filepath}")
             return [], []
-        
+
         try:
-            with open(filepath, 'r', encoding='utf-8') as f:
+            with open(filepath, encoding='utf-8') as f:
                 content = f.read()
-            
+
             mtproto_proxies, socks5_proxies = self.scraper.extract_proxies(content)
-            
+
             # Deduplicate
             mtproto_proxies = self.scraper.deduplicate_proxies(mtproto_proxies)
             socks5_proxies = self.scraper.deduplicate_proxies(socks5_proxies)
-            
+
             log(f"Loaded {len(mtproto_proxies)} MTProto and {len(socks5_proxies)} SOCKS5 manual proxies from {os.path.basename(filepath)}")
-            
+
             return mtproto_proxies, socks5_proxies
-            
+
         except OSError as e:
             log(f"Error loading manual proxies: {str(e)}")
             return [], []
-    
-    def scan_content_for_proxies(self, content_list: List[str]) -> Tuple[List[str], List[str]]:
+
+    def scan_content_for_proxies(self, content_list: list[str]) -> tuple[list[str], list[str]]:
         """
         Scan a list of content strings for Telegram proxy links.
         
@@ -66,9 +65,9 @@ class TelegramProxyProcessor:
         """
         all_mtproto_proxies = []
         all_socks5_proxies = []
-        
+
         log(f"Scanning {len(content_list)} content items for Telegram proxies...")
-        
+
         for i, content in enumerate(content_list):
             if not content.strip():
                 continue
@@ -85,16 +84,16 @@ class TelegramProxyProcessor:
 
             except (ValueError, TypeError, IndexError) as e:
                 log(f"Error scanning content item {i+1} for proxies: {str(e)[:200]}...")
-        
+
         # Deduplicate proxies
         unique_mtproto = self.scraper.deduplicate_proxies(all_mtproto_proxies)
         unique_socks5 = self.scraper.deduplicate_proxies(all_socks5_proxies)
-        
+
         log(f"Total unique proxies found: {len(unique_mtproto)} MTProto, {len(unique_socks5)} SOCKS5")
-        
+
         return unique_mtproto, unique_socks5
-    
-    def scan_urls_for_proxies(self, url_list: List[str]) -> Tuple[List[str], List[str]]:
+
+    def scan_urls_for_proxies(self, url_list: list[str]) -> tuple[list[str], list[str]]:
         """
         Download and scan URLs for Telegram proxy links.
         
@@ -106,12 +105,12 @@ class TelegramProxyProcessor:
         """
         all_mtproto_proxies = []
         all_socks5_proxies = []
-        
+
         if not url_list:
             return [], []
-        
+
         log(f"Scanning {len(url_list)} URLs for Telegram proxies...")
-        
+
         import concurrent.futures
 
         urls_with_proxies = 0
@@ -142,16 +141,16 @@ class TelegramProxyProcessor:
 
             except (OSError, ValueError, TypeError, IndexError) as e:
                 log(f"Error processing URL {url}: {str(e)[:200]}...")
-        
+
         # Deduplicate proxies
         unique_mtproto = self.scraper.deduplicate_proxies(all_mtproto_proxies)
         unique_socks5 = self.scraper.deduplicate_proxies(all_socks5_proxies)
-        
+
         log(f"Total from {len(url_list)} URLs: {len(unique_mtproto)} MTProto, {len(unique_socks5)} SOCKS5 (found in {urls_with_proxies} sources)")
-        
+
         return unique_mtproto, unique_socks5
 
-    def verify_proxies(self, proxy_urls: List[str], max_workers: Optional[int] = None) -> List[Tuple[str, float]]:
+    def verify_proxies(self, proxy_urls: list[str], max_workers: int | None = None) -> list[tuple[str, float]]:
         """
         Verify proxies (both MTProto and SOCKS5) with high concurrency.
 
@@ -171,14 +170,15 @@ class TelegramProxyProcessor:
         log(f"Verifying {len(proxy_urls)} proxies with {max_workers} concurrent workers...")
 
         try:
-            from utils.telegram_proxy_verifier import TelegramProxyVerifier
             import concurrent.futures
-            
+
+            from utils.telegram_proxy_verifier import TelegramProxyVerifier
+
             verifier = TelegramProxyVerifier()
 
             def run_verification():
                 return verifier.verify_proxy_list(proxy_urls, timeout=3.0, max_concurrent=max_workers)
-            
+
             executor = ExecutorCache.get('tg_proxy_single', max_workers=1)
             future = executor.submit(run_verification)
             try:
@@ -209,7 +209,7 @@ class TelegramProxyProcessor:
             log(f"Error during proxy verification: {str(e)}")
             return []
 
-    def create_proxy_files(self, mtproto_proxies: List[Tuple[str, float]], socks5_proxies: List[Tuple[str, float]], verify_mtproto: bool = True, verify_socks5: bool = True, max_workers: int = 200) -> List[str]:
+    def create_proxy_files(self, mtproto_proxies: list[tuple[str, float]], socks5_proxies: list[tuple[str, float]], verify_mtproto: bool = True, verify_socks5: bool = True, max_workers: int = 200) -> list[str]:
         """
         Create Telegram proxy files sorted by ping (fastest first).
 
@@ -229,32 +229,32 @@ class TelegramProxyProcessor:
             mtproto_urls = [p[0] if isinstance(p, tuple) else p for p in mtproto_proxies]
             mtproto_proxies = self.verify_proxies(mtproto_urls, max_workers=max_workers)
             log(f"MTProto verification: {len(mtproto_proxies)} working proxies")
-        
+
         # Verify SOCKS5 proxies if requested
         if verify_socks5 and socks5_proxies:
             # Convert to plain URLs for verification
             socks5_urls = [p[0] if isinstance(p, tuple) else p for p in socks5_proxies]
             socks5_proxies = self.verify_proxies(socks5_urls, max_workers=max_workers)
             log(f"SOCKS5 verification: {len(socks5_proxies)} working proxies")
-        
+
         # Sort by latency (fastest first)
         if mtproto_proxies:
             mtproto_proxies.sort(key=lambda x: x[1] if isinstance(x, tuple) else float('inf'))
             log(f"Sorted {len(mtproto_proxies)} MTProto proxies by ping (fastest first)")
-        
+
         if socks5_proxies:
             socks5_proxies.sort(key=lambda x: x[1] if isinstance(x, tuple) else float('inf'))
             log(f"Sorted {len(socks5_proxies)} SOCKS5 proxies by ping (fastest first)")
-        
+
         # Extract just URLs for file writing
         mtproto_urls = [p[0] if isinstance(p, tuple) else p for p in mtproto_proxies]
         socks5_urls = [p[0] if isinstance(p, tuple) else p for p in socks5_proxies]
-        
+
         # Combine all proxies and sort by ping (fastest first)
         all_combined = mtproto_proxies + socks5_proxies
         all_combined.sort(key=lambda x: x[1] if isinstance(x, tuple) else float('inf'))
         all_urls = [p[0] for p in all_combined]
-        
+
         if all_urls:
             log(f"Sorted {len(all_urls)} total proxies by ping (fastest first)")
 
@@ -296,7 +296,7 @@ class TelegramProxyProcessor:
 
         return created_files
 
-    def process_all_urls(self, all_urls: List[str], verify_mtproto: bool = True, verify_socks5: bool = True) -> List[str]:
+    def process_all_urls(self, all_urls: list[str], verify_mtproto: bool = True, verify_socks5: bool = True) -> list[str]:
         """
         Process ALL URL sources for Telegram proxies and create files.
         Also loads manual proxies from config file.
@@ -313,19 +313,19 @@ class TelegramProxyProcessor:
 
         # Download and process proxies from all URLs
         mtproto_proxies, socks5_proxies = self.scan_urls_for_proxies(all_urls)
-        
+
         # Load manual proxies from config file
         manual_mtproto, manual_socks5 = self.load_manual_proxies()
-        
+
         # Merge proxies
         if manual_mtproto:
             log(f"Merging {len(manual_mtproto)} manual MTProto proxies")
             mtproto_proxies = list(set(mtproto_proxies + manual_mtproto))
-        
+
         if manual_socks5:
             log(f"Merging {len(manual_socks5)} manual SOCKS5 proxies")
             socks5_proxies = list(set(socks5_proxies + manual_socks5))
-        
+
         log(f"Total proxies after merge: {len(mtproto_proxies)} MTProto, {len(socks5_proxies)} SOCKS5")
 
         # Create output files (verification and sorting happen inside create_proxy_files)
@@ -334,7 +334,7 @@ class TelegramProxyProcessor:
         log("Telegram proxy processing from ALL URLs completed!")
         return created_files
 
-    def process_all(self, verify_mtproto: bool = True, verify_socks5: bool = True) -> List[str]:
+    def process_all(self, verify_mtproto: bool = True, verify_socks5: bool = True) -> list[str]:
         """
         Process all Telegram proxy sources and create files.
 
@@ -349,10 +349,10 @@ class TelegramProxyProcessor:
 
         # Download and process proxies
         mtproto_proxies, socks5_proxies = self.scan_urls_for_proxies(TELEGRAM_PROXY_URLS)
-        
+
         # Load manual proxies
         manual_mtproto, manual_socks5 = self.load_manual_proxies()
-        
+
         # Merge
         if manual_mtproto:
             mtproto_proxies = list(set(mtproto_proxies + manual_mtproto))

@@ -13,13 +13,13 @@ Usage:
         outbound = cfg.to_xray_outbound(tag="proxy")
 """
 
-from dataclasses import dataclass, field
-from typing import Optional, Dict, Any, Tuple
-from urllib.parse import urlparse, parse_qs
-import json
 import base64
-from utils.security_filter import SS_WEAK_CIPHERS
+import json
+from dataclasses import dataclass
+from typing import Any
+from urllib.parse import parse_qs, urlparse
 
+from utils.security_filter import SS_WEAK_CIPHERS
 
 # ── Base class ──────────────────────────────────────────────────────────
 
@@ -42,11 +42,11 @@ class VPNConfig:
     ws_host: str = ""
     grpc_service_name: str = ""
 
-    def to_xray_outbound(self, tag: str = "proxy") -> Optional[Dict[str, Any]]:
+    def to_xray_outbound(self, tag: str = "proxy") -> dict[str, Any] | None:
         """Convert to Xray outbound dict. Override in subclasses."""
         raise NotImplementedError
 
-    def dedup_key(self) -> Tuple[Any, ...]:
+    def dedup_key(self) -> tuple[Any, ...]:
         """Return a hashable key for deduplication (host+port+protocol).
         Override in subclasses to add protocol-specific fields."""
         return (self.__class__.__name__, self.host, self.port)
@@ -69,7 +69,7 @@ class VLESSConfig(VPNConfig):
     # gRPC
     grpc_service_name: str = ""
 
-    def to_xray_outbound(self, tag: str = "proxy") -> Optional[Dict[str, Any]]:
+    def to_xray_outbound(self, tag: str = "proxy") -> dict[str, Any] | None:
         outbound = _make_base_outbound(tag, "vless")
         outbound["settings"] = {
             "vnext": [{
@@ -93,7 +93,7 @@ class VLESSConfig(VPNConfig):
             return None  # Reality requires publicKey
         return outbound
 
-    def dedup_key(self) -> Tuple[Any, ...]:
+    def dedup_key(self) -> tuple[Any, ...]:
         return (self.__class__.__name__, self.host, self.port, self.uuid)
 
 
@@ -110,7 +110,7 @@ class VMessConfig(VPNConfig):
     # HTTP/2
     h2_hosts: tuple = ()
 
-    def to_xray_outbound(self, tag: str = "proxy") -> Dict[str, Any]:
+    def to_xray_outbound(self, tag: str = "proxy") -> dict[str, Any]:
         outbound = _make_base_outbound(tag, "vmess")
         outbound["settings"] = {
             "vnext": [{
@@ -123,7 +123,7 @@ class VMessConfig(VPNConfig):
         _add_stream_settings(outbound, self)
         return outbound
 
-    def dedup_key(self) -> Tuple[Any, ...]:
+    def dedup_key(self) -> tuple[Any, ...]:
         return (self.__class__.__name__, self.host, self.port, self.uuid)
 
 
@@ -139,7 +139,7 @@ class TrojanConfig(VPNConfig):
     public_key: str = ""
     short_id: str = ""
 
-    def to_xray_outbound(self, tag: str = "proxy") -> Optional[Dict[str, Any]]:
+    def to_xray_outbound(self, tag: str = "proxy") -> dict[str, Any] | None:
         outbound = _make_base_outbound(tag, "trojan")
         outbound["settings"] = {
             "servers": [{
@@ -163,7 +163,7 @@ class TrojanConfig(VPNConfig):
             return None
         return outbound
 
-    def dedup_key(self) -> Tuple[Any, ...]:
+    def dedup_key(self) -> tuple[Any, ...]:
         return (self.__class__.__name__, self.host, self.port, self.password)
 
 
@@ -172,7 +172,7 @@ class ShadowsocksConfig(VPNConfig):
     method: str = "chacha20-ietf-poly1305"
     password: str = ""
 
-    def to_xray_outbound(self, tag: str = "proxy") -> Dict[str, Any]:
+    def to_xray_outbound(self, tag: str = "proxy") -> dict[str, Any]:
         outbound = _make_base_outbound(tag, "shadowsocks")
         outbound["settings"] = {
             "servers": [{
@@ -184,7 +184,7 @@ class ShadowsocksConfig(VPNConfig):
         }
         return outbound
 
-    def dedup_key(self) -> Tuple[Any, ...]:
+    def dedup_key(self) -> tuple[Any, ...]:
         return (self.__class__.__name__, self.host, self.port, self.method)
 
 
@@ -193,7 +193,7 @@ class Hysteria2Config(VPNConfig):
     auth: str = ""
     obfs: str = ""
 
-    def to_xray_outbound(self, tag: str = "proxy") -> Dict[str, Any]:
+    def to_xray_outbound(self, tag: str = "proxy") -> dict[str, Any]:
         outbound = _make_base_outbound(tag, "hysteria2", is_quic=True)
         outbound["settings"] = {
             "host": self.host,
@@ -205,13 +205,13 @@ class Hysteria2Config(VPNConfig):
         _add_stream_settings(outbound, self)
         return outbound
 
-    def dedup_key(self) -> Tuple[Any, ...]:
+    def dedup_key(self) -> tuple[Any, ...]:
         return (self.__class__.__name__, self.host, self.port)
 
 
 # ── Factory ─────────────────────────────────────────────────────────────
 
-def parse_url(url: str) -> Optional[VPNConfig]:
+def parse_url(url: str) -> VPNConfig | None:
     """Parse a VPN URL string into the appropriate typed config.
 
     Dispatches by URL scheme. Returns None if the URL doesn't match any
@@ -226,21 +226,20 @@ def parse_url(url: str) -> Optional[VPNConfig]:
 
     if scheme == "vless":
         return _parse_vless(url)
-    elif scheme == "vmess":
+    if scheme == "vmess":
         return _parse_vmess(url)
-    elif scheme == "trojan":
+    if scheme == "trojan":
         return _parse_trojan(url)
-    elif scheme == "ss":
+    if scheme == "ss":
         return _parse_shadowsocks(url)
-    elif scheme in ("hysteria2", "hy2"):
+    if scheme in ("hysteria2", "hy2"):
         return _parse_hysteria2(url)
-    else:
-        return None
+    return None
 
 
 # ── Protocol parsers ─────────────────────────────────────────────────────
 
-def _parse_vless(url: str) -> Optional[VLESSConfig]:
+def _parse_vless(url: str) -> VLESSConfig | None:
     parsed = urlparse(url)
     if not parsed.hostname or not parsed.port:
         return None
@@ -269,7 +268,7 @@ def _parse_vless(url: str) -> Optional[VLESSConfig]:
     )
 
 
-def _parse_vmess(url: str) -> Optional[VMessConfig]:
+def _parse_vmess(url: str) -> VMessConfig | None:
     """Parse vmess:// from base64-encoded JSON."""
     payload = url[8:]  # strip 'vmess://'
     rem = len(payload) % 4
@@ -302,7 +301,7 @@ def _parse_vmess(url: str) -> Optional[VMessConfig]:
     )
 
 
-def _parse_trojan(url: str) -> Optional[TrojanConfig]:
+def _parse_trojan(url: str) -> TrojanConfig | None:
     parsed = urlparse(url)
     if not parsed.hostname or not parsed.port:
         return None
@@ -327,7 +326,7 @@ def _parse_trojan(url: str) -> Optional[TrojanConfig]:
     )
 
 
-def _parse_shadowsocks(url: str) -> Optional[ShadowsocksConfig]:
+def _parse_shadowsocks(url: str) -> ShadowsocksConfig | None:
     parsed = urlparse(url)
     if not parsed.hostname or not parsed.port:
         return None
@@ -364,7 +363,7 @@ def _parse_shadowsocks(url: str) -> Optional[ShadowsocksConfig]:
     )
 
 
-def _parse_hysteria2(url: str) -> Optional[Hysteria2Config]:
+def _parse_hysteria2(url: str) -> Hysteria2Config | None:
     parsed = urlparse(url)
     if not parsed.hostname or not parsed.port:
         return None
@@ -382,9 +381,9 @@ def _parse_hysteria2(url: str) -> Optional[Hysteria2Config]:
 # ── Shared helpers ──────────────────────────────────────────────────────
 
 def _make_base_outbound(tag: str, protocol: str,
-                        is_quic: bool = False) -> Dict[str, Any]:
+                        is_quic: bool = False) -> dict[str, Any]:
     """Build the base Xray outbound dict shared by all protocols."""
-    outbound: Dict[str, Any] = {
+    outbound: dict[str, Any] = {
         "tag": tag,
         "protocol": protocol,
         "settings": {},
@@ -396,8 +395,8 @@ def _make_base_outbound(tag: str, protocol: str,
     return outbound
 
 
-def _add_stream_settings(outbound: Dict[str, Any], cfg: VPNConfig,
-                         security_override: Optional[str] = None) -> None:
+def _add_stream_settings(outbound: dict[str, Any], cfg: VPNConfig,
+                         security_override: str | None = None) -> None:
     """Add transport-level streamSettings to an outbound dict.
 
     Args:
@@ -406,7 +405,7 @@ def _add_stream_settings(outbound: Dict[str, Any], cfg: VPNConfig,
         security_override: If set, forces the security value (e.g. "reality").
                           Normally derived from cfg.tls.
     """
-    ss: Dict[str, Any] = {}
+    ss: dict[str, Any] = {}
     if security_override:
         ss["security"] = security_override
     elif cfg.tls:
@@ -416,14 +415,14 @@ def _add_stream_settings(outbound: Dict[str, Any], cfg: VPNConfig,
 
     if ss.get("security") == "tls" or (cfg.tls and not security_override):
         from config.settings import TLS_FINGERPRINT
-        tls_settings: Dict[str, Any] = {
+        tls_settings: dict[str, Any] = {
             "serverName": cfg.sni or cfg.host,
             "fingerprint": TLS_FINGERPRINT,
         }
         ss["tlsSettings"] = tls_settings
 
     if cfg.transport == "ws":
-        ws: Dict[str, Any] = {"path": cfg.ws_path or "/"}
+        ws: dict[str, Any] = {"path": cfg.ws_path or "/"}
         if cfg.ws_host:
             ws["headers"] = {"Host": cfg.ws_host}
         ss["network"] = "ws"

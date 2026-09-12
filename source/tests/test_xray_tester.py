@@ -9,11 +9,11 @@ import base64
 import json
 import os
 import signal
-import sys
 import tempfile
 import threading
 import time
-from unittest.mock import patch as mock_patch, MagicMock
+from unittest.mock import MagicMock
+from unittest.mock import patch as mock_patch
 
 
 class TestXrayProtocolParsers:
@@ -260,8 +260,9 @@ class TestXraySecurityEdgeCases:
     """
 
     def _make_tester(self):
-        from utils.xray_tester import XrayTester
         import threading
+
+        from utils.xray_tester import XrayTester
         tester = XrayTester.__new__(XrayTester)
         tester.xray_path = None
         tester._running_processes = []
@@ -330,7 +331,8 @@ class TestXraySecurityEdgeCases:
         succeed."""
         tester = self._make_tester()
         # VMess with aid=1 (alterId > 0)
-        import base64, json
+        import base64
+        import json
         payload = base64.b64encode(
             json.dumps({
                 "add": "host.com", "port": 443,
@@ -346,7 +348,8 @@ class TestXraySecurityEdgeCases:
 
     def test_vmess_with_security_none_parsed(self):
         """SECURITY: VMess with scy=none (security=none) should be parsed."""
-        import base64, json
+        import base64
+        import json
         payload = base64.b64encode(
             json.dumps({
                 "add": "host.com", "port": 443,
@@ -498,7 +501,6 @@ class TestSignalHandlerDoesNotOverwriteMain:
             signal.signal(signal.SIGINT, signal.default_int_handler)
             assert signal.getsignal(signal.SIGINT) == signal.default_int_handler
 
-            import utils.xray_tester as xt
             current = signal.getsignal(signal.SIGINT)
             should_register = current == signal.default_int_handler
             assert should_register, "should be allowed to register when default"
@@ -520,7 +522,6 @@ class TestXrayStartupTimeout:
 
     def test_stuck_xray_startup_returns_failure_not_hang(self):
         from config.settings import XRAY_STARTUP_TIMEOUT
-        from utils.xray_tester import XrayTester
 
         fake_path = self._fake_xray_path()
         tester = self._make_tester(fake_path)
@@ -561,7 +562,6 @@ class TestXrayStartupTimeout:
                 pass
 
     def test_fast_xray_startup_succeeds(self):
-        from utils.xray_tester import XrayTester
         fake_path = self._fake_xray_path()
         tester = self._make_tester(fake_path)
         tester._get_next_port = lambda: 12346
@@ -594,7 +594,6 @@ class TestXrayStartupTimeout:
                 pass
 
     def test_xray_startup_returns_failure_with_error(self):
-        from utils.xray_tester import XrayTester
         fake_path = self._fake_xray_path()
         tester = self._make_tester(fake_path)
         tester._get_next_port = lambda: 12347

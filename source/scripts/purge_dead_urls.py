@@ -13,26 +13,24 @@ import argparse
 import os
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List, Tuple
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 sys.path.insert(0, PROJECT_ROOT)
 
 from fetchers.fetcher import fetch_data
-from utils.logger import log
 
 
-def check_url(url: str, timeout: int) -> Tuple[str, bool]:
+def check_url(url: str, timeout: int) -> tuple[str, bool]:
     """Fetch a URL and return (url, is_alive)."""
     result = fetch_data(url, timeout=timeout, max_attempts=1)
     return url, result.success
 
 
-def classify_lines(lines: List[str]) -> Tuple[List[str], List[str]]:
+def classify_lines(lines: list[str]) -> tuple[list[str], list[str]]:
     """Split lines into section headers and URL lines with their section."""
-    alive: List[str] = []
-    dead: List[str] = []
+    alive: list[str] = []
+    dead: list[str] = []
     return alive, dead
 
 
@@ -45,7 +43,7 @@ def run(dry_run: bool, timeout: int, max_workers: int) -> None:
     with open(urls_file, encoding="utf-8") as f:
         all_lines = f.readlines()
 
-    url_indices: List[Tuple[int, str]] = []
+    url_indices: list[tuple[int, str]] = []
     for i, line in enumerate(all_lines):
         stripped = line.strip()
         if stripped and not stripped.startswith("#"):
@@ -55,7 +53,7 @@ def run(dry_run: bool, timeout: int, max_workers: int) -> None:
     print(f"mode: {'DRY RUN (no changes)' if dry_run else 'APPLY (will remove dead URLs)'}")
     print()
 
-    results: List[Tuple[int, str, bool]] = []  # (line_index, url, is_alive)
+    results: list[tuple[int, str, bool]] = []  # (line_index, url, is_alive)
     done = 0
 
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
@@ -94,8 +92,8 @@ def run(dry_run: bool, timeout: int, max_workers: int) -> None:
 
     # Remove dead lines, preserving section headers and everything else
     dead_set = {url for _, url in dead_urls}
-    new_lines: List[str] = []
-    removed: List[str] = []
+    new_lines: list[str] = []
+    removed: list[str] = []
     for line in all_lines:
         stripped = line.strip()
         if stripped in dead_set:

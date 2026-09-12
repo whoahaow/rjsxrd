@@ -9,7 +9,7 @@ Covers:
 - Stability (not jumping around wildly)
 """
 import math
-import time
+
 from utils.smart_eta import SmartETA
 
 
@@ -182,7 +182,7 @@ class TestSmartETARealistic:
         assert math.isfinite(eta_after_600)
         # 49400 remaining, concurrency=300, remaining batches = 165
         # If EMA ≈ 4-6s by now, eta ≈ 165 * 5 = 825s ≈ 14min
-        # Even if EMA is still 1s (unlikely with 300 slow samples), 
+        # Even if EMA is still 1s (unlikely with 300 slow samples),
         # eta_batch_floor would use P80 of last batch = 8s
         # So eta_batch_floor = 165 * 8 = 1320s
         # The key: ETA should NOT be ~50s (what old code would give)

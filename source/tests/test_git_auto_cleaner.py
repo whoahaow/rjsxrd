@@ -4,10 +4,9 @@ Covers: is_auto_message (only ^auto: update ), squash_auto_commits edge cases.
 """
 
 import subprocess
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from utils.git_auto_cleaner import is_auto_message, squash_auto_commits
-
 
 # ── Helpers ───────────────────────────────────────────────────────────
 

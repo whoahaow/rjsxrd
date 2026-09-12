@@ -6,11 +6,10 @@ endpoint) in addition to mocked tests, so we catch things like
 'a subagent imported the wrong package' before users do.
 """
 
-import sys
-import os
 import socket
 
 from utils.ip_verifier import _make_request
+
 
 class TestMakeRequestImportPath:
     """Verify the import path actually works (the lesson from 10th pass)."""
@@ -33,7 +32,7 @@ class TestMakeRequestNormalPath:
 
     def test_uses_curl_cffi_when_available(self):
         """curl_cffi.Session is used; requests.get is NOT called."""
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import MagicMock, patch
 
         mock_session = MagicMock()
         mock_response = MagicMock()
@@ -59,8 +58,8 @@ class TestMakeRequestFallback:
 
     def test_falls_back_to_requests_when_curl_cffi_missing(self):
         """If curl_cffi.requests.Session cannot be imported, plain requests is used."""
-        from unittest.mock import patch, MagicMock
         import types
+        from unittest.mock import MagicMock, patch
 
         # Build a fake curl_cffi module tree without a Session attribute.
         # When _make_request does 'from curl_cffi.requests import Session',
@@ -120,7 +119,8 @@ class TestGetRealIP:
 
     def test_returns_ip_from_ipwhois(self):
         """First URL (ipwho.is) returns a valid IP."""
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import MagicMock, patch
+
         from utils.ip_verifier import get_real_ip
 
         mock_response = MagicMock()
@@ -131,7 +131,8 @@ class TestGetRealIP:
 
     def test_falls_back_to_ipify(self):
         """If ipwho.is fails, try api.ipify.org."""
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import MagicMock, patch
+
         from utils.ip_verifier import get_real_ip
 
         call_count = [0]
@@ -149,7 +150,8 @@ class TestGetRealIP:
 
     def test_falls_back_to_ifconfig(self):
         """If ipwho.is and ipify fail, try ifconfig.me."""
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import MagicMock, patch
+
         from utils.ip_verifier import get_real_ip
 
         call_count = [0]
@@ -168,7 +170,8 @@ class TestGetRealIP:
 
     def test_returns_none_when_all_fail(self):
         """If all URLs fail, returns None."""
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import patch
+
         from utils.ip_verifier import get_real_ip
 
         with patch('utils.ip_verifier._make_request', side_effect=ConnectionError("no net")):
@@ -180,7 +183,8 @@ class TestGetProxyIP:
 
     def test_returns_ip_through_proxy(self):
         """Returns IP from ipwho.is through proxies."""
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import MagicMock, patch
+
         from utils.ip_verifier import get_proxy_ip
 
         mock_response = MagicMock()
@@ -191,7 +195,8 @@ class TestGetProxyIP:
 
     def test_passes_proxies_to_request(self):
         """The proxy URL is passed as proxies dict to _make_request."""
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import MagicMock, patch
+
         from utils.ip_verifier import get_proxy_ip
 
         mock_response = MagicMock()
@@ -206,6 +211,7 @@ class TestGetProxyIP:
     def test_returns_none_when_all_fail(self):
         """If all URLs fail, returns None."""
         from unittest.mock import patch
+
         from utils.ip_verifier import get_proxy_ip
 
         with patch('utils.ip_verifier._make_request', side_effect=ConnectionError("no net")):
@@ -217,7 +223,8 @@ class TestVerifyProtection:
 
     def test_detects_different_ips(self):
         """When real_ip != proxy_ip, active=True, different=True."""
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import MagicMock, patch
+
         from utils.ip_verifier import verify_protection
 
         call_count = [0]
@@ -250,6 +257,7 @@ class TestVerifyProtection:
     def test_returns_error_on_failure(self):
         """If get_real_ip raises, error is captured."""
         from unittest.mock import patch
+
         from utils.ip_verifier import verify_protection
 
         with patch('utils.ip_verifier.get_real_ip', side_effect=RuntimeError("test error")):

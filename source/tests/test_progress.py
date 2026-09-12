@@ -1,8 +1,7 @@
 """Tests for utils/progress.py — single source of truth for tqdm."""
-import sys
-import os
 
-from utils.progress import is_available, get_sync_pbar, get_async_pbar
+from utils.progress import get_async_pbar, get_sync_pbar, is_available
+
 
 class TestProgressAvailable:
     """tqdm should be available in this test environment (it's in requirements.txt)."""

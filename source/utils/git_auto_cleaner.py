@@ -11,12 +11,12 @@ Only commits matching AUTO_PATTERNS are affected. Real commits
 
 import re
 import subprocess
-from typing import List, Pattern
+from re import Pattern
 
 # Pattern matching auto-generated commits to remove.
 # Only 'auto: update' prefix — old formats (Update bypass-, update configs, etc.)
 # are intentionally excluded. They're historical and irrelevant for ongoing cleanup.
-AUTO_PATTERNS: List[Pattern] = [
+AUTO_PATTERNS: list[Pattern] = [
     re.compile(r'^auto: update '),
 ]
 

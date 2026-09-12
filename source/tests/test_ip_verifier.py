@@ -1,14 +1,14 @@
 """Tests for ip_verifier.py — proxy setup and cleanup utilities."""
 
-import sys
 import os
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from utils.ip_verifier import (
-    _wait_for_tcp_port,
-    _clear_proxy_env_vars,
     _PROXY_ENV_VARS,
+    _clear_proxy_env_vars,
+    _wait_for_tcp_port,
 )
+
 
 class TestProxyEnvVarsConstant:
     """_PROXY_ENV_VARS is the single source of truth."""

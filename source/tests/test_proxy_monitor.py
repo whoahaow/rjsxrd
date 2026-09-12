@@ -1,20 +1,19 @@
 """Tests for proxy_monitor.py — focus on the constants and check_proxy error paths."""
 
-import sys
-import os
-from unittest.mock import patch, MagicMock
-
 import json
+from unittest.mock import MagicMock, patch
+
 import requests
 
 from utils.proxy_monitor import (
-    IP_CHECK_URL,
     DEFAULT_CHECK_INTERVAL,
     DEFAULT_TIMEOUT,
-    STOP_JOIN_TIMEOUT,
     ERROR_TRUNCATE_LEN,
+    IP_CHECK_URL,
+    STOP_JOIN_TIMEOUT,
     ProxyMonitor,
 )
+
 
 class TestProxyMonitorConstants:
     """Module-level constants are exposed and have sane values."""
@@ -120,7 +119,6 @@ class TestProxyMonitorShutdown:
     def test_quit_returns_cleanly_not_sys_exit(self):
         """When prompt_for_new_proxy_chain returns ('quit', None),
         monitor_loop sets self.running = False and returns — NO sys.exit() call."""
-        from unittest.mock import patch
 
         monitor = self._make_monitor()
         monitor.running = True
@@ -242,7 +240,6 @@ class TestProxyMonitorLifecycle:
         mock_response.status_code = 200
         mock_response.json.return_value = {'ip': '6.6.6.6', 'country': 'XX'}
 
-        from utils.proxy_monitor import log as real_log
         log_calls = []
         def capture_log(msg, *a, **kw):
             log_calls.append(str(msg))

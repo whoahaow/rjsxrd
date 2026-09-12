@@ -8,15 +8,15 @@ Persistent JSON storage for per-URL:
 Thread-safe (threading.Lock). Uses atomic file writes.
 """
 
+import hashlib
 import json
 import os
 import shutil
 import tempfile
 import threading
-import hashlib
-from dataclasses import dataclass, field, asdict
-from typing import Dict, List, Tuple, Optional
+from dataclasses import dataclass, field
 from datetime import datetime
+
 from utils.logger import log
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
@@ -39,7 +39,7 @@ class FetchHistoryItem:
 class FetchStats:
     """Fetch tracking for a single URL."""
     consecutive_failures: int = 0
-    history: List[FetchHistoryItem] = field(default_factory=list)
+    history: list[FetchHistoryItem] = field(default_factory=list)
 
 
 @dataclass
@@ -57,7 +57,7 @@ class YieldStats:
 @dataclass
 class ConfigVerification:
     """Per-config verification tracking (for servers.txt)."""
-    verifications: List[bool] = field(default_factory=list)
+    verifications: list[bool] = field(default_factory=list)
     consecutive_failures: int = 0
     preview: str = ""
 
@@ -65,9 +65,9 @@ class ConfigVerification:
 @dataclass
 class URLEntry:
     """Top-level entry for one URL in the stats database."""
-    fetch: Optional[FetchStats] = None
-    yield_: Optional[YieldStats] = None
-    configs: Dict[str, ConfigVerification] = field(default_factory=dict)
+    fetch: FetchStats | None = None
+    yield_: YieldStats | None = None
+    configs: dict[str, ConfigVerification] = field(default_factory=dict)
 
 
 # Dict-key helpers: mapping from dataclass field names to JSON dict keys
@@ -100,7 +100,7 @@ def _yield_from_dict(data: dict) -> YieldStats:
     )
 
 
-def _configs_from_dict(data: dict) -> Dict[str, ConfigVerification]:
+def _configs_from_dict(data: dict) -> dict[str, ConfigVerification]:
     """Convert raw config tracking dict to typed dict."""
     cfgs = data.get(_CONFIGS_KEY, {}) or {}
     return {
@@ -125,7 +125,7 @@ class URLStats:
         # LAST run's totals, which is fine — the persistent layer just
         # remembers the most recent totals, the in-memory accumulator
         # tracks the current run.
-        self._run_totals: Dict[str, Tuple[int, int]] = {}
+        self._run_totals: dict[str, tuple[int, int]] = {}
 
     def _load(self) -> dict:
         if os.path.exists(self.path):
@@ -206,7 +206,7 @@ class URLStats:
             y["last_updated"] = datetime.now().isoformat()
             self._dirty = True
 
-    def record_verified_yield(self, source_counts: Dict[str, Tuple[int, int]]) -> None:
+    def record_verified_yield(self, source_counts: dict[str, tuple[int, int]]) -> None:
         """source_counts: {url: (tested_count, working_count)}"""
         with self.lock:
             for url, (tested, working) in source_counts.items():
@@ -240,7 +240,7 @@ class URLStats:
 
     # --- Queries ---
 
-    def get_dead_urls(self, threshold: int = 3) -> List[Tuple[str, int]]:
+    def get_dead_urls(self, threshold: int = 3) -> list[tuple[str, int]]:
         with self.lock:
             result = []
             for url, entry in self.data.items():
@@ -251,7 +251,7 @@ class URLStats:
                     result.append((url, cf))
             return sorted(result, key=lambda x: -x[1])
 
-    def get_dead_configs(self, threshold: int = 3) -> List[Tuple[str, str]]:
+    def get_dead_configs(self, threshold: int = 3) -> list[tuple[str, str]]:
         """Returns [(config_preview, sha256_hash)] for dead configs."""
         with self.lock:
             entry = self.data.get("MANUAL_SERVERS", {})
@@ -262,7 +262,7 @@ class URLStats:
                     result.append((info.get("preview", ""), cfg_key))
             return result
 
-    def get_low_yield_urls(self, max_verified: int = 0) -> List[Tuple[str, int]]:
+    def get_low_yield_urls(self, max_verified: int = 0) -> list[tuple[str, int]]:
         with self.lock:
             result = []
             for url, entry in self.data.items():
@@ -273,7 +273,7 @@ class URLStats:
                     result.append((url, v))
             return sorted(result, key=lambda x: x[1])
 
-    def get_top_yield_urls(self, n: int = 10) -> List[Tuple[str, int]]:
+    def get_top_yield_urls(self, n: int = 10) -> list[tuple[str, int]]:
         with self.lock:
             items = []
             for url, entry in self.data.items():
@@ -293,9 +293,9 @@ class URLStats:
             return
 
         try:
-            with open(path, 'r', encoding='utf-8') as f:
+            with open(path, encoding='utf-8') as f:
                 lines = f.readlines()
-        except (IOError, OSError, UnicodeDecodeError) as e:
+        except (OSError, UnicodeDecodeError) as e:
             log(f"URL Stats: cannot read {path}: {e}")
             return
 
@@ -313,7 +313,7 @@ class URLStats:
                 shutil.copy2(path, path + '.backup')
                 with open(path, 'w', encoding='utf-8') as f:
                     f.writelines(result)
-            except (IOError, OSError) as e:
+            except OSError as e:
                 log(f"URL Stats: cannot write {path}: {e}")
                 return
             # Prune dead entries from in-memory stats to prevent bloat
@@ -334,9 +334,9 @@ class URLStats:
         dead_hashes = {h for _, h in dead_info}
 
         try:
-            with open(path, 'r', encoding='utf-8') as f:
+            with open(path, encoding='utf-8') as f:
                 lines = f.readlines()
-        except (IOError, OSError, UnicodeDecodeError) as e:
+        except (OSError, UnicodeDecodeError) as e:
             log(f"URL Stats: cannot read {path}: {e}")
             return
 
@@ -356,7 +356,7 @@ class URLStats:
                 shutil.copy2(path, path + '.backup')
                 with open(path, 'w', encoding='utf-8') as f:
                     f.writelines(result)
-            except (IOError, OSError) as e:
+            except OSError as e:
                 log(f"URL Stats: cannot write {path}: {e}")
                 return
             # Prune dead config entries from in-memory stats to prevent bloat

@@ -21,14 +21,10 @@ Note: TUIC is not natively supported by Xray-core. TUIC configs will fail testin
 
 import base64
 import json
-import re
-from typing import Dict, Optional, Tuple
-from urllib.parse import urlparse, parse_qs, unquote
+from urllib.parse import parse_qs, unquote, urlparse
 
-from utils.logger import log
 from utils.security_filter import SS_WEAK_CIPHERS
 from utils.vpn_config import parse_url as vpn_parse_url
-
 
 # ── Shared helpers ─────────────────────────────────────────────────────
 
@@ -37,7 +33,7 @@ def _clean_url_part(url: str) -> str:
     return url[url.index('://') + 3:]
 
 
-def _split_fragment_query(url_part: str) -> Tuple[str, str, str]:
+def _split_fragment_query(url_part: str) -> tuple[str, str, str]:
     """Split url_part into (base_part, query_part, fragment).
 
     Handles both #fragment and ?query separators in any order.
@@ -53,7 +49,7 @@ def _split_fragment_query(url_part: str) -> Tuple[str, str, str]:
     return base_part, query_part, fragment
 
 
-def _parse_user_host_port(base_part: str) -> Optional[Tuple[str, str, int]]:
+def _parse_user_host_port(base_part: str) -> tuple[str, str, int] | None:
     """Parse 'user@host:port' from a URL base part.
 
     Returns (user, hostname, port) or None on failure.
@@ -80,9 +76,8 @@ def _make_tls_settings(sni: str, fp: str = None) -> dict:
     return {"serverName": sni, "fingerprint": fp or TLS_FINGERPRINT}
 
 
-def _make_reality_settings(sni: str, pbk: str, fp: str = None, sid: str = '') -> Optional[dict]:
+def _make_reality_settings(sni: str, pbk: str, fp: str = None, sid: str = '') -> dict | None:
     """Build realitySettings dict. Returns None if sni or pbk is missing."""
-    from config.settings import TLS_FINGERPRINT
     sni = sni.strip()
     pbk = pbk.strip()
     if not sni or not pbk:
@@ -107,7 +102,7 @@ def _make_httpupgrade_settings(path: str, host: str) -> dict:
 
 def _make_stream_settings(
     network: str, security: str, params: dict, default_host: str
-) -> Optional[dict]:
+) -> dict | None:
     """Build streamSettings dict for common transports (ws, grpc, httpupgrade).
 
     Returns None if Reality params are invalid.
@@ -150,7 +145,7 @@ def _make_stream_settings(
 
 # ── Protocol parsers ──────────────────────────────────────────────────
 
-def parse_vless_to_outbound(url: str, tag: str = "proxy") -> Optional[Dict]:
+def parse_vless_to_outbound(url: str, tag: str = "proxy") -> dict | None:
     """Parse VLESS URL to Xray outbound with tag."""
     try:
         url_part = _clean_url_part(url)
@@ -189,7 +184,7 @@ def parse_vless_to_outbound(url: str, tag: str = "proxy") -> Optional[Dict]:
         return None
 
 
-def parse_vmess_to_outbound(url: str, tag: str = "proxy") -> Optional[Dict]:
+def parse_vmess_to_outbound(url: str, tag: str = "proxy") -> dict | None:
     """Parse VMess URL to Xray outbound."""
     try:
         encoded = url[url.index('://') + 3:].strip()
@@ -284,7 +279,7 @@ def parse_vmess_to_outbound(url: str, tag: str = "proxy") -> Optional[Dict]:
         return None
 
 
-def parse_trojan_to_outbound(url: str, tag: str = "proxy") -> Optional[Dict]:
+def parse_trojan_to_outbound(url: str, tag: str = "proxy") -> dict | None:
     """Parse Trojan URL to Xray outbound."""
     try:
         url_part = _clean_url_part(url)
@@ -318,7 +313,7 @@ def parse_trojan_to_outbound(url: str, tag: str = "proxy") -> Optional[Dict]:
         return None
 
 
-def _decode_ss_base64(url_part: str) -> Optional[tuple]:
+def _decode_ss_base64(url_part: str) -> tuple | None:
     """Try base64 decode of url_part to extract method:password@host:port.
 
     Returns a tuple (method, password, hostname, port) or None on failure.
@@ -352,7 +347,7 @@ def _decode_ss_base64(url_part: str) -> Optional[tuple]:
     return None
 
 
-def _parse_ss_legacy_format(url: str) -> Optional[tuple]:
+def _parse_ss_legacy_format(url: str) -> tuple | None:
     """Try legacy method:password@host:port format (not base64).
 
     Parses the full URL from scratch, ignoring any previous base64 modifications.
@@ -385,7 +380,7 @@ def _parse_ss_legacy_format(url: str) -> Optional[tuple]:
     return None
 
 
-def _parse_ss_last_resort(url: str) -> Optional[tuple]:
+def _parse_ss_last_resort(url: str) -> tuple | None:
     """Last resort: try to extract host and port from url_part.
 
     Parses the full URL from scratch. Only extracts hostname and port;
@@ -414,7 +409,7 @@ def _parse_ss_last_resort(url: str) -> Optional[tuple]:
     return None
 
 
-def parse_shadowsocks_to_outbound(url: str, tag: str = "proxy") -> Optional[Dict]:
+def parse_shadowsocks_to_outbound(url: str, tag: str = "proxy") -> dict | None:
     """Parse Shadowsocks URL to Xray outbound.
 
     Filters weak ciphers (RC4, DES, CFB modes, Salsa20, Chacha20 non-IETF).
@@ -511,7 +506,7 @@ def parse_shadowsocks_to_outbound(url: str, tag: str = "proxy") -> Optional[Dict
         return None
 
 
-def parse_hysteria2_to_outbound(url: str, tag: str = "proxy") -> Optional[Dict]:
+def parse_hysteria2_to_outbound(url: str, tag: str = "proxy") -> dict | None:
     """Parse Hysteria2/Hy2 URL to Xray outbound."""
     try:
         parsed = urlparse(url)
@@ -555,7 +550,7 @@ def parse_hysteria2_to_outbound(url: str, tag: str = "proxy") -> Optional[Dict]:
         return None
 
 
-def parse_hysteria_to_outbound(url: str, tag: str = "proxy") -> Optional[Dict]:
+def parse_hysteria_to_outbound(url: str, tag: str = "proxy") -> dict | None:
     """Parse Hysteria v1 URL to Xray outbound.
 
     Note: Hysteria v1 has limited support in Xray-core. This parser creates
@@ -605,7 +600,7 @@ def parse_hysteria_to_outbound(url: str, tag: str = "proxy") -> Optional[Dict]:
         return None
 
 
-def parse_ssr_to_outbound(url: str, tag: str = "proxy") -> Optional[Dict]:
+def parse_ssr_to_outbound(url: str, tag: str = "proxy") -> dict | None:
     """Parse ShadowsocksR (SSR) URL to Xray outbound.
 
     Note: Xray-core has limited SSR support. This converts to basic Shadowsocks
@@ -691,7 +686,7 @@ def parse_ssr_to_outbound(url: str, tag: str = "proxy") -> Optional[Dict]:
         return None
 
 
-def parse_tuic_to_outbound(url: str, tag: str = "proxy") -> Optional[Dict]:
+def parse_tuic_to_outbound(url: str, tag: str = "proxy") -> dict | None:
     """Parse TUIC URL to Xray outbound.
 
     Note: TUIC is not natively supported by Xray-core. This parser always
@@ -700,7 +695,7 @@ def parse_tuic_to_outbound(url: str, tag: str = "proxy") -> Optional[Dict]:
     return None
 
 
-def parse_url_to_outbound(url: str, tag: str = "proxy") -> Optional[Dict]:
+def parse_url_to_outbound(url: str, tag: str = "proxy") -> dict | None:
     """Convert URL to outbound based on protocol.
 
     Uses the typed VPNConfig parsers (utils/vpn_config.py) as the primary

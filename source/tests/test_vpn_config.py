@@ -3,16 +3,18 @@
 Tests the typed config parsers that replace the ad-hoc str->Dict parsers.
 All tests are pure unit — no network, no xray binary, no subprocesses.
 """
-import sys
-import os
-import json
 import base64
+import json
 
 from utils.vpn_config import (
+    Hysteria2Config,
+    ShadowsocksConfig,
+    TrojanConfig,
+    VLESSConfig,
+    VMessConfig,
     parse_url,
-    VLESSConfig, VMessConfig, TrojanConfig,
-    ShadowsocksConfig, Hysteria2Config,
 )
+
 
 class TestParseUrlFactory:
     """parse_url() is the entry point — dispatches by URL scheme."""

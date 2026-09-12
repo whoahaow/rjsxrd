@@ -1,9 +1,9 @@
 """Health check utilities for VPN config generator."""
 
 import os
-import socket
 import shutil
-from typing import Dict, Tuple, List
+import socket
+
 from utils.logger import log
 
 # DNS servers for internet connectivity check, tried in order.
@@ -11,7 +11,7 @@ from utils.logger import log
 # Google (8.8.8.8, 8.8.4.4) as fallbacks — widely available.
 # Yandex DNS (77.88.8.8) for lower latency in RU regions.
 # AdGuard (94.140.14.14) and OpenDNS (208.67.222.222) as extra safety.
-DNS_SERVERS: List[Tuple[str, int]] = [
+DNS_SERVERS: list[tuple[str, int]] = [
     ("1.1.1.1", 53),
     ("8.8.8.8", 53),
     ("8.8.4.4", 53),
@@ -41,13 +41,13 @@ def check_internet_connectivity() -> bool:
         except OSError as e:
             log(f"    DNS probe {host}:{port} failed: {e}")
             last_error = e
-    
+
     if last_error is not None:
         log(f"  All DNS servers unreachable — last error: {last_error}")
     return False
 
 
-def check_disk_space(path: str = ".", required_mb: float = 100.0) -> Tuple[bool, float]:
+def check_disk_space(path: str = ".", required_mb: float = 100.0) -> tuple[bool, float]:
     """Check available disk space.
     
     Args:
@@ -66,7 +66,7 @@ def check_disk_space(path: str = ".", required_mb: float = 100.0) -> Tuple[bool,
         return True, float('inf')
 
 
-def check_memory(min_mb: float = 256.0) -> Tuple[bool, float]:
+def check_memory(min_mb: float = 256.0) -> tuple[bool, float]:
     """Check available system memory.
     
     Args:
@@ -98,10 +98,10 @@ def check_xray_binary(xray_path: str) -> bool:
     """
     if not os.path.exists(xray_path):
         return False
-    
+
     if not os.access(xray_path, os.X_OK):
         return False
-    
+
     return True
 
 
@@ -116,14 +116,14 @@ def check_github_token(token: str) -> bool:
     """
     if not token:
         return False
-    
+
     if len(token) < 10:
         return False
-    
+
     return True
 
 
-def health_check(xray_path: str = None, github_token: str = None) -> Dict[str, bool]:
+def health_check(xray_path: str = None, github_token: str = None) -> dict[str, bool]:
     """Perform comprehensive health check.
     
     Args:
@@ -134,7 +134,7 @@ def health_check(xray_path: str = None, github_token: str = None) -> Dict[str, b
         Dictionary of health check results
     """
     from config.settings import GITHUB_TOKEN
-    
+
     results = {
         'internet': check_internet_connectivity(),
         'disk_space': check_disk_space()[0],
@@ -142,16 +142,16 @@ def health_check(xray_path: str = None, github_token: str = None) -> Dict[str, b
         'xray_installed': check_xray_binary(xray_path) if xray_path else False,
         'github_token': check_github_token(github_token or GITHUB_TOKEN),
     }
-    
+
     # Log warnings for failed checks
     for check, passed in results.items():
         if not passed:
             log(f"WARNING: Health check failed: {check}")
-    
+
     return results
 
 
-def print_health_report(results: Dict[str, bool]) -> None:
+def print_health_report(results: dict[str, bool]) -> None:
     """Print formatted health check report.
     
     Args:
@@ -160,7 +160,7 @@ def print_health_report(results: Dict[str, bool]) -> None:
     log("\n" + "=" * 60)
     log("HEALTH CHECK REPORT")
     log("=" * 60)
-    
+
     all_passed = True
     for check, passed in results.items():
         status = "[PASS]" if passed else "[FAIL]"
@@ -168,7 +168,7 @@ def print_health_report(results: Dict[str, bool]) -> None:
         log(f"  {check_name:25} {status}")
         if not passed:
             all_passed = False
-    
+
     log("=" * 60)
     if all_passed:
         log("All health checks passed")

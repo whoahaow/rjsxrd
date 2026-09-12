@@ -1,20 +1,19 @@
 """Tests for yaml_converter.py — YAML → VPN config URL conversion."""
 
-import sys
-import os
 
 from fetchers.yaml_converter import (
-    convert_yaml_to_vpn_configs,
-    _is_proxy_config,
-    _convert_vmess_to_url,
-    _build_vless_url,
-    _build_trojan_url,
+    _build_hysteria_url,
     _build_shadowsocks_url,
     _build_shadowsocksr_url,
+    _build_trojan_url,
     _build_tuic_url,
-    _build_hysteria_url,
+    _build_vless_url,
+    _convert_vmess_to_url,
+    _is_proxy_config,
     _try_convert_to_url,
+    convert_yaml_to_vpn_configs,
 )
+
 
 class TestIsProxyConfig:
     """Detect proxy config dictionaries."""

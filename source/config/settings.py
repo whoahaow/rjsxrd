@@ -1,14 +1,14 @@
 """Configuration settings for VPN config generator."""
 import os
 import re
-from dotenv import load_dotenv, find_dotenv
+
+from dotenv import find_dotenv, load_dotenv
 
 # Load .env from project root (searches up from cwd)
 # Must be before any os.environ.get() calls below
 load_dotenv(find_dotenv(usecwd=True))
 
 from utils.logger import log
-
 
 # Lazy-load caches for file-based configuration
 _SNI_DOMAINS_CACHE = None
@@ -49,23 +49,23 @@ def _validate_github_token(token: str) -> str:
     """
     if not token:
         return ""
-    
+
     # Strip whitespace
     token = token.strip()
-    
+
     # Check for suspicious characters
     if '\n' in token or '\r' in token:
         log("Warning: GitHub token contains newline characters, cleaning...")
         token = token.replace('\n', '').replace('\r', '')
-    
+
     # Basic format validation (GitHub tokens are alphanumeric with underscores/hyphens)
     if not re.match(r'^[a-zA-Z0-9_\-]+$', token):
         log("Warning: GitHub token has unexpected format (may contain invalid characters)")
-    
+
     # Warn if token looks too short
     if len(token) < 10:
         log(f"Warning: GitHub token seems too short ({len(token)} chars)")
-    
+
     return token
 
 
@@ -103,21 +103,21 @@ def parse_urls_file() -> tuple[list[str], list[str], list[str], list[str]]:
     urls_extra_bypass = []
     urls_yaml = []
     telegram_proxy_urls = []
-    
+
     config_dir = os.path.dirname(__file__)
     urls_file = os.path.join(config_dir, 'URLS.txt')
-    
+
     current_section = 'default'  # Default section
-    
+
     try:
-        with open(urls_file, 'r', encoding='utf-8') as f:
+        with open(urls_file, encoding='utf-8') as f:
             for line in f:
                 line = line.strip()
-                
+
                 # Skip empty lines
                 if not line:
                     continue
-                
+
                 # Check for section markers
                 if line.startswith('# '):
                     section_name = line[2:].strip().lower()
@@ -130,11 +130,11 @@ def parse_urls_file() -> tuple[list[str], list[str], list[str], list[str]]:
                     else:
                         current_section = 'default'
                     continue
-                
+
                 # Skip pure comment lines (not section markers)
                 if line.startswith('#'):
                     continue
-                
+
                 # Add URL to current section
                 if current_section == 'default':
                     urls.append(line)
@@ -144,10 +144,10 @@ def parse_urls_file() -> tuple[list[str], list[str], list[str], list[str]]:
                     urls_yaml.append(line)
                 elif current_section == 'telegram':
                     telegram_proxy_urls.append(line)
-                    
+
     except FileNotFoundError:
         log("URLS.txt file not found!")
-    
+
     return urls, urls_extra_bypass, urls_yaml, telegram_proxy_urls
 
 
@@ -157,7 +157,7 @@ def get_manual_servers() -> list[str]:
     if _MANUAL_SERVERS_CACHE is None:
         servers = []
         try:
-            with open(os.path.join(os.path.dirname(__file__), 'servers.txt'), 'r', encoding='utf-8') as f:
+            with open(os.path.join(os.path.dirname(__file__), 'servers.txt'), encoding='utf-8') as f:
                 servers = [line.strip() for line in f if line.strip()]
         except FileNotFoundError:
             log("servers.txt file not found!")
@@ -177,7 +177,7 @@ def load_sni_domains() -> list[str]:
     config_dir = os.path.dirname(__file__)  # Get the directory of the current file
     whitelist_path = os.path.join(config_dir, 'whitelist-all.txt')
     try:
-        with open(whitelist_path, 'r', encoding='utf-8') as f:
+        with open(whitelist_path, encoding='utf-8') as f:
             domains = [line.strip() for line in f if line.strip()]
         return domains
     except FileNotFoundError:

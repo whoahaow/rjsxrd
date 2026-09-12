@@ -1,13 +1,23 @@
 """Tests for utils/logger.py — thread-safe logging."""
 
-import sys
-import os
 
 from utils.logger import (
-    LogLevel, log, debug, info, warning, error, critical,
-    set_log_level, _extract_index, _format_message,
-    extract_source_name, print_logs, LOGS_BY_FILE, CURRENT_LOG_LEVEL,
+    CURRENT_LOG_LEVEL,
+    LOGS_BY_FILE,
+    LogLevel,
+    _extract_index,
+    _format_message,
+    critical,
+    debug,
+    error,
+    extract_source_name,
+    info,
+    log,
+    print_logs,
+    set_log_level,
+    warning,
 )
+
 
 class TestLogLevel:
     """LogLevel enum values match standard Python logging levels."""

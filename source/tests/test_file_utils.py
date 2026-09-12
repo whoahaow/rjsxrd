@@ -1,18 +1,19 @@
 """Unit tests for file utilities."""
 
-import pytest
-import sys
 import os
 import tempfile
 
+import pytest
+
 from utils.file_utils import (
-    is_valid_vpn_config_url,
     apply_sni_cidr_filter,
-    prepare_config_content,
     deduplicate_configs,
+    is_valid_vpn_config_url,
     load_cidr_whitelist,
+    prepare_config_content,
 )
 from utils.security_filter import has_insecure_setting
+
 
 class TestLoadCidrWhitelist:
     """Test CIDR whitelist loading with OOM protection."""
@@ -126,7 +127,8 @@ class TestDeduplicateConfigs:
 
     def test_dedup_vmess(self):
         """Two VMess configs with same server but different ps fields."""
-        import base64, json
+        import base64
+        import json
         cfg1 = {"add": "host.com", "port": 443, "id": "uuid1", "ps": "Office"}
         cfg2 = {"add": "host.com", "port": 443, "id": "uuid1", "ps": "Home"}
         b1 = base64.b64encode(json.dumps(cfg1).encode()).decode()
@@ -137,7 +139,8 @@ class TestDeduplicateConfigs:
 
     def test_dedup_vmess_different_server(self):
         """Two VMess with different server params should NOT dedup."""
-        import base64, json
+        import base64
+        import json
         cfg1 = {"add": "host1.com", "port": 443, "id": "uuid1", "ps": "Office"}
         cfg2 = {"add": "host2.com", "port": 443, "id": "uuid2", "ps": "Home"}
         b1 = base64.b64encode(json.dumps(cfg1).encode()).decode()
@@ -172,52 +175,52 @@ class TestDeduplicateConfigs:
 
 class TestIsValidVpnConfigUrl:
     """Test VPN config URL validation."""
-    
+
     def test_valid_vless(self):
         """Test valid VLESS URL."""
         url = 'vless://uuid@host.com:443?security=tls#tag'
         assert is_valid_vpn_config_url(url) is True
-    
+
     def test_valid_vmess(self):
         """Test valid VMess URL."""
         url = 'vmess://eyJhZGQiOiJob3N0LmNvbSJ9'
         assert is_valid_vpn_config_url(url) is True
-    
+
     def test_valid_trojan(self):
         """Test valid Trojan URL."""
         url = 'trojan://password@host.com:443#tag'
         assert is_valid_vpn_config_url(url) is True
-    
+
     def test_valid_ss(self):
         """Test valid Shadowsocks URL."""
         url = 'ss://YWVzLTI1Ni1nY206cGFzc3dvcmQ@host.com:8388#tag'
         assert is_valid_vpn_config_url(url) is True
-    
+
     def test_valid_hysteria2(self):
         """Test valid Hysteria2 URL."""
         url = 'hysteria2://host.com:443?password=secret#tag'
         assert is_valid_vpn_config_url(url) is True
-    
+
     def test_invalid_text(self):
         """Test that plain text is rejected."""
         url = 'Just some random text'
         assert is_valid_vpn_config_url(url) is False
-    
+
     def test_invalid_comment(self):
         """Test that comments are rejected."""
         url = '# This is a comment'
         assert is_valid_vpn_config_url(url) is False
-    
+
     def test_invalid_empty(self):
         """Test that empty string is rejected."""
         url = ''
         assert is_valid_vpn_config_url(url) is False
-    
+
     def test_invalid_http_url(self):
         """Test that HTTP URLs are rejected."""
         url = 'https://example.com/config.txt'
         assert is_valid_vpn_config_url(url) is False
-    
+
     def test_case_insensitive_protocol(self):
         """Test protocol matching is case insensitive."""
         url = 'VLESS://uuid@host.com:443'
@@ -225,7 +228,7 @@ class TestIsValidVpnConfigUrl:
 
 class TestHasInsecureSetting:
     """Test insecure setting detection."""
-    
+
     def test_vmess_insecure_true(self):
         """Test VMess with insecure=true detected."""
         import base64
@@ -234,42 +237,42 @@ class TestHasInsecureSetting:
         config_json = {"add": "host", "allowInsecure": True}
         encoded = base64.b64encode(json.dumps(config_json).encode()).decode()
         config = f'vmess://{encoded}'
-        
+
         assert has_insecure_setting(config) is True
-    
+
     def test_vmess_security_none(self):
         """Test VMess with security=none detected."""
         config = 'vmess://eyJhZGQiOiJob3N0Iiwic2VjdXJpdHkiOiJub25lIn0='
         # Base64 encoded: {"add":"host","security":"none"}
         assert has_insecure_setting(config) is True
-    
+
     def test_vless_allow_insecure(self):
         """Test VLESS with allowInsecure detected."""
         config = 'vless://uuid@host.com:443?allowInsecure=1#tag'
         assert has_insecure_setting(config) is True
-    
+
     def test_vless_security_none(self):
         """Test VLESS with security=none detected."""
         config = 'vless://uuid@host.com:443?security=none#tag'
         assert has_insecure_setting(config) is True
-    
+
     def test_trojan_insecure(self):
         """Test Trojan with insecure param detected."""
         config = 'trojan://pass@host.com:443?insecure=1#tag'
         assert has_insecure_setting(config) is True
-    
+
     def test_ss_weak_cipher(self):
         """Test Shadowsocks with weak cipher detected."""
         config = 'ss://cmM0LW1kNTpwYXNz@host.com:8388#tag'
         # Base64 encoded: rc4-md5:pass
         assert has_insecure_setting(config) is True
-    
+
     def test_ss_strong_cipher(self):
         """Test Shadowsocks with strong cipher not flagged."""
         config = 'ss://YWVzLTI1Ni1nY206cGFzcw==@host.com:8388#tag'
         # Base64 encoded: aes-256-gcm:pass
         assert has_insecure_setting(config) is False
-    
+
     def test_valid_secure_config(self):
         """Test that secure configs pass validation."""
         config = 'vless://uuid@host.com:443?security=tls&fp=chrome#tag'
@@ -277,12 +280,12 @@ class TestHasInsecureSetting:
 
 class TestApplySniCidrFilter:
     """Test SNI/CIDR filtering."""
-    
+
     def test_filter_empty_list(self):
         """Test filtering empty list."""
         result = apply_sni_cidr_filter([])
         assert result == []
-    
+
     def test_filter_preserves_valid(self):
         """Test that valid configs are preserved."""
         configs = [
@@ -294,53 +297,53 @@ class TestApplySniCidrFilter:
 
 class TestPrepareConfigContent:
     """Test config content preparation."""
-    
+
     def test_remove_empty_lines(self):
         """Test removal of empty lines."""
         content = 'config1\n\n\nconfig2\n\nconfig3'
         result = prepare_config_content(content)
-        
+
         # Result is a list of strings
         assert isinstance(result, list)
         assert '' not in result
-    
+
     def test_remove_comments(self):
         """Test removal of comment lines."""
         content = '# Comment\nconfig1\n# Another comment\nconfig2'
         result = prepare_config_content(content)
-        
+
         # Result is a list
         assert isinstance(result, list)
         assert not any('#' in line for line in result)
-    
+
     def test_deduplicate_configs(self):
         """Test deduplication of configs."""
         content = 'config1\nconfig2\nconfig1\nconfig3\nconfig2'
         result = prepare_config_content(content)
-        
+
         # Result is a list with unique items
         assert len(result) == len(set(result))
-    
+
     def test_filter_invalid_configs(self):
         """Test filtering of invalid configs."""
         content = 'vless://valid@host.com:443\ninvalid text\nvmess://also-valid'
         result = prepare_config_content(content)
-        
+
         # Result is a list - should only contain valid configs
         for line in result:
             assert is_valid_vpn_config_url(line)
 
 class TestFileOperations:
     """Test file operation helpers."""
-    
+
     def test_read_nonexistent_file(self):
         """Test reading nonexistent file."""
         with pytest.raises(FileNotFoundError):
             with tempfile.NamedTemporaryFile(delete=True) as f:
                 name = f.name
-            with open(name, 'r') as f:
+            with open(name) as f:
                 f.read()
-    
+
     def test_write_and_read_config(self):
         """Test writing and reading config file."""
         configs = [
@@ -353,7 +356,7 @@ class TestFileOperations:
             temp_path = f.name
 
         try:
-            with open(temp_path, 'r') as f:
+            with open(temp_path) as f:
                 content = f.read()
 
             lines = [l.strip() for l in content.split('\n') if l.strip()]
@@ -395,7 +398,9 @@ class TestGetDedupKeyLRUCache:
 
     def test_cache_dedup_vmess_with_different_fragments(self):
         """Two vmess configs with same add/port/id but different ps should match."""
-        import base64, json
+        import base64
+        import json
+
         from utils.file_utils import _get_dedup_key
         cfg1 = {"add": "host.com", "port": 443, "id": "uuid1", "ps": "Office"}
         cfg2 = {"add": "host.com", "port": 443, "id": "uuid1", "ps": "Home"}
@@ -492,7 +497,7 @@ class TestProtocolConstants:
 
     def test_protocol_list_is_shared_constant(self):
         """Verify all protocols appear in the shared constant and both patterns."""
-        from utils.file_utils import _VPN_PROTOCOLS, _VPN_PROTOCOL_PATTERN, _GLUE_PATTERN
+        from utils.file_utils import _GLUE_PATTERN, _VPN_PROTOCOL_PATTERN, _VPN_PROTOCOLS
         for proto in ['vmess', 'vless', 'trojan', 'ss', 'ssr', 'tuic',
                       'hysteria', 'hysteria2', 'hy2']:
             assert proto in _VPN_PROTOCOLS, f"{proto} missing from _VPN_PROTOCOLS"
@@ -509,16 +514,18 @@ class TestExtractHostPortDispatch:
 
     def test_vmess_handler_in_isolation(self):
         """The vmess handler is independently callable."""
-        from utils.file_utils import _decode_vmess_host_port
         import base64
+
+        from utils.file_utils import _decode_vmess_host_port
         payload = base64.b64encode(b'{"add":"1.2.3.4","port":443}').decode()
         result = _decode_vmess_host_port(f"vmess://{payload}")
         assert result == ("1.2.3.4", 443)
 
     def test_ssr_handler_in_isolation(self):
         """The ssr handler is independently callable."""
-        from utils.file_utils import _decode_ssr_host_port
         import base64
+
+        from utils.file_utils import _decode_ssr_host_port
         payload = base64.b64encode(
             b"server.com:8388:auth_aes128_md5:aes-128-cfb:auth_aes128_md5:password"
         ).decode()
@@ -550,8 +557,9 @@ class TestExtractHostPortDispatch:
         """VMESS:// (uppercase) now matches because the dispatch table uses
         line.lower().startswith(prefix). This fixes a pre-existing bug where
         uppercase VMESS:// URLs would silently fail to parse."""
-        from utils.file_utils import extract_host_port
         import base64
+
+        from utils.file_utils import extract_host_port
         payload = base64.b64encode(b'{"add":"1.2.3.4","port":443}').decode()
         # Pre-fix: returned None. Post-fix: returns ("1.2.3.4", 443).
         result = extract_host_port(f"VMESS://{payload}")
@@ -567,7 +575,7 @@ class TestSniCidrFilterChunking:
         We mock get_regex_executor to return a thread pool that records
         submitted tasks, so we can count chunks without actually filtering.
         """
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import MagicMock, patch
 
         # Build n_configs dummy inputs. SNI/CIDR filter expects VPN configs
         # but we don't care about the filtering result for the chunking test.
@@ -620,7 +628,7 @@ class TestSniFilterActuallyFilters:
         """Mock AhoCorasick to return a non-empty list for known SNI domains.
         The filter should keep only matching configs.
         """
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import MagicMock, patch
 
         configs = [
             'vless://u@google.com:443#a',
@@ -672,16 +680,18 @@ class TestExtractHostPortEdgeCases:
 
     def test_vmess_missing_host_port_returns_none(self):
         """vmess JSON with empty add/port should return None."""
-        from utils.file_utils import _decode_vmess_host_port
         import base64
+
+        from utils.file_utils import _decode_vmess_host_port
         payload = base64.b64encode(b'{"add":"","port":0,"aid":"0"}').decode()
         result = _decode_vmess_host_port(f"vmess://{payload}")
         assert result is None
 
     def test_vmess_invalid_json_returns_none(self):
         """vmess with malformed JSON payload returns None."""
-        from utils.file_utils import _decode_vmess_host_port
         import base64
+
+        from utils.file_utils import _decode_vmess_host_port
         payload = base64.b64encode(b'not json at all').decode()
         result = _decode_vmess_host_port(f"vmess://{payload}")
         assert result is None

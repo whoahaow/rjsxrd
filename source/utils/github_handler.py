@@ -5,14 +5,15 @@ without real GitHub credentials. The default _PyGithubClient wraps the
 PyGithub library; pass a FakeGitHubClient in tests for isolated testing.
 """
 
-from github import Github, Auth, GithubException
-import os
-import time
-import threading
 import concurrent.futures
-from datetime import datetime, timezone, timedelta
-from typing import NamedTuple
+import os
+import threading
+import time
 from abc import ABC, abstractmethod
+from datetime import datetime, timedelta, timezone
+from typing import NamedTuple
+
+from github import Auth, Github, GithubException
 
 from utils.logger import log
 
@@ -34,7 +35,7 @@ class _GitHubClient(ABC):
     @abstractmethod
     def get_repo(self, repo_name: str):
         """Get a repo handle. Returns None on failure."""
-        return None
+        return
 
     @abstractmethod
     def get_rate_limiting(self):
@@ -44,7 +45,7 @@ class _GitHubClient(ABC):
     @abstractmethod
     def get_rate_limiting_reset(self):
         """Return reset timestamp (Unix seconds) or None on error."""
-        return None
+        return
 
     @abstractmethod
     def get_contents(self, repo, remote_path: str):
@@ -76,7 +77,7 @@ class _PyGithubClient(_GitHubClient):
         try:
             return self.g.get_repo(repo_name)
         except GithubException as e:
-            log("Could not access repository {0}: {1}".format(repo_name, e))
+            log(f"Could not access repository {repo_name}: {e}")
             return None
 
     def get_rate_limiting(self):
@@ -129,9 +130,9 @@ class GitHubHandler:
         remaining, limit = self._client.get_rate_limiting()
         if remaining is not None:
             if remaining < 100:
-                log("Warning: {0}/{1} GitHub API requests remaining".format(remaining, limit))
+                log(f"Warning: {remaining}/{limit} GitHub API requests remaining")
             else:
-                log("Available GitHub API requests: {0}/{1}".format(remaining, limit))
+                log(f"Available GitHub API requests: {remaining}/{limit}")
 
     def _check_rate_limit(self, required_requests: int = 1) -> RateLimitStatus:
         """Check if we have enough API requests remaining.
@@ -154,26 +155,25 @@ class GitHubHandler:
             if remaining < required_requests:
                 wait_seconds = max(0, reset_time - time.time())
                 if wait_seconds > 0:
-                    log("Rate limit reached. Waiting {0:.0f}s for reset... ({1}/{2} remaining)".format(
-                        wait_seconds, remaining, limit))
+                    log(f"Rate limit reached. Waiting {wait_seconds:.0f}s for reset... ({remaining}/{limit} remaining)")
                     return RateLimitStatus(False, int(wait_seconds))
                 return RateLimitStatus(False, 0)
 
             # Warn if running low
             if remaining < 100:
-                log("Warning: Only {0}/{1} API requests remaining".format(remaining, limit))
+                log(f"Warning: Only {remaining}/{limit} API requests remaining")
 
             return RateLimitStatus(True, 0)
 
         except (GithubException, OSError) as e:
-            log("Could not check rate limit ({0}): {1}".format(type(e).__name__, e))
+            log(f"Could not check rate limit ({type(e).__name__}): {e}")
             return RateLimitStatus(True, 0)  # Proceed on error
 
     def _wait_for_rate_limit(self, seconds: int) -> None:
         """Wait for rate limit to reset with progress logging."""
         if seconds <= 0:
             return
-        log("Waiting {0}s for GitHub API rate limit reset...".format(seconds))
+        log(f"Waiting {seconds}s for GitHub API rate limit reset...")
         time.sleep(seconds)
 
     def _handle_rate_limit_error(self, e: GithubException, attempt: int) -> bool:
@@ -194,13 +194,13 @@ class GitHubHandler:
 
             if retry_after:
                 wait_time = int(retry_after)
-                log("Rate limited by GitHub. Waiting {0}s (Retry-After header)...".format(wait_time))
+                log(f"Rate limited by GitHub. Waiting {wait_time}s (Retry-After header)...")
                 time.sleep(wait_time)
                 return True
 
             # Exponential backoff if no Retry-After header
             wait_time = min(60, 2 ** attempt)
-            log("Rate limited (403). Waiting {0}s (attempt {1})...".format(wait_time, attempt))
+            log(f"Rate limited (403). Waiting {wait_time}s (attempt {attempt})...")
             time.sleep(wait_time)
             return True
 
@@ -224,7 +224,6 @@ class GitHubHandler:
     @staticmethod
     def _add_to_updated_files(remote_path: str) -> None:
         """Track uploaded files. Currently a no-op — was planned for dedup reporting."""
-        pass
 
     def upload_file(self, local_path: str, remote_path: str) -> bool:
         """Uploads a local file to GitHub repository.
@@ -237,7 +236,7 @@ class GitHubHandler:
             return False
 
         if not self._file_exists(local_path):
-            log("File {0} not found.".format(local_path))
+            log(f"File {local_path} not found.")
             return False
 
         # Check rate limit before starting (need ~2 requests: get + update)
@@ -247,10 +246,10 @@ class GitHubHandler:
             # Check again after waiting
             has_capacity, _ = self._check_rate_limit(required_requests=2)
             if not has_capacity:
-                log("ERROR: Still rate limited, skipping {0}".format(remote_path))
+                log(f"ERROR: Still rate limited, skipping {remote_path}")
                 return False
 
-        with open(local_path, "r", encoding="utf-8") as file:
+        with open(local_path, encoding="utf-8") as file:
             content = file.read()
 
         max_retries = 5
@@ -266,10 +265,10 @@ class GitHubHandler:
                         basename = self._get_basename(remote_path)
                         self._client.create_file(
                             self.repo, remote_path,
-                            "auto: add {0}: {1}".format(basename, self._get_timestamp()),
+                            f"auto: add {basename}: {self._get_timestamp()}",
                             content,
                         )
-                        log("File {0} created.".format(remote_path))
+                        log(f"File {remote_path} created.")
                         self._add_to_updated_files(remote_path)
                         return True
                     except GithubException as e_create:
@@ -282,22 +281,20 @@ class GitHubHandler:
                             # Race: file was created between our get_contents
                             # and create_file. Retry outer loop to re-read SHA.
                             if attempt < max_retries:
-                                log("File {0} already exists, retrying with update "
-                                    "(attempt {1}/{2})".format(
-                                    remote_path, attempt, max_retries))
+                                log(f"File {remote_path} already exists, retrying with update "
+                                    f"(attempt {attempt}/{max_retries})")
                                 time.sleep(0.5)
                                 continue
-                            log("Could not create {0} after {1} attempts".format(
-                                remote_path, max_retries))
+                            log(f"Could not create {remote_path} after {max_retries} attempts")
                             return False
                         msg = e_create.data.get("message", str(e_create))
-                        log("Error creating {0}: {1}".format(remote_path, msg))
+                        log(f"Error creating {remote_path}: {msg}")
                         return False
 
                 try:
                     remote_content = decoded_content.decode("utf-8", errors="replace")
                     if remote_content == content:
-                        log("No changes for {0}.".format(remote_path))
+                        log(f"No changes for {remote_path}.")
                         return True
                 except (UnicodeDecodeError, ValueError):
                     pass
@@ -307,10 +304,10 @@ class GitHubHandler:
                 try:
                     self._client.update_file(
                         self.repo, remote_path,
-                        "auto: update {0}: {1}".format(basename, self._get_timestamp()),
+                        f"auto: update {basename}: {self._get_timestamp()}",
                         content, current_sha,
                     )
-                    log("File {0} updated in repository.".format(remote_path))
+                    log(f"File {remote_path} updated in repository.")
                     self._add_to_updated_files(remote_path)
                     return True
                 except GithubException as e_upd:
@@ -319,31 +316,28 @@ class GitHubHandler:
                         # Conflict - retry with backoff
                         if attempt < max_retries:
                             wait_time = 0.5 * (2 ** (attempt - 1))
-                            log("SHA conflict for {0}, attempt {1}/{2}, waiting {3} sec".format(
-                                remote_path, attempt, max_retries, wait_time))
+                            log(f"SHA conflict for {remote_path}, attempt {attempt}/{max_retries}, waiting {wait_time} sec")
                             time.sleep(wait_time)
                             continue
-                        else:
-                            log("Could not update {0} after {1} attempts".format(remote_path, max_retries))
-                            return False
-                    elif status == 403:
+                        log(f"Could not update {remote_path} after {max_retries} attempts")
+                        return False
+                    if status == 403:
                         # Rate limited
                         if self._handle_rate_limit_error(e_upd, attempt):
                             continue
                         return False
-                    else:
-                        msg = e_upd.data.get("message", str(e_upd))
-                        log("Error uploading {0}: {1}".format(remote_path, msg))
-                        return False
+                    msg = e_upd.data.get("message", str(e_upd))
+                    log(f"Error uploading {remote_path}: {msg}")
+                    return False
 
             except (OSError, GithubException) as e_general:
                 short_msg = str(e_general)
                 if len(short_msg) > 200:
                     short_msg = short_msg[:200] + "..."
-                log("Unexpected error updating {0}: {1}".format(remote_path, short_msg))
+                log(f"Unexpected error updating {remote_path}: {short_msg}")
                 return False
 
-        log("Could not update {0} after {1} attempts".format(remote_path, max_retries))
+        log(f"Could not update {remote_path} after {max_retries} attempts")
         return False
 
     def upload_multiple_files(self, file_pairs: list, dry_run: bool = False) -> int:
@@ -367,7 +361,7 @@ class GitHubHandler:
 
         for local_path, remote_path in file_pairs:
             if dry_run:
-                log("Dry-run: skipping upload of {0} (local path {1})".format(remote_path, local_path))
+                log(f"Dry-run: skipping upload of {remote_path} (local path {local_path})")
             else:
                 upload_futures.append(
                     executor.submit(self.upload_file, local_path, remote_path)
@@ -380,10 +374,10 @@ class GitHubHandler:
                 if result is False:
                     failures += 1
             except (concurrent.futures.CancelledError, RuntimeError) as e:
-                log("Upload future failed: {0}".format(e))
+                log(f"Upload future failed: {e}")
                 failures += 1
 
         if failures > 0:
-            log("WARNING: {0} upload(s) failed".format(failures))
+            log(f"WARNING: {failures} upload(s) failed")
 
         return failures

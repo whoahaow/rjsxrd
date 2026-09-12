@@ -2,30 +2,29 @@
 
 import os
 import subprocess
-import time
-from typing import List, Tuple, Optional
-from utils.logger import log
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
+
 from utils.git_auto_cleaner import squash_auto_commits
+from utils.logger import log
 
 
 class GitUpdater:
     """Handles git commit and push operations for GitHub Actions."""
-    
+
     def __init__(self, repo_dir: str = None, output_prefix: str = "githubmirror/") -> None:
         if repo_dir is None:
             self.repo_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
         else:
             self.repo_dir = repo_dir
-        
+
         self.output_prefix = output_prefix.rstrip("/")
         log(f"GitUpdater initialized for: {self.repo_dir}")
-    
+
     def _run_git(self, *args, check: bool = True, timeout: int = 60) -> subprocess.CompletedProcess:
         """Run git command with timeout."""
         cmd = ["git"] + list(args)
         log(f"Running: {' '.join(cmd)}")
-        
+
         try:
             result = subprocess.run(
                 cmd,
@@ -35,12 +34,12 @@ class GitUpdater:
                 check=check,
                 timeout=timeout
             )
-            
+
             if result.stdout:
                 log(f"Git output: {result.stdout.strip()}")
             if result.stderr:
                 log(f"Git stderr: {result.stderr.strip()}")
-            
+
             return result
         except subprocess.TimeoutExpired:
             log(f"Git command timed out: {' '.join(cmd)}")
@@ -48,29 +47,29 @@ class GitUpdater:
         except subprocess.CalledProcessError as e:
             log(f"Git command failed: {e.stderr}")
             raise
-    
+
     def configure_git(self) -> None:
         """Configure git user for commits."""
         log("Configuring git user...")
         self._run_git("config", "user.name", "GitHub Actions")
         self._run_git("config", "user.email", "actions@github.com")
         log("Git user configured")
-    
-    def pull(self, branch: Optional[str] = None) -> None:
+
+    def pull(self, branch: str | None = None) -> None:
         """Pull latest changes from remote with rebase."""
         if branch is None:
             result = self._run_git("rev-parse", "--abbrev-ref", "HEAD")
             branch = result.stdout.strip()
-        
+
         log(f"Pulling from origin/{branch}...")
         try:
             # First stash any local changes (can happen with temp files)
             self._run_git("stash", "push", "-m", "Auto-stash before pull", check=False)
-            
+
             # Now pull with rebase
             self._run_git("pull", "--rebase", "origin", branch)
             log("Pull successful")
-            
+
             # Pop stash if it was created
             self._run_git("stash", "pop", check=False)
         except subprocess.CalledProcessError as e:
@@ -92,8 +91,8 @@ class GitUpdater:
                 self._run_git("fetch", "origin", check=False)
                 self._run_git("reset", "--hard", f"origin/{branch}", check=False)
                 log(f"Reset to origin/{branch}")
-    
-    def stage_files(self, file_pairs: List[Tuple[str, str]]) -> None:
+
+    def stage_files(self, file_pairs: list[tuple[str, str]]) -> None:
         """Stage generated config files and updated source configs."""
         log("Staging generated files...")
 
@@ -114,7 +113,7 @@ class GitUpdater:
             local_path: Path relative to repo root (e.g. 'githubmirror/bypass/bypass-1.txt').
         """
         self._run_git("add", local_path, check=False)
-    
+
     def has_changes(self) -> bool:
         """Check if there are staged changes."""
         try:
@@ -128,26 +127,26 @@ class GitUpdater:
         if not self.has_changes():
             log("No changes to commit")
             return False
-        
+
         log(f"Committing: {message}")
         self._run_git("commit", "-m", message)
         return True
-    
-    def push(self, branch: Optional[str] = None, force: bool = False, force_lease: bool = False) -> None:
+
+    def push(self, branch: str | None = None, force: bool = False, force_lease: bool = False) -> None:
         """Push commits to remote."""
         if branch is None:
             result = self._run_git("rev-parse", "--abbrev-ref", "HEAD")
             branch = result.stdout.strip()
-        
+
         log(f"Pushing to origin/{branch}...")
-        
+
         if force_lease:
             self._run_git("push", "--force-with-lease", "origin", branch)
         elif force:
             self._run_git("push", "-f", "origin", branch)
         else:
             self._run_git("push", "origin", branch)
-        
+
         log("Push successful")
 
     def commit_and_push_single(self, local_path: str, message: str) -> None:
@@ -164,16 +163,16 @@ class GitUpdater:
         self._run_git("commit", "--allow-empty", "-m", message)
         self.push()
 
-    def commit_and_push_files(self, file_pairs: List[Tuple[str, str]], 
+    def commit_and_push_files(self, file_pairs: list[tuple[str, str]],
                                commit_message: str = "auto: update configs",
                                max_retries: int = 3) -> bool:
         """Complete workflow with retry logic for push conflicts."""
 
         # Append timestamp to match github_handler.py format
         ts = datetime.now(timezone(timedelta(hours=3))).strftime("%H:%M | %d.%m.%Y")
-        full_message = "{0}: {1}".format(commit_message, ts)
+        full_message = f"{commit_message}: {ts}"
         log("Starting git commit and push workflow...")
-        
+
         try:
             self.configure_git()
 
@@ -197,11 +196,11 @@ class GitUpdater:
                     log("Warning: pull failed, continuing with local state")
 
             self.stage_files(file_pairs)
-            
+
             if not self.has_changes():
                 log("No changes detected, skipping commit")
                 return True
-            
+
             # Retry loop for push conflicts
             for attempt in range(max_retries):
                 if self.commit(full_message):
@@ -225,9 +224,9 @@ class GitUpdater:
                 else:
                     log("Commit failed or no changes")
                     return False
-            
+
             return False
-            
+
         except (OSError, subprocess.TimeoutExpired, subprocess.CalledProcessError) as e:
             log(f"Git workflow failed with error: {e}")
             return False

@@ -1,15 +1,15 @@
 """Fetcher module for downloading VPN configs using curl_cffi for speed."""
 
+import base64
 import os
 import re
 import time
-import base64
-import json
 import warnings
 from dataclasses import dataclass
-from curl_cffi.requests import Session
+
 import requests
-from typing import Optional
+from curl_cffi.requests import Session
+
 from config.settings import CHROME_UA, GITHUB_API_FALLBACK
 
 # Suppress SSL warnings when verify=False
@@ -34,12 +34,12 @@ def _extract_status(exc: Exception) -> int:
     return 0
 
 
-def _get_env_proxy() -> Optional[str]:
+def _get_env_proxy() -> str | None:
     """Get proxy from environment variables (set by main.py --proxy arg)."""
     return os.environ.get('HTTPS_PROXY') or os.environ.get('HTTP_PROXY') or os.environ.get('ALL_PROXY')
 
 
-def _get_github_token() -> Optional[str]:
+def _get_github_token() -> str | None:
     """Get GitHub token from environment (set by .env via config/settings.py).
 
     Used as fallback when callers don't pass token explicitly.
@@ -47,7 +47,7 @@ def _get_github_token() -> Optional[str]:
     return os.environ.get('GITHUB_TOKEN')
 
 
-def _raw_to_api_url(url: str) -> Optional[str]:
+def _raw_to_api_url(url: str) -> str | None:
     """Convert GitHub raw/blob URLs to API contents URL.
 
     Handles:
@@ -114,10 +114,10 @@ def _is_github_url(url: str) -> bool:
 
 def _fetch_via_api(
     url: str,
-    token: Optional[str] = None,
-    session: Optional[Session] = None,
+    token: str | None = None,
+    session: Session | None = None,
     timeout: int = 5,
-) -> Optional[str]:
+) -> str | None:
     """Fetch file content via GitHub API.
 
     <1MB: JSON with base64 content (default)
@@ -179,7 +179,7 @@ def _fetch_via_api(
         return None
 
 
-def build_session(max_pool_size: int = 4, proxy_url: Optional[str] = None) -> Session:
+def build_session(max_pool_size: int = 4, proxy_url: str | None = None) -> Session:
     """Builds a curl_cffi session with proper proxy support.
 
     Args:
@@ -208,7 +208,7 @@ def build_session(max_pool_size: int = 4, proxy_url: Optional[str] = None) -> Se
     return session
 
 
-def fetch_data(url: str, timeout: int = 5, max_attempts: int = 3, session=None, proxy_url: Optional[str] = None, token: Optional[str] = None) -> FetchResult:
+def fetch_data(url: str, timeout: int = 5, max_attempts: int = 3, session=None, proxy_url: str | None = None, token: str | None = None) -> FetchResult:
     """Fetches data from URL with retry logic, fallbacks, and optional auth.
 
     Returns FetchResult instead of raising exceptions — always inspect .success first.

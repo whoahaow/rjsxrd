@@ -1,16 +1,14 @@
 """Scrapes VPN configs from sstap.org/node-real-time-update/ page."""
 
-import re
-from typing import List
-import sys
 import os
+import re
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from fetchers.fetcher import fetch_data
-from utils.logger import log
 from utils.file_utils import prepare_config_content
-
+from utils.logger import log
 
 SSTAP_URL = "https://sstap.org/node-real-time-update/"
 
@@ -26,7 +24,7 @@ CONFIG_PATTERNS = [
 ]
 
 
-def scrape_sstap_configs() -> List[str]:
+def scrape_sstap_configs() -> list[str]:
     result = fetch_data(SSTAP_URL, timeout=15)
     if not result.success:
         log(f"sstap.org fetch failed: {result.error}")

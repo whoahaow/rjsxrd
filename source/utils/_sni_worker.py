@@ -5,7 +5,6 @@ without needing to re-import the parent module that owns the dispatch
 function. This is a standard pattern for multiprocessing in Python.
 """
 import ipaddress
-from typing import List, Set
 
 # Cross-module imports (normal — worker imports from file_utils, not itself).
 # _VPN_PROTOCOL_PATTERN is the single source of truth in file_utils.

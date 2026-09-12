@@ -8,7 +8,6 @@ Worker counts are auto-sized using SystemSpecs (RAM-aware, CPU-aware).
 
 import atexit
 from concurrent.futures import ThreadPoolExecutor
-from typing import Dict, Optional
 
 from utils.system_specs import get_specs
 
@@ -36,7 +35,7 @@ def _get_optimal_workers(default: int = 8, label: str = "generic") -> int:
     # Low RAM: cap workers aggressively
     if specs.total_ram_mb < 1024:
         return max(2, min(default, 8))
-    elif specs.total_ram_mb < 2048:
+    if specs.total_ram_mb < 2048:
         return max(4, min(default, 16))
 
     # Enough RAM: use default (it's already reasonable, floor at 2)
@@ -49,11 +48,11 @@ class ExecutorCache:
     Executors are created lazily and reused across calls. All executors
     are properly shut down on program exit.
     """
-    
-    _executors: Dict[str, ThreadPoolExecutor] = {}
+
+    _executors: dict[str, ThreadPoolExecutor] = {}
     _lock = None  # Initialized lazily to avoid import-order issues
     _registered: bool = False  # Idempotency guard for atexit.register
-    
+
     @classmethod
     def _get_lock(cls) -> "threading.Lock":
         """Get or create lock lazily."""
@@ -61,7 +60,7 @@ class ExecutorCache:
             import threading
             cls._lock = threading.Lock()
         return cls._lock
-    
+
     @classmethod
     def get(cls, name: str, max_workers: int = None) -> ThreadPoolExecutor:
         """Get cached executor by name.
@@ -79,19 +78,19 @@ class ExecutorCache:
             results = list(executor.map(process_func, items))
         """
         lock = cls._get_lock()
-        
+
         with lock:
             if name not in cls._executors:
                 # Auto-optimize worker count if not specified
                 if max_workers is None:
                     max_workers = _get_optimal_workers(default=8)
-                
+
                 cls._executors[name] = ThreadPoolExecutor(
                     max_workers=max_workers,
                     thread_name_prefix=name
                 )
             return cls._executors[name]
-    
+
     @classmethod
     def shutdown_all(cls) -> None:
         """Shutdown all cached executors.
@@ -99,7 +98,7 @@ class ExecutorCache:
         Called automatically on program exit via atexit handler.
         """
         lock = cls._get_lock()
-        
+
         with lock:
             for name, executor in cls._executors.items():
                 try:

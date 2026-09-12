@@ -120,7 +120,7 @@ def _print_wasteful(by_yield: list) -> None:
     if not waste:
         return
     waste.sort(key=lambda x: -x[0])
-    print(f"=== wasteful sources (raw>5k, verified<5) ===")
+    print("=== wasteful sources (raw>5k, verified<5) ===")
     for raw, sec, ver, url in waste[:15]:
         print(f"  raw={raw:>6} sec={sec:>6} ver={ver:>5}  {url[:80]}")
     print()
@@ -130,7 +130,7 @@ def _print_totals(by_yield: list, dead: list, no_yield_failed: list, no_yield_un
     all_raw = sum(r for r, _, _, _, _ in by_yield)
     all_sec = sum(s for _, s, _, _, _ in by_yield)
     all_ver = sum(v for _, _, v, _, _ in by_yield)
-    print(f"=== totals ===")
+    print("=== totals ===")
     print(f"  raw:      {all_raw:>8,}")
     print(f"  secure:   {all_sec:>8,}")
     print(f"  verified: {all_ver:>8,}")
@@ -151,7 +151,7 @@ def _print_by_section(by_yield: list) -> None:
         s["ver"] += ver
     if not sections:
         return
-    print(f"=== by section ===")
+    print("=== by section ===")
     for sn, s in sorted(sections.items(), key=lambda x: -x[1]["ver"]):
         print(f"  [{sn:>12}] urls={s['urls']:>4} raw={s['raw']:>8,} sec={s['sec']:>8,} ver={s['ver']:>5,}")
     print()
@@ -163,7 +163,7 @@ def _print_dead(dead: list) -> None:
         print()
         return
     dead.sort(key=lambda x: -x[1])
-    print(f"=== dead URLs (3+ consecutive failures) ===")
+    print("=== dead URLs (3+ consecutive failures) ===")
     for url, fails in dead:
         print(f"  [{fails}x] {url[:90]}")
     print()

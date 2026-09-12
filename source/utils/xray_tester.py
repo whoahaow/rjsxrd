@@ -764,10 +764,9 @@ class XrayTester:
         if not port_map:
             return None, {}
 
-        from config.settings import BATCH_MODE_OVERRIDE as _override
-        from config.settings import XRAY_BATCH_MODE as _mode
+        from config.settings import BATCH_MODE_OVERRIDE, XRAY_BATCH_MODE
 
-        _effective = _override if _override is not None else _mode
+        _effective = BATCH_MODE_OVERRIDE if BATCH_MODE_OVERRIDE is not None else XRAY_BATCH_MODE
         if _effective != "batch":
             log(
                 f"Created multi-config with {len(port_map)} valid inbounds (ports {min(port_map.keys())}-{max(port_map.keys())})"

@@ -157,10 +157,12 @@ def _check_encryption_none(config_lower: str) -> bool:
 
 def _check_vless_no_tls(config_lower: str) -> bool:
     """VLESS without TLS/REALITY = no encryption = insecure."""
-    if config_lower.startswith("vless://") and not config_lower.startswith("vmess://"):
-        if "security=tls" not in config_lower and "security=reality" not in config_lower:
-            return True
-    return False
+    return bool(
+        config_lower.startswith("vless://")
+        and not config_lower.startswith("vmess://")
+        and "security=tls" not in config_lower
+        and "security=reality" not in config_lower
+    )
 
 
 def _check_vmess_json(config_line: str, config_lower: str) -> bool:

@@ -419,11 +419,14 @@ def setup_proxy_chain(proxy_urls: list, timeout: float = 8.0) -> dict:
                 log(f"  (skipping hop1 details: {type(e).__name__}: {str(e)[:80]})")
 
         # Verify chain
-        if result.get("proxy_ip") and result.get("real_ip"):
-            if result["proxy_ip"] == result["real_ip"]:
-                result["error"] = "Proxy chain not hiding real IP"
-                tester.stop_xray_process(process)
-                return result
+        if (
+            result.get("proxy_ip")
+            and result.get("real_ip")
+            and result["proxy_ip"] == result["real_ip"]
+        ):
+            result["error"] = "Proxy chain not hiding real IP"
+            tester.stop_xray_process(process)
+            return result
 
         if hop1_ip and result["proxy_ip"] and hop1_ip == result["proxy_ip"]:
             log("  * CRITICAL: Chain exits via hop1 only - hop2 bypassed")

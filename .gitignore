@@ -134,9 +134,6 @@ ehthumbs.db
 Thumbs.db
 Thumbs.db:encryptable
 
-# Environment variables file
-.env
-
 # GitHub tokens and sensitive data
 *.token
 token.txt
@@ -166,12 +163,6 @@ tmp/
 temp/
 *.bak
 *.backup
-
-# Cache directories
-.cache/
-__pycache__/
-*.pyc
-*.pyo
 
 # Serena IDE cache and local config
 .serena/

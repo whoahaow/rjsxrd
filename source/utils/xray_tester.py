@@ -211,29 +211,28 @@ def _xray_incompatible_reason(cfg: str) -> str:
         return "hysteria2 unsupported by xray"
 
     # ── UUID validation (vless, vmess) ────────────────────────────
-    if cfg_lower.startswith(("vless://", "vmess://")):
-        # Extract UUID: vless://uuid@host or vmess base64
-        if cfg_lower.startswith("vless://"):
-            try:
-                after_proto = cfg[cfg.index("://") + 3 :]
-                uuid_part = after_proto.split("@")[0] if "@" in after_proto else ""
-                # URL-decode then strip non-hex
-                from urllib.parse import unquote
+    # Extract UUID: vless://uuid@host
+    if cfg_lower.startswith("vless://"):
+        try:
+            after_proto = cfg[cfg.index("://") + 3 :]
+            uuid_part = after_proto.split("@")[0] if "@" in after_proto else ""
+            # URL-decode then strip non-hex
+            from urllib.parse import unquote
 
-                decoded = unquote(uuid_part)
-                # Check for URL-encoded garbage (%25 repeated)
-                if "%25" in uuid_part or "%2540" in uuid_part:
-                    return "invalid UUID (url-encoded garbage)"
-                # Check for non-UUID text
-                clean = decoded.strip().rstrip(".")
-                if not _RE_UUID.match(clean):
-                    # Check if it looks like readable text (not a UUID at all)
-                    if len(clean) > 40 or not all(c in "0123456789abcdefABCDEF-" for c in clean):
-                        return "invalid UUID (not a valid format)"
-                    # It's hex-like but wrong length or format
-                    return "invalid UUID (bad format)"
-            except (ValueError, IndexError):
-                return "invalid UUID (parse error)"
+            decoded = unquote(uuid_part)
+            # Check for URL-encoded garbage (%25 repeated)
+            if "%25" in uuid_part or "%2540" in uuid_part:
+                return "invalid UUID (url-encoded garbage)"
+            # Check for non-UUID text
+            clean = decoded.strip().rstrip(".")
+            if not _RE_UUID.match(clean):
+                # Check if it looks like readable text (not a UUID at all)
+                if len(clean) > 40 or not all(c in "0123456789abcdefABCDEF-" for c in clean):
+                    return "invalid UUID (not a valid format)"
+                # It's hex-like but wrong length or format
+                return "invalid UUID (bad format)"
+        except (ValueError, IndexError):
+            return "invalid UUID (parse error)"
 
     # ── VLESS encryption field ────────────────────────────────────
     if "encryption=none=@" in cfg or "encryption=none=/" in cfg:
@@ -1156,11 +1155,14 @@ class XrayTester:
         self._config_files.clear()
 
         # Clear thread-local sessions to prevent memory leak
-        if hasattr(self, "_thread_local") and self._thread_local is not None:
-            if hasattr(self._thread_local, "session"):
-                with contextlib.suppress(OSError, RuntimeError):
-                    self._thread_local.session.close()
-                delattr(self._thread_local, "session")
+        if (
+            hasattr(self, "_thread_local")
+            and self._thread_local is not None
+            and hasattr(self._thread_local, "session")
+        ):
+            with contextlib.suppress(OSError, RuntimeError):
+                self._thread_local.session.close()
+            delattr(self._thread_local, "session")
 
         # No global tester registry to remove from. The shared ProcessRegistry
         # tracks (tester, process) pairs; processes are unregistered when

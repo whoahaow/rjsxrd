@@ -299,3 +299,6 @@ def fetch_data(
             return FetchResult(
                 text="", status_code=_extract_status(exc), error=str(exc), success=False
             )
+
+    # max_attempts <= 0 never enters the loop; keep the fall-through explicit.
+    return None

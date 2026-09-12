@@ -61,7 +61,7 @@ def _extract_configs_from_dict(data: dict[str, Any]) -> list[str]:
             configs.append(config)
 
     # Recursively search for proxy configurations in nested structures
-    for key, value in data.items():
+    for value in data.values():
         if isinstance(value, dict):
             configs.extend(_extract_configs_from_dict(value))
         elif isinstance(value, list):

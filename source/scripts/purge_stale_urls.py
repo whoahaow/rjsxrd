@@ -388,7 +388,7 @@ def run(dry_run: bool, stale_days: int) -> None:
 
         print()
         print(f"stale URLs ({len(aged)}):")
-        for age, url, date_str in aged:
+        for age, url, _ in aged:
             label = f"[{age:>4}d]" if age >= 0 else "[  ???]"
             print(f"  {label} {url[:90]}")
 

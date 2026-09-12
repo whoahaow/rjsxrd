@@ -125,7 +125,7 @@ def split_configs_to_files(
     results = list(executor.map(_write_config_chunk, chunks_to_write))
 
     created_files = []
-    for filename, count, chunk_idx, total_chunks, total_configs, error in results:
+    for filename, *_, error in results:
         if error:
             log(f"Error writing {filename}: {error}")
         else:

@@ -501,7 +501,8 @@ source/               - generator source code
  │   ├─ xray_helpers.py - Xray helper functions
  │   └─ xray_tester.py - Xray-core testing sorted by speed
  ├─ xray/             - Xray-core bundle (xray, geoip.dat, geosite.dat, LICENSE)
- └─ requirements.txt  - project dependencies
+ ├─ requirements.txt  - runtime dependencies
+ └─ requirements-dev.txt - linter, static typing and test toolchain
 .github/workflows/    - CI/CD (auto-update daily)
 .env                  - environment variables (gitignored)
 .env.example          - environment variable template
@@ -621,12 +622,17 @@ Main dependencies:
 - `tqdm` - progress bars for config and Telegram proxy verification
 - `pytdbot[tdjson]` - Telegram bot API
 
-For development and testing:
+For development and testing (`source/requirements-dev.txt`, installed on top of the runtime dependencies):
 - `pytest` - testing framework
 - `pytest-cov` - code coverage report
 - `pytest-asyncio` - async test support
 - `pytest-xdist` - parallel test run
 - `pytest-mock` - mocking utilities
+- `hypothesis` - property-based tests
+- `ruff` - linter
+- `mypy` - static type checking
+- `pip-audit` - dependency vulnerability scan
+- `pre-commit` - git hooks
 
 ---
 

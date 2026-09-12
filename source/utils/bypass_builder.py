@@ -4,6 +4,7 @@ Extracted from config_processor.py. Handles Xray/TCP verification of bypass
 configs and creates sorted working-config files.
 """
 
+import contextlib
 import glob
 import os
 import re
@@ -29,10 +30,8 @@ def _cleanup_stale_raw_split_shards(
     if os.path.exists(main_path):
         for stale in glob.glob(path_in_output(output_dir, raw_dir_glob, f"{prefix}-*.txt")):
             if re.match(r".*-\d+\.txt$", stale):
-                try:
+                with contextlib.suppress(OSError):
                     os.remove(stale)
-                except OSError:
-                    pass
 
 
 def _cleanup_stale_bypass_split_files(

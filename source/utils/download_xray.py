@@ -4,6 +4,7 @@
 Supports: Windows (x86_64), Linux (x86_64, arm64), macOS (x86_64, arm64)
 """
 
+import contextlib
 import json
 import os
 import platform
@@ -322,10 +323,8 @@ def ensure_xray_installed(
         return None
 
     # Cleanup
-    try:
+    with contextlib.suppress(OSError):
         download_path.unlink()
-    except OSError:
-        pass
 
     # Make executable on Unix
     if sys.platform != "win32":

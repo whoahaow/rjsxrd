@@ -2,6 +2,7 @@
 
 import asyncio
 import base64
+import contextlib
 import logging
 import os
 import socket
@@ -132,10 +133,9 @@ class TelegramProxyVerifier:
                 return False, 0.0
             finally:
                 if sock:
-                    try:
+                    # best-effort socket cleanup
+                    with contextlib.suppress(OSError):
                         sock.close()
-                    except OSError:
-                        pass  # best-effort socket cleanup
         except (TimeoutError, OSError):
             return False, 0.0
 
@@ -221,10 +221,8 @@ class TelegramProxyVerifier:
             # Check handshake response
             if len(response) < 2 or response[1] == 0xFF:
                 writer.close()
-                try:
+                with contextlib.suppress(OSError, RuntimeError):
                     await writer.wait_closed()
-                except (OSError, RuntimeError):
-                    pass
                 return False, 0.0
 
             # Auth if needed
@@ -241,17 +239,13 @@ class TelegramProxyVerifier:
                 response = await asyncio.wait_for(reader.read(2), timeout=timeout / 2)
                 if len(response) < 2 or response[1] != 0:
                     writer.close()
-                    try:
+                    with contextlib.suppress(OSError, RuntimeError):
                         await writer.wait_closed()
-                    except (OSError, RuntimeError):
-                        pass
                     return False, 0.0
 
             writer.close()
-            try:
+            with contextlib.suppress(OSError, RuntimeError):
                 await writer.wait_closed()
-            except (OSError, RuntimeError):
-                pass
 
             return True, connect_time
 
@@ -413,10 +407,8 @@ class TelegramProxyVerifier:
                 )
                 for task in pending:
                     task.cancel()
-                try:
+                with contextlib.suppress(OSError, RuntimeError):
                     loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
-                except (OSError, RuntimeError):
-                    pass
                 loop.close()
 
         # Run in thread to avoid event loop conflicts

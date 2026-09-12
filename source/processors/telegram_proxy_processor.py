@@ -1,5 +1,6 @@
 """Telegram proxy processor module for handling proxy collection and file generation."""
 
+import contextlib
 import os
 
 from config.settings import DEFAULT_MAX_WORKERS, TELEGRAM_PROXY_URLS
@@ -213,10 +214,8 @@ class TelegramProxyProcessor:
                     # Extract latency from error_msg (format: "OK - 150ms")
                     latency = float("inf")
                     if "OK -" in error_msg:
-                        try:
+                        with contextlib.suppress(ValueError, IndexError):
                             latency = float(error_msg.split("OK - ")[1].split("ms")[0])
-                        except (ValueError, IndexError):
-                            pass
                     working_proxies.append((proxy_url, latency))
 
             log(f"Proxy verification complete: {len(working_proxies)} working proxies")

@@ -17,6 +17,7 @@ Note: TUIC is not natively supported by Xray-core. TUIC configs will fail testin
 
 # Import shared cipher sets from file_utils (single source of truth)
 import asyncio
+import contextlib
 import datetime
 import json
 import os
@@ -802,10 +803,8 @@ class XrayTester:
     def _cleanup_config_file(config_file: str | None) -> None:
         """Remove a config temp file if it exists. Safe to call with None."""
         if config_file and os.path.exists(config_file):
-            try:
+            with contextlib.suppress(OSError):
                 os.unlink(config_file)
-            except OSError:
-                pass
 
     def _write_xray_config_file(self, config_json: str) -> str | None:
         """Write Xray config JSON to a secure temp file.
@@ -978,10 +977,8 @@ class XrayTester:
         except (OSError, subprocess.TimeoutExpired, RuntimeError) as e:
             log(f"ERROR: Failed to stop process {process.pid}: {e}")
             if PSUTIL_AVAILABLE:
-                try:
+                with contextlib.suppress(psutil.NoSuchProcess, psutil.AccessDenied, OSError):
                     psutil.Process(process.pid).kill()
-                except (psutil.NoSuchProcess, psutil.AccessDenied, OSError):
-                    pass
 
         with self._process_lock:
             if process in self._running_processes:
@@ -1147,10 +1144,8 @@ class XrayTester:
                 except (OSError, psutil.NoSuchProcess, psutil.AccessDenied) as e:
                     log(f"ERROR: Failed to stop process {process.pid}: {e}")
                     if PSUTIL_AVAILABLE:
-                        try:
+                        with contextlib.suppress(psutil.NoSuchProcess, OSError):
                             psutil.Process(process.pid).kill()
-                        except (psutil.NoSuchProcess, OSError):
-                            pass
             self._running_processes.clear()
 
         # Delete all config files (security: remove credentials from disk)
@@ -1165,10 +1160,8 @@ class XrayTester:
         # Clear thread-local sessions to prevent memory leak
         if hasattr(self, "_thread_local") and self._thread_local is not None:
             if hasattr(self._thread_local, "session"):
-                try:
+                with contextlib.suppress(OSError, RuntimeError):
                     self._thread_local.session.close()
-                except (OSError, RuntimeError):
-                    pass
                 delattr(self._thread_local, "session")
 
         # No global tester registry to remove from. The shared ProcessRegistry

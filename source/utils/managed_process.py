@@ -5,6 +5,7 @@ xray_tester.py, ip_verifier.py, and process_registry.py into a
 single class. Every caller gets consistent lifecycle behavior.
 """
 
+import contextlib
 import os
 import subprocess
 
@@ -80,7 +81,5 @@ class ManagedProcess:
     def _cleanup_config(self) -> None:
         """Remove the associated config file if it exists."""
         if self._config_file and os.path.exists(self._config_file):
-            try:
+            with contextlib.suppress(OSError):
                 os.unlink(self._config_file)
-            except OSError:
-                pass

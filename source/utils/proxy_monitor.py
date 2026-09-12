@@ -1,5 +1,6 @@
 """Proxy health monitoring with automatic failover prompt."""
 
+import contextlib
 import json
 import threading
 
@@ -194,7 +195,5 @@ class ProxyMonitor:
         if self.thread:
             self.thread.join(timeout=STOP_JOIN_TIMEOUT)
         # Remove from registry
-        try:
+        with contextlib.suppress(OSError, RuntimeError):
             default_registry.unregister_monitor(self)
-        except (OSError, RuntimeError):
-            pass

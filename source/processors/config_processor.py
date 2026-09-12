@@ -8,6 +8,7 @@ flag resolution, path building) live in utils/config_helpers.py.
 from __future__ import annotations
 
 import concurrent.futures
+import contextlib
 import gc
 import math
 import os
@@ -790,10 +791,8 @@ class ConfigPipeline:
             "socks5_proxies",
         ):
             if hasattr(self, attr):
-                try:
+                with contextlib.suppress(AttributeError):
                     delattr(self, attr)
-                except AttributeError:
-                    pass
         gc.collect()
 
     def run(self) -> list[tuple[str, str]]:

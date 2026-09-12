@@ -7,6 +7,7 @@ Worker counts are auto-sized using SystemSpecs (RAM-aware, CPU-aware).
 """
 
 import atexit
+import contextlib
 from concurrent.futures import ThreadPoolExecutor
 
 from utils.system_specs import get_specs
@@ -101,10 +102,8 @@ class ExecutorCache:
 
         with lock:
             for name, executor in cls._executors.items():
-                try:
+                with contextlib.suppress(OSError, RuntimeError):
                     executor.shutdown(wait=True)
-                except (OSError, RuntimeError):
-                    pass
             cls._executors.clear()
 
 

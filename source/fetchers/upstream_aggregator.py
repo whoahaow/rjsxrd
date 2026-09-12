@@ -37,7 +37,11 @@ def _fetch_and_extract_urls(source_url: str) -> list[str]:
         except ValueError:
             continue
 
-        if host == "hh.yudou226.top" or host == "gist.githubusercontent.com" and GUIDONGONE_PATH_PATTERN.search(parsed.path):
+        if (
+            host == "hh.yudou226.top"
+            or host == "gist.githubusercontent.com"
+            and GUIDONGONE_PATH_PATTERN.search(parsed.path)
+        ):
             urls.append(line)
 
     return urls
@@ -55,6 +59,7 @@ def _fetch_config(url: str) -> list[str] | None:
     # Try base64 decode
     try:
         import base64
+
         decoded = base64.b64decode(result.text.strip()).decode("utf-8", errors="ignore")
         configs = prepare_config_content(decoded)
     except (ValueError, TypeError, UnicodeDecodeError):
@@ -65,7 +70,9 @@ def _fetch_config(url: str) -> list[str] | None:
 
 # Quoted: threading.Lock is a factory function before Python 3.13, so the
 # PEP 604 union is not runtime-evaluable at function-definition time.
-def fetch_upstream_dynamic_configs(seen: set | None = None, seen_lock: "threading.Lock | None" = None) -> list[str]:
+def fetch_upstream_dynamic_configs(
+    seen: set | None = None, seen_lock: "threading.Lock | None" = None
+) -> list[str]:
     all_new_urls = []
     for src_url in (MERMEROO_URL, LEON406_URL):
         urls = _fetch_and_extract_urls(src_url)
@@ -75,7 +82,7 @@ def fetch_upstream_dynamic_configs(seen: set | None = None, seen_lock: "threadin
     if not all_new_urls:
         return []
     all_configs = []
-    executor = ExecutorCache.get('upstream_fetch', max_workers=20)
+    executor = ExecutorCache.get("upstream_fetch", max_workers=20)
     future_to_url = {executor.submit(_fetch_config, url): url for url in all_new_urls}
     for future in concurrent.futures.as_completed(future_to_url):
         configs = future.result()

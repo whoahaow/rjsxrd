@@ -14,6 +14,7 @@ from utils.git_updater import GitUpdater
 
 # ── Helpers ───────────────────────────────────────────────────────────
 
+
 def _make_result(returncode=0, stdout="", stderr=""):
     """Build a subprocess.CompletedProcess-like mock with real-ish attrs."""
     r = MagicMock(spec=subprocess.CompletedProcess)
@@ -24,6 +25,7 @@ def _make_result(returncode=0, stdout="", stderr=""):
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def mock_subprocess_run():
@@ -40,6 +42,7 @@ def updater(tmp_path):
 
 
 # ── Init ──────────────────────────────────────────────────────────────
+
 
 class TestInit:
     def test_default_repo_dir_resolves(self):
@@ -62,6 +65,7 @@ class TestInit:
 
 
 # ── _run_git ──────────────────────────────────────────────────────────
+
 
 class TestRunGit:
     def test_runs_command(self, mock_subprocess_run, updater):
@@ -89,6 +93,7 @@ class TestRunGit:
 
 # ── configure_git ─────────────────────────────────────────────────────
 
+
 class TestConfigureGit:
     def test_sets_user_name_and_email(self, mock_subprocess_run, updater):
         updater.configure_git()
@@ -99,6 +104,7 @@ class TestConfigureGit:
 
 
 # ── pull ──────────────────────────────────────────────────────────────
+
 
 class TestPull:
     def test_pull_detects_branch(self, mock_subprocess_run, updater):
@@ -121,15 +127,16 @@ class TestPull:
     def test_pull_resets_on_unstaged_changes(self, mock_subprocess_run, updater):
         """When pull fails with unstaged changes, falls back to reset+clean."""
         mock_subprocess_run.side_effect = [
-            _make_result(0, stdout="main\n"),    # rev-parse
-            _make_result(0),                      # stash push
-            subprocess.CalledProcessError(        # pull --rebase (fails)
-                1, ["git", "pull", "--rebase", "origin", "main"],
-                stderr="Cannot pull with rebase: You have unstaged changes."
+            _make_result(0, stdout="main\n"),  # rev-parse
+            _make_result(0),  # stash push
+            subprocess.CalledProcessError(  # pull --rebase (fails)
+                1,
+                ["git", "pull", "--rebase", "origin", "main"],
+                stderr="Cannot pull with rebase: You have unstaged changes.",
             ),
-            _make_result(0),                      # reset --hard
-            _make_result(0),                      # clean -fd
-            _make_result(0),                      # pull --rebase (retry)
+            _make_result(0),  # reset --hard
+            _make_result(0),  # clean -fd
+            _make_result(0),  # pull --rebase (retry)
         ]
 
         updater.pull()
@@ -140,6 +147,7 @@ class TestPull:
 
 
 # ── stage_files ───────────────────────────────────────────────────────
+
 
 class TestStageFiles:
     def test_stages_config_and_source(self, mock_subprocess_run, updater):
@@ -153,6 +161,7 @@ class TestStageFiles:
 
 
 # ── has_changes ───────────────────────────────────────────────────────
+
 
 class TestHasChanges:
     def test_returns_true_when_diff_cached_nonzero(self, mock_subprocess_run, updater):
@@ -169,6 +178,7 @@ class TestHasChanges:
 
 
 # ── commit ────────────────────────────────────────────────────────────
+
 
 class TestCommit:
     def test_commits_with_message(self, mock_subprocess_run, updater):
@@ -199,6 +209,7 @@ class TestCommit:
 
 # ── push ──────────────────────────────────────────────────────────────
 
+
 class TestPush:
     def test_push_detects_branch(self, mock_subprocess_run, updater):
         mock_subprocess_run.return_value = _make_result(0, stdout="main\n")
@@ -216,14 +227,22 @@ class TestPush:
     def test_force_push(self, mock_subprocess_run, updater):
         mock_subprocess_run.return_value = _make_result(0, stdout="main\n")
         updater.push(force=True)
-        assert mock_subprocess_run.call_args_list[1].args[0] == ["git", "push", "-f", "origin", "main"]
+        assert mock_subprocess_run.call_args_list[1].args[0] == [
+            "git",
+            "push",
+            "-f",
+            "origin",
+            "main",
+        ]
 
 
 # ── commit_and_push_files (full workflow) ─────────────────────────────
 
+
 class TestCommitAndPushFiles:
     def test_full_successful_workflow(self, mock_subprocess_run, updater):
         """Happy path: config git, stage, commit, push — all succeed."""
+
         def side_effect(cmd, *args, **kwargs):
             if cmd == ["git", "diff", "--cached", "--quiet"]:
                 return _make_result(1)  # has changes
@@ -244,8 +263,7 @@ class TestCommitAndPushFiles:
         assert result is True
 
         commit_calls = [
-            c for c in mock_subprocess_run.call_args_list
-            if c.args[0][:2] == ["git", "commit"]
+            c for c in mock_subprocess_run.call_args_list if c.args[0][:2] == ["git", "commit"]
         ]
         assert len(commit_calls) == 0
 
@@ -273,22 +291,22 @@ class TestCommitAndPushFiles:
         assert result is True
 
         pull_calls = [
-            c for c in mock_subprocess_run.call_args_list
+            c
+            for c in mock_subprocess_run.call_args_list
             if c.args[0][:3] == ["git", "pull", "--rebase"]
         ]
         assert len(pull_calls) == 2  # initial pull + retry pull after failed push
 
     def test_fails_after_max_retries(self, mock_subprocess_run, updater):
         """All push attempts fail."""
+
         def side_effect(cmd, *args, **kwargs):
             if cmd == ["git", "diff", "--cached", "--quiet"]:
                 return _make_result(1)
             if cmd == ["git", "rev-parse", "--abbrev-ref", "HEAD"]:
                 return _make_result(0, stdout="main\n")
             if len(cmd) > 1 and cmd[0] == "git" and cmd[1] == "push":
-                raise subprocess.CalledProcessError(
-                    1, cmd, stderr="! [rejected] non-fast-forward"
-                )
+                raise subprocess.CalledProcessError(1, cmd, stderr="! [rejected] non-fast-forward")
             return _make_result(0)
 
         mock_subprocess_run.side_effect = side_effect

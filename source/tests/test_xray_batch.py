@@ -12,6 +12,7 @@ class TestBatchModeSwitch:
     def _make_mock_tester(self):
         """Create a mock XrayTester with all methods BatchRunner calls."""
         from unittest.mock import MagicMock
+
         tester = MagicMock()
         tester.xray_path = "/fake/xray"
         tester._running_processes = []
@@ -36,6 +37,7 @@ class TestBatchModeSwitch:
         try:
             # Force batch mode via override
             import config.settings as _settings
+
             _settings.BATCH_MODE_OVERRIDE = "batch"
 
             tester = self._make_mock_tester()
@@ -43,7 +45,9 @@ class TestBatchModeSwitch:
 
             # Mock _test_batch_shared_xray to return known results
             expected = [("vless://a", True, 50.0), ("vless://b", False, 0.0)]
-            with mock_patch.object(runner, '_test_batch_shared_xray', return_value=expected) as mock_method:
+            with mock_patch.object(
+                runner, "_test_batch_shared_xray", return_value=expected
+            ) as mock_method:
                 result = runner.test_batch(["vless://a", "vless://b"])
 
                 assert mock_method.called, "_test_batch_shared_xray was not called"
@@ -52,6 +56,7 @@ class TestBatchModeSwitch:
         finally:
             # Restore override
             import config.settings as _settings
+
             _settings.BATCH_MODE_OVERRIDE = orig_override
 
     def test_single_mode_dispatches_to_async(self):
@@ -63,6 +68,7 @@ class TestBatchModeSwitch:
 
         try:
             import config.settings as _settings
+
             _settings.BATCH_MODE_OVERRIDE = "single"
 
             tester = self._make_mock_tester()
@@ -70,7 +76,9 @@ class TestBatchModeSwitch:
 
             # Mock _test_batch_async_wrapper to return known results
             expected = [("vless://a", True, 50.0)]
-            with mock_patch.object(runner, '_test_batch_async_wrapper', return_value=expected) as mock_method:
+            with mock_patch.object(
+                runner, "_test_batch_async_wrapper", return_value=expected
+            ) as mock_method:
                 result = runner.test_batch(["vless://a"])
 
                 assert mock_method.called, "_test_batch_async_wrapper was not called"
@@ -78,6 +86,7 @@ class TestBatchModeSwitch:
 
         finally:
             import config.settings as _settings
+
             _settings.BATCH_MODE_OVERRIDE = orig_override
 
     def test_override_takes_precedence_over_env(self):
@@ -89,6 +98,7 @@ class TestBatchModeSwitch:
 
         try:
             import config.settings as _settings
+
             # Set env to "single" but override to "batch"
             os.environ["XRAY_BATCH_MODE"] = "single"
             # Force-reload the module-level constant by patching
@@ -97,15 +107,22 @@ class TestBatchModeSwitch:
             tester = self._make_mock_tester()
             runner = BatchRunner(tester)
 
-            with mock_patch.object(runner, '_test_batch_shared_xray', return_value=[]) as mock_batch:
-                with mock_patch.object(runner, '_test_batch_async_wrapper', return_value=[]) as mock_single:
+            with mock_patch.object(
+                runner, "_test_batch_shared_xray", return_value=[]
+            ) as mock_batch:
+                with mock_patch.object(
+                    runner, "_test_batch_async_wrapper", return_value=[]
+                ) as mock_single:
                     runner.test_batch(["vless://a"])
 
-                    assert mock_batch.called, "_test_batch_shared_xray should be called when override=batch"
+                    assert mock_batch.called, (
+                        "_test_batch_shared_xray should be called when override=batch"
+                    )
                     assert not mock_single.called, "_test_batch_async_wrapper should NOT be called"
 
         finally:
             import config.settings as _settings
+
             _settings.BATCH_MODE_OVERRIDE = orig_override
             os.environ.pop("XRAY_BATCH_MODE", None)
 
@@ -286,31 +303,37 @@ class TestBatchSettings:
     def test_xray_batch_mode_valid_values(self):
         """XRAY_BATCH_MODE accepts 'single' or 'batch'."""
         from config.settings import XRAY_BATCH_MODE
+
         assert XRAY_BATCH_MODE in ("single", "batch")
 
     def test_xray_batch_size_within_bounds(self):
         """XRAY_BATCH_SIZE is validated within [50, 2000]."""
         from config.settings import XRAY_BATCH_SIZE
+
         assert 50 <= XRAY_BATCH_SIZE <= 2000
 
     def test_xray_batch_processes_within_bounds(self):
         """XRAY_BATCH_PROCESSES is validated within [1, 16]."""
         from config.settings import XRAY_BATCH_PROCESSES
+
         assert 1 <= XRAY_BATCH_PROCESSES <= 16
 
     def test_xray_batch_startup_delay_within_bounds(self):
         """XRAY_BATCH_STARTUP_DELAY_MS is validated within [200, 5000]."""
         from config.settings import XRAY_BATCH_STARTUP_DELAY_MS
+
         assert 200 <= XRAY_BATCH_STARTUP_DELAY_MS <= 5000
 
     def test_xray_batch_port_range_size_within_bounds(self):
         """XRAY_BATCH_PORT_RANGE_SIZE is validated within [100, 5000]."""
         from config.settings import XRAY_BATCH_PORT_RANGE_SIZE
+
         assert 100 <= XRAY_BATCH_PORT_RANGE_SIZE <= 5000
 
     def test_batch_mode_override_default_none(self):
         """BATCH_MODE_OVERRIDE defaults to None."""
         from config.settings import BATCH_MODE_OVERRIDE
+
         assert BATCH_MODE_OVERRIDE is None
 
     def test_batch_mode_override_takes_string(self):
@@ -320,11 +343,14 @@ class TestBatchSettings:
         saved = BATCH_MODE_OVERRIDE
         try:
             import config.settings as _settings
+
             _settings.BATCH_MODE_OVERRIDE = "batch"
             from config.settings import BATCH_MODE_OVERRIDE as override
+
             assert override == "batch"
         finally:
             import config.settings as _settings
+
             _settings.BATCH_MODE_OVERRIDE = saved
 
     def test_invalid_mode_env_falls_back_to_single(self, monkeypatch):
@@ -337,7 +363,9 @@ class TestBatchSettings:
         import importlib
 
         import config.settings
+
         importlib.reload(config.settings)
 
         from config.settings import XRAY_BATCH_MODE
+
         assert XRAY_BATCH_MODE == "single"

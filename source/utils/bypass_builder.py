@@ -21,19 +21,23 @@ from utils.logger import log
 from utils.url_stats import URLStats
 
 
-def _cleanup_stale_raw_split_shards(output_dir: str, main_path: str, raw_dir_glob: str, prefix: str) -> None:
+def _cleanup_stale_raw_split_shards(
+    output_dir: str, main_path: str, raw_dir_glob: str, prefix: str
+) -> None:
     """Remove stale raw input split shards (e.g. bypass-all-raw-1.txt) from a
     previous run when the main raw file exists for the current run."""
     if os.path.exists(main_path):
         for stale in glob.glob(path_in_output(output_dir, raw_dir_glob, f"{prefix}-*.txt")):
-            if re.match(r'.*-\d+\.txt$', stale):
+            if re.match(r".*-\d+\.txt$", stale):
                 try:
                     os.remove(stale)
                 except OSError:
                     pass
 
 
-def _cleanup_stale_bypass_split_files(output_dir: str, prefix: str, current_file_count: int) -> None:
+def _cleanup_stale_bypass_split_files(
+    output_dir: str, prefix: str, current_file_count: int
+) -> None:
     """Remove stale bypass-{N}.txt output files whose index exceeds the current
     run's count. bypass-all.txt is preserved (it's the canonical master file).
     Local-only: does not touch the remote repository.
@@ -123,7 +127,8 @@ def seal_bypass_files(
         remote_path = f"githubmirror/{prefix}/{filename}"
         try:
             write_configs_file(
-                local_path, chunk_urls,
+                local_path,
+                chunk_urls,
                 get_subscription_header(filename, config_count=len(chunk_urls)),
             )
             if upload_file:
@@ -139,8 +144,10 @@ def _has_raw_files_for(main_path: str, raw_dir: str, prefix: str) -> bool:
     if os.path.exists(main_path):
         return True
     if os.path.isdir(raw_dir):
-        return any(re.match(rf'{re.escape(prefix)}-\d+\.txt$', os.path.basename(p))
-                   for p in glob.glob(f"{raw_dir}/{prefix}-*.txt"))
+        return any(
+            re.match(rf"{re.escape(prefix)}-\d+\.txt$", os.path.basename(p))
+            for p in glob.glob(f"{raw_dir}/{prefix}-*.txt")
+        )
     return False
 
 
@@ -159,7 +166,7 @@ def _gather_raw_files(main_path: str, raw_dir: str, prefix: str, label: str) -> 
         files.append(main_path)
     elif os.path.isdir(raw_dir):
         split_files = sorted(glob.glob(f"{raw_dir}/{prefix}-*.txt"), key=natural_sort_key)
-        split_files = [p for p in split_files if re.match(r'.*-\d+\.txt$', p)]
+        split_files = [p for p in split_files if re.match(r".*-\d+\.txt$", p)]
         if split_files:
             files.extend(split_files)
             log(f"{label} not found, using {len(split_files)} split raw files")
@@ -169,23 +176,32 @@ def _gather_raw_files(main_path: str, raw_dir: str, prefix: str, label: str) -> 
 def _load_raw_configs_into_set(filepath: str, target: set) -> None:
     """Load config lines from a raw file (skip comments) into an existing set."""
     try:
-        with open(filepath, encoding='utf-8', buffering=65536) as f:
-            target.update(line.strip() for line in f
-                          if line.strip() and not line.strip().startswith('#'))
+        with open(filepath, encoding="utf-8", buffering=65536) as f:
+            target.update(
+                line.strip() for line in f if line.strip() and not line.strip().startswith("#")
+            )
     except (OSError, UnicodeDecodeError) as e:
         log(f"Warning: Could not read {filepath}: {e}")
 
 
-def verify_config_file(input_path: str, configs: list[str] = None, verbose: bool = False,
-                        tcp_ping: bool = False, config_to_sources: dict = None,
-                        stats: URLStats | None = None,
-                        progress_callback: Callable | None = None) -> list[str]:
+def verify_config_file(
+    input_path: str,
+    configs: list[str] = None,
+    verbose: bool = False,
+    tcp_ping: bool = False,
+    config_to_sources: dict = None,
+    stats: URLStats | None = None,
+    progress_callback: Callable | None = None,
+) -> list[str]:
     """Verify configs in a file and return sorted working configs."""
     try:
         if configs is None:
-            with open(input_path, encoding='utf-8') as f:
-                configs = [line.strip() for line in f if line.strip() and not line.strip().startswith('#')]
+            with open(input_path, encoding="utf-8") as f:
+                configs = [
+                    line.strip() for line in f if line.strip() and not line.strip().startswith("#")
+                ]
             from utils.file_utils import deduplicate_configs
+
             configs = deduplicate_configs(configs)
 
         if not configs:
@@ -195,12 +211,16 @@ def verify_config_file(input_path: str, configs: list[str] = None, verbose: bool
         all_results = []
         if tcp_ping:
             from utils.simple_tester import SimpleTester
+
             tester = SimpleTester(timeout=VALIDATION_TCP_TIMEOUT)
-            all_results = tester.test_batch(configs, verbose=verbose, progress_callback=progress_callback)
+            all_results = tester.test_batch(
+                configs, verbose=verbose, progress_callback=progress_callback
+            )
         else:
             verifier = None
             try:
                 from utils.xray_tester import XrayTester, filter_xray_compatible
+
                 verifier = XrayTester()
                 if verifier.xray_path and os.path.isfile(verifier.xray_path):
                     log(f"Using Xray-core tester: {verifier.xray_path}")
@@ -210,13 +230,22 @@ def verify_config_file(input_path: str, configs: list[str] = None, verbose: bool
                         log("All configs filtered out by xray compat check")
                         all_results = []
                     else:
-                        all_results = verifier.test_batch(configs, timeout=VALIDATION_HTTP_TIMEOUT, verbose=verbose, progress_callback=progress_callback)
+                        all_results = verifier.test_batch(
+                            configs,
+                            timeout=VALIDATION_HTTP_TIMEOUT,
+                            verbose=verbose,
+                            progress_callback=progress_callback,
+                        )
                 else:
-                    xray_path_str = verifier.xray_path if verifier and verifier.xray_path else "default paths"
-                    log(f"WARNING: Xray not found at {xray_path_str}. "
+                    xray_path_str = (
+                        verifier.xray_path if verifier and verifier.xray_path else "default paths"
+                    )
+                    log(
+                        f"WARNING: Xray not found at {xray_path_str}. "
                         f"Skipping verification of {len(configs)} configs. "
                         "Run `python3 main.py` (without --skip-xray) once to download xray, "
-                        "or use --tcp-ping for TCP-only verification.")
+                        "or use --tcp-ping for TCP-only verification."
+                    )
                     all_results = []
             finally:
                 if verifier:
@@ -307,12 +336,17 @@ def _run_progressive_seal(
             log(f"Progress callback error: {e}")
 
 
-def verify_and_write_bypass(bypass_all_raw_path: str, bypass_all_txt_path: str,
-                              output_dir: str, tcp_ping: bool,
-                              config_to_sources: dict | None,
-                              stats: URLStats | None, verbose: bool,
-                              progress_callback: Callable | None = None,
-                              upload_file: Callable[[str, str], None] | None = None) -> tuple:
+def verify_and_write_bypass(
+    bypass_all_raw_path: str,
+    bypass_all_txt_path: str,
+    output_dir: str,
+    tcp_ping: bool,
+    config_to_sources: dict | None,
+    stats: URLStats | None,
+    verbose: bool,
+    progress_callback: Callable | None = None,
+    upload_file: Callable[[str, str], None] | None = None,
+) -> tuple:
     """STEP 1: Verify bypass-all-raw.txt and create bypass-all.txt with split files.
 
     Progressive upload flow:
@@ -330,7 +364,9 @@ def verify_and_write_bypass(bypass_all_raw_path: str, bypass_all_txt_path: str,
     from utils.file_utils import deduplicate_configs
 
     bypass_raw_dir = path_in_output(output_dir, "bypass", "raw")
-    raw_files = _gather_raw_files(bypass_all_raw_path, bypass_raw_dir, "bypass-all-raw", "bypass-all-raw.txt")
+    raw_files = _gather_raw_files(
+        bypass_all_raw_path, bypass_raw_dir, "bypass-all-raw", "bypass-all-raw.txt"
+    )
     if not raw_files:
         log("No bypass raw config files found, skipping")
         # Clean up any stale bypass-N.txt files from previous runs — this
@@ -379,10 +415,14 @@ def verify_and_write_bypass(bypass_all_raw_path: str, bypass_all_txt_path: str,
         # after the last callback fire), so we dedup against accumulator
         # to avoid double-adding.
         callback_fired[0] = False
-        working_chunk = verify_config_file(raw_file, tcp_ping=tcp_ping,
-                                              config_to_sources=config_to_sources,
-                                              stats=stats, verbose=verbose,
-                                              progress_callback=_cb)
+        working_chunk = verify_config_file(
+            raw_file,
+            tcp_ping=tcp_ping,
+            config_to_sources=config_to_sources,
+            stats=stats,
+            verbose=verbose,
+            progress_callback=_cb,
+        )
         if working_chunk and not callback_fired[0]:
             # Callback did not fire (working_count never crossed a 300
             # threshold for this raw file). Process the return value.
@@ -403,9 +443,12 @@ def verify_and_write_bypass(bypass_all_raw_path: str, bypass_all_txt_path: str,
             # working_chunk is the full final set). Check for items in
             # the return value that are not yet in seen and add them.
             from utils.file_utils import _get_dedup_key
-            new_items = [u for u in working_chunk
-                         if _get_dedup_key(u) is not None
-                         and _get_dedup_key(u) not in seen_keys]
+
+            new_items = [
+                u
+                for u in working_chunk
+                if _get_dedup_key(u) is not None and _get_dedup_key(u) not in seen_keys
+            ]
             if new_items:
                 _run_progressive_seal(
                     working_chunk=new_items,
@@ -465,15 +508,19 @@ def verify_and_write_bypass(bypass_all_raw_path: str, bypass_all_txt_path: str,
     return working_bypass, []
 
 
-def verify_and_write_bypass_unsecure(bypass_unsecure_raw_path: str,
-                                       bypass_unsecure_all_txt_path: str,
-                                       bypass_all_raw_path: str, output_dir: str,
-                                       working_bypass: list[str], tcp_ping: bool,
-                                       config_to_sources: dict | None,
-                                       stats: URLStats | None,
-                                       verbose: bool,
-                                       progress_callback: Callable | None = None,
-                                       upload_file: Callable[[str, str], None] | None = None) -> list[str]:
+def verify_and_write_bypass_unsecure(
+    bypass_unsecure_raw_path: str,
+    bypass_unsecure_all_txt_path: str,
+    bypass_all_raw_path: str,
+    output_dir: str,
+    working_bypass: list[str],
+    tcp_ping: bool,
+    config_to_sources: dict | None,
+    stats: URLStats | None,
+    verbose: bool,
+    progress_callback: Callable | None = None,
+    upload_file: Callable[[str, str], None] | None = None,
+) -> list[str]:
     """STEP 2: Verify bypass-unsecure-all-raw.txt (configs not in secure set).
 
     Uses the same progressive-seal pattern as verify_and_write_bypass:
@@ -483,8 +530,12 @@ def verify_and_write_bypass_unsecure(bypass_unsecure_raw_path: str,
     are not re-sealed).
     """
     unsecure_raw_dir = path_in_output(output_dir, "bypass-unsecure", "raw")
-    unsecure_raw_files = _gather_raw_files(bypass_unsecure_raw_path, unsecure_raw_dir,
-                                            "bypass-unsecure-all-raw", "bypass-unsecure-all-raw.txt")
+    unsecure_raw_files = _gather_raw_files(
+        bypass_unsecure_raw_path,
+        unsecure_raw_dir,
+        "bypass-unsecure-all-raw",
+        "bypass-unsecure-all-raw.txt",
+    )
     if not unsecure_raw_files:
         log("bypass-unsecure-all-raw.txt not found, skipping")
         _write_empty_bypass_file(bypass_unsecure_all_txt_path, "bypass-unsecure-all")
@@ -502,10 +553,10 @@ def verify_and_write_bypass_unsecure(bypass_unsecure_raw_path: str,
     unsecure_seen: set = set()
     for raw_file in unsecure_raw_files:
         try:
-            with open(raw_file, encoding='utf-8', buffering=65536) as f:
+            with open(raw_file, encoding="utf-8", buffering=65536) as f:
                 for line in f:
                     line = line.strip()
-                    if line and not line.startswith('#') and line not in unsecure_seen:
+                    if line and not line.startswith("#") and line not in unsecure_seen:
                         unsecure_seen.add(line)
                         unsecure_configs.append(line)
         except (OSError, UnicodeDecodeError) as e:
@@ -517,16 +568,19 @@ def verify_and_write_bypass_unsecure(bypass_unsecure_raw_path: str,
         _load_raw_configs_into_set(bypass_all_raw_path, all_bypass_configs)
     if os.path.isdir(bypass_raw_dir):
         for f in glob.glob(f"{bypass_raw_dir}/bypass-all-raw-*.txt"):
-            if re.match(r'.*-\d+\.txt$', f) and os.path.exists(f):
+            if re.match(r".*-\d+\.txt$", f) and os.path.exists(f):
                 _load_raw_configs_into_set(f, all_bypass_configs)
 
     unsecure_only = [cfg for cfg in unsecure_configs if cfg not in all_bypass_configs]
-    log(f"unsecure raw: {len(unsecure_configs)} total, {len(all_bypass_configs)} already tested, {len(unsecure_only)} new")
+    log(
+        f"unsecure raw: {len(unsecure_configs)} total, {len(all_bypass_configs)} already tested, {len(unsecure_only)} new"
+    )
 
     # Build bypass-unsecure accumulator and dedup set. Seed seen_keys with
     # the secure set's working configs so they are not re-sealed into
     # bypass-unsecure-N.txt files.
     from utils.file_utils import _get_dedup_key
+
     accumulator: list[tuple[float, str]] = []
     seen_keys: set = {_get_dedup_key(u) for u in working_bypass if _get_dedup_key(u) is not None}
     last_sealed_idx: list[int] = [0]
@@ -552,11 +606,15 @@ def verify_and_write_bypass_unsecure(bypass_unsecure_raw_path: str,
         # the return value has items not seen by the callback, process them.
 
         callback_fired[0] = False
-        working_unsecure = verify_config_file(unsecure_raw_files[0], unsecure_only,
-                                                 tcp_ping=tcp_ping,
-                                                 config_to_sources=config_to_sources,
-                                                 stats=stats, verbose=verbose,
-                                                 progress_callback=_cb_uns)
+        working_unsecure = verify_config_file(
+            unsecure_raw_files[0],
+            unsecure_only,
+            tcp_ping=tcp_ping,
+            config_to_sources=config_to_sources,
+            stats=stats,
+            verbose=verbose,
+            progress_callback=_cb_uns,
+        )
         if working_unsecure and not callback_fired[0]:
             _run_progressive_seal(
                 working_chunk=working_unsecure,
@@ -571,9 +629,12 @@ def verify_and_write_bypass_unsecure(bypass_unsecure_raw_path: str,
             )
         elif working_unsecure and callback_fired[0]:
             from utils.file_utils import _get_dedup_key
-            new_items = [u for u in working_unsecure
-                         if _get_dedup_key(u) is not None
-                         and _get_dedup_key(u) not in seen_keys]
+
+            new_items = [
+                u
+                for u in working_unsecure
+                if _get_dedup_key(u) is not None and _get_dedup_key(u) not in seen_keys
+            ]
             if new_items:
                 _run_progressive_seal(
                     working_chunk=new_items,
@@ -624,25 +685,36 @@ def verify_and_write_bypass_unsecure(bypass_unsecure_raw_path: str,
     return []
 
 
-def create_working_config_files(output_dir: str = "../githubmirror", tcp_ping: bool = False,
-                                 config_to_sources: dict | None = None,
-                                 stats: URLStats | None = None,
-                                 verbose: bool = False,
-                                 progress_callback: Callable | None = None,
-                                 upload_file: Callable[[str, str], None] | None = None) -> tuple:
+def create_working_config_files(
+    output_dir: str = "../githubmirror",
+    tcp_ping: bool = False,
+    config_to_sources: dict | None = None,
+    stats: URLStats | None = None,
+    verbose: bool = False,
+    progress_callback: Callable | None = None,
+    upload_file: Callable[[str, str], None] | None = None,
+) -> tuple:
     """Creates verified working config files sorted by ping (fastest first)."""
     bypass_all_raw_path = path_in_output(output_dir, "bypass", "raw", "bypass-all-raw.txt")
     bypass_all_txt_path = path_in_output(output_dir, "bypass", "bypass-all.txt")
-    bypass_unsecure_raw_path = path_in_output(output_dir, "bypass-unsecure", "raw", "bypass-unsecure-all-raw.txt")
-    bypass_unsecure_all_txt_path = path_in_output(output_dir, "bypass-unsecure", "bypass-unsecure-all.txt")
+    bypass_unsecure_raw_path = path_in_output(
+        output_dir, "bypass-unsecure", "raw", "bypass-unsecure-all-raw.txt"
+    )
+    bypass_unsecure_all_txt_path = path_in_output(
+        output_dir, "bypass-unsecure", "bypass-unsecure-all.txt"
+    )
 
     _cleanup_stale_raw_split_shards(output_dir, bypass_all_raw_path, "bypass/raw", "bypass-all-raw")
-    _cleanup_stale_raw_split_shards(output_dir, bypass_unsecure_raw_path, "bypass-unsecure/raw", "bypass-unsecure-all-raw")
+    _cleanup_stale_raw_split_shards(
+        output_dir, bypass_unsecure_raw_path, "bypass-unsecure/raw", "bypass-unsecure-all-raw"
+    )
 
     bypass_raw_dir = path_in_output(output_dir, "bypass", "raw")
     unsecure_raw_dir = path_in_output(output_dir, "bypass-unsecure", "raw")
     has_bypass = _has_raw_files_for(bypass_all_raw_path, bypass_raw_dir, "bypass-all-raw")
-    has_unsecure = _has_raw_files_for(bypass_unsecure_raw_path, unsecure_raw_dir, "bypass-unsecure-all-raw")
+    has_unsecure = _has_raw_files_for(
+        bypass_unsecure_raw_path, unsecure_raw_dir, "bypass-unsecure-all-raw"
+    )
 
     if not has_bypass and not has_unsecure:
         log("No bypass raw config files found for verification")
@@ -652,22 +724,41 @@ def create_working_config_files(output_dir: str = "../githubmirror", tcp_ping: b
         # files from previous runs (matching the no-raw-files branch in
         # each sub-function).
         _cleanup_stale_bypass_split_files(
-            output_dir=output_dir, prefix="bypass", current_file_count=0,
+            output_dir=output_dir,
+            prefix="bypass",
+            current_file_count=0,
         )
         _cleanup_stale_bypass_split_files(
-            output_dir=output_dir, prefix="bypass-unsecure", current_file_count=0,
+            output_dir=output_dir,
+            prefix="bypass-unsecure",
+            current_file_count=0,
         )
         return ([], [])
 
     working_bypass, bypass_files = verify_and_write_bypass(
-        bypass_all_raw_path, bypass_all_txt_path, output_dir, tcp_ping,
-        config_to_sources, stats, verbose,
-        progress_callback=progress_callback, upload_file=upload_file)
+        bypass_all_raw_path,
+        bypass_all_txt_path,
+        output_dir,
+        tcp_ping,
+        config_to_sources,
+        stats,
+        verbose,
+        progress_callback=progress_callback,
+        upload_file=upload_file,
+    )
 
     unsecure_files = verify_and_write_bypass_unsecure(
-        bypass_unsecure_raw_path, bypass_unsecure_all_txt_path,
-        bypass_all_raw_path, output_dir, working_bypass, tcp_ping,
-        config_to_sources, stats, verbose,
-        progress_callback=progress_callback, upload_file=upload_file)
+        bypass_unsecure_raw_path,
+        bypass_unsecure_all_txt_path,
+        bypass_all_raw_path,
+        output_dir,
+        working_bypass,
+        tcp_ping,
+        config_to_sources,
+        stats,
+        verbose,
+        progress_callback=progress_callback,
+        upload_file=upload_file,
+    )
 
     return bypass_files, unsecure_files

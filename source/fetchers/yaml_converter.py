@@ -12,10 +12,10 @@ from utils.logger import log
 def convert_yaml_to_vpn_configs(yaml_content: str) -> list[str]:
     """
     Convert YAML configuration to VPN config URLs (vmess://, vless://, etc.).
-    
+
     Args:
         yaml_content: Raw YAML content as string
-        
+
     Returns:
         List of VPN config URLs in proper format
     """
@@ -76,13 +76,24 @@ def _is_proxy_config(data: dict[str, Any]) -> bool:
     """Check if a dictionary represents a proxy configuration."""
     # Common proxy configuration indicators
     proxy_indicators = [
-        'type',  # Most proxy configs have a type field
-        'server', 'port',  # Server and port are common
-        'name',  # Name is common
+        "type",  # Most proxy configs have a type field
+        "server",
+        "port",  # Server and port are common
+        "name",  # Name is common
     ]
 
     # Check if it has a type field with a known proxy type
-    if 'type' in data and data['type'] in ['vmess', 'vless', 'trojan', 'ss', 'ssr', 'tuic', 'hysteria', 'hysteria2', 'hy2']:
+    if "type" in data and data["type"] in [
+        "vmess",
+        "vless",
+        "trojan",
+        "ss",
+        "ssr",
+        "tuic",
+        "hysteria",
+        "hysteria2",
+        "hy2",
+    ]:
         return True
 
     # Check if it has enough proxy indicators
@@ -92,11 +103,11 @@ def _is_proxy_config(data: dict[str, Any]) -> bool:
 
 def _convert_proxy_to_url(proxy_config: dict[str, Any]) -> str:
     """Convert a proxy configuration dictionary to a VPN URL."""
-    proxy_type = proxy_config.get('type', '').lower()
+    proxy_type = proxy_config.get("type", "").lower()
 
-    if proxy_type == 'vmess':
+    if proxy_type == "vmess":
         return _convert_vmess_to_url(proxy_config)
-    if proxy_type in ['vless', 'trojan', 'ss', 'ssr', 'tuic', 'hysteria', 'hysteria2', 'hy2']:
+    if proxy_type in ["vless", "trojan", "ss", "ssr", "tuic", "hysteria", "hysteria2", "hy2"]:
         # For other types, we'll create a generic URL format
         return _convert_generic_to_url(proxy_config)
     # Try to determine the type based on available fields
@@ -108,29 +119,32 @@ def _convert_vmess_to_url(config: dict[str, Any]) -> str:
     try:
         # Prepare the VMess config object
         vmess_obj = {
-            'v': '2',
-            'ps': config.get('name', ''),
-            'add': config.get('server', ''),
-            'port': str(config.get('port', '')),
-            'id': config.get('uuid', config.get('password', '')),  # For some configs, password might be used instead of uuid
-            'aid': str(config.get('alterId', 0)),
-            'scy': config.get('cipher', 'auto'),
-            'net': config.get('network', 'tcp'),
-            'type': config.get('type', 'none'),
-            'host': config.get('host', ''),
-            'path': config.get('path', ''),
-            'tls': 'tls' if config.get('tls', False) or config.get('ssl', False) else '',
-            'sni': config.get('servername', ''),
-            'alpn': config.get('alpn', ''),
-            'fp': config.get('fingerprint', 'chrome'),
+            "v": "2",
+            "ps": config.get("name", ""),
+            "add": config.get("server", ""),
+            "port": str(config.get("port", "")),
+            "id": config.get(
+                "uuid", config.get("password", "")
+            ),  # For some configs, password might be used instead of uuid
+            "aid": str(config.get("alterId", 0)),
+            "scy": config.get("cipher", "auto"),
+            "net": config.get("network", "tcp"),
+            "type": config.get("type", "none"),
+            "host": config.get("host", ""),
+            "path": config.get("path", ""),
+            "tls": "tls" if config.get("tls", False) or config.get("ssl", False) else "",
+            "sni": config.get("servername", ""),
+            "alpn": config.get("alpn", ""),
+            "fp": config.get("fingerprint", "chrome"),
         }
 
         # Clean up empty values
-        vmess_obj = {k: v for k, v in vmess_obj.items() if v != ''}
+        vmess_obj = {k: v for k, v in vmess_obj.items() if v != ""}
 
         # Convert to JSON and encode as base64
         import json
-        json_str = json.dumps(vmess_obj, separators=(',', ':'))
+
+        json_str = json.dumps(vmess_obj, separators=(",", ":"))
         encoded = base64.b64encode(json_str.encode()).decode()
 
         return f"vmess://{encoded}"
@@ -141,19 +155,19 @@ def _convert_vmess_to_url(config: dict[str, Any]) -> str:
 
 def _convert_generic_to_url(config: dict[str, Any]) -> str:
     """Convert generic proxy config to appropriate URL format."""
-    proxy_type = config.get('type', '').lower()
+    proxy_type = config.get("type", "").lower()
 
-    if proxy_type == 'vless':
+    if proxy_type == "vless":
         return _build_vless_url(config)
-    if proxy_type == 'trojan':
+    if proxy_type == "trojan":
         return _build_trojan_url(config)
-    if proxy_type in ['ss', 'shadowsocks']:
+    if proxy_type in ["ss", "shadowsocks"]:
         return _build_shadowsocks_url(config)
-    if proxy_type in ['ssr', 'shadowsocksr']:
+    if proxy_type in ["ssr", "shadowsocksr"]:
         return _build_shadowsocksr_url(config)
-    if proxy_type in ['tuic']:
+    if proxy_type in ["tuic"]:
         return _build_tuic_url(config)
-    if proxy_type in ['hysteria', 'hysteria2', 'hy2']:
+    if proxy_type in ["hysteria", "hysteria2", "hy2"]:
         return _build_hysteria_url(config)
     # Try to determine the type based on available fields
     return _try_convert_to_url(config)
@@ -162,9 +176,9 @@ def _convert_generic_to_url(config: dict[str, Any]) -> str:
 def _build_vless_url(config: dict[str, Any]) -> str:
     """Build VLESS URL from config."""
     try:
-        server = config.get('server', '')
-        port = config.get('port', '')
-        uuid = config.get('uuid', config.get('password', ''))
+        server = config.get("server", "")
+        port = config.get("port", "")
+        uuid = config.get("uuid", config.get("password", ""))
 
         if not all([server, port, uuid]):
             return ""
@@ -173,29 +187,29 @@ def _build_vless_url(config: dict[str, Any]) -> str:
         params = []
 
         # Network type
-        network = config.get('network', 'tcp')
+        network = config.get("network", "tcp")
         params.append(f"type={network}")
 
         # TLS settings
-        if config.get('tls', False) or config.get('ssl', False):
+        if config.get("tls", False) or config.get("ssl", False):
             params.append("security=tls")
-            if 'servername' in config:
+            if "servername" in config:
                 params.append(f"sni={config['servername']}")
         else:
             params.append("security=none")
 
         # Additional network-specific options
-        if network == 'ws':
-            if 'path' in config:
+        if network == "ws":
+            if "path" in config:
                 params.append(f"path={config['path']}")
-            if 'host' in config:
+            if "host" in config:
                 params.append(f"host={config['host']}")
-        elif network == 'grpc':
-            if 'serviceName' in config:
+        elif network == "grpc":
+            if "serviceName" in config:
                 params.append(f"serviceName={config['serviceName']}")
 
         # Add other parameters as needed
-        if 'flow' in config:
+        if "flow" in config:
             params.append(f"flow={config['flow']}")
 
         query = "&".join(params)
@@ -208,9 +222,9 @@ def _build_vless_url(config: dict[str, Any]) -> str:
 def _build_trojan_url(config: dict[str, Any]) -> str:
     """Build Trojan URL from config."""
     try:
-        server = config.get('server', '')
-        port = config.get('port', '')
-        password = config.get('password', config.get('uuid', ''))
+        server = config.get("server", "")
+        port = config.get("port", "")
+        password = config.get("password", config.get("uuid", ""))
 
         if not all([server, port, password]):
             return ""
@@ -219,24 +233,24 @@ def _build_trojan_url(config: dict[str, Any]) -> str:
         params = []
 
         # TLS settings
-        if config.get('tls', True):
+        if config.get("tls", True):
             params.append("security=tls")
-            if 'sni' in config:
+            if "sni" in config:
                 params.append(f"sni={config['sni']}")
-            elif 'servername' in config:
+            elif "servername" in config:
                 params.append(f"sni={config['servername']}")
         else:
             params.append("security=none")
 
         # Network type
-        network = config.get('network', 'tcp')
+        network = config.get("network", "tcp")
         params.append(f"type={network}")
 
         # Additional network-specific options
-        if network == 'ws':
-            if 'path' in config:
+        if network == "ws":
+            if "path" in config:
                 params.append(f"path={config['path']}")
-            if 'host' in config:
+            if "host" in config:
                 params.append(f"host={config['host']}")
 
         query = "&".join(params)
@@ -249,10 +263,10 @@ def _build_trojan_url(config: dict[str, Any]) -> str:
 def _build_shadowsocks_url(config: dict[str, Any]) -> str:
     """Build Shadowsocks URL from config."""
     try:
-        server = config.get('server', '')
-        port = config.get('port', '')
-        password = config.get('password', '')
-        cipher = config.get('cipher', 'chacha20-ietf-poly1305')
+        server = config.get("server", "")
+        port = config.get("port", "")
+        password = config.get("password", "")
+        cipher = config.get("cipher", "chacha20-ietf-poly1305")
 
         if not all([server, port, password, cipher]):
             return ""
@@ -261,7 +275,9 @@ def _build_shadowsocks_url(config: dict[str, Any]) -> str:
         credentials = f"{cipher}:{password}"
         encoded_credentials = base64.b64encode(credentials.encode()).decode()
 
-        return f"ss://{encoded_credentials}@{server}:{port}#{config.get('name', 'Shadowsocks Config')}"
+        return (
+            f"ss://{encoded_credentials}@{server}:{port}#{config.get('name', 'Shadowsocks Config')}"
+        )
     except (TypeError, ValueError) as e:
         log(f"Error building Shadowsocks URL: {e}")
         return ""
@@ -270,12 +286,12 @@ def _build_shadowsocks_url(config: dict[str, Any]) -> str:
 def _build_shadowsocksr_url(config: dict[str, Any]) -> str:
     """Build ShadowsocksR URL from config."""
     try:
-        server = config.get('server', '')
-        port = config.get('port', '')
-        password = config.get('password', '')
-        cipher = config.get('cipher', 'chacha20-ietf-poly1305')
-        protocol = config.get('protocol', 'origin')
-        obfs = config.get('obfs', 'plain')
+        server = config.get("server", "")
+        port = config.get("port", "")
+        password = config.get("password", "")
+        cipher = config.get("cipher", "chacha20-ietf-poly1305")
+        protocol = config.get("protocol", "origin")
+        obfs = config.get("obfs", "plain")
 
         if not all([server, port, password, cipher]):
             return ""
@@ -287,7 +303,7 @@ def _build_shadowsocksr_url(config: dict[str, Any]) -> str:
 
         # Add query parameters
         query_parts = []
-        if 'name' in config:
+        if "name" in config:
             query_parts.append(f"remarks={base64.b64encode(config['name'].encode()).decode()}")
 
         url = f"ssr://{params}/?" + "&".join(query_parts)
@@ -300,10 +316,10 @@ def _build_shadowsocksr_url(config: dict[str, Any]) -> str:
 def _build_tuic_url(config: dict[str, Any]) -> str:
     """Build TUIC URL from config."""
     try:
-        server = config.get('server', '')
-        port = config.get('port', '')
-        uuid = config.get('uuid', '')
-        password = config.get('password', '')
+        server = config.get("server", "")
+        port = config.get("port", "")
+        uuid = config.get("uuid", "")
+        password = config.get("password", "")
 
         if not all([server, port, uuid]):
             return ""
@@ -313,15 +329,15 @@ def _build_tuic_url(config: dict[str, Any]) -> str:
 
         # TLS settings
         params.append("security=tls")
-        if 'sni' in config:
+        if "sni" in config:
             params.append(f"sni={config['sni']}")
 
         # UDP relay mode
-        if 'udp_relay_mode' in config:
+        if "udp_relay_mode" in config:
             params.append(f"udp={config['udp_relay_mode']}")
 
         # Congestion control
-        if 'congestion_control' in config:
+        if "congestion_control" in config:
             params.append(f"congestion_control={config['congestion_control']}")
 
         query = "&".join(params)
@@ -337,8 +353,8 @@ def _build_tuic_url(config: dict[str, Any]) -> str:
 def _build_hysteria_url(config: dict[str, Any]) -> str:
     """Build Hysteria URL from config."""
     try:
-        server = config.get('server', '')
-        port = config.get('port', '')
+        server = config.get("server", "")
+        port = config.get("port", "")
 
         if not all([server, port]):
             return ""
@@ -347,27 +363,27 @@ def _build_hysteria_url(config: dict[str, Any]) -> str:
         params = []
 
         # Authentication
-        if 'auth_str' in config:
+        if "auth_str" in config:
             params.append(f"auth={config['auth_str']}")
-        elif 'password' in config:
+        elif "password" in config:
             params.append(f"auth={config['password']}")
 
         # TLS settings
-        if 'sni' in config:
+        if "sni" in config:
             params.append(f"sni={config['sni']}")
 
         # Obfs
-        if 'obfs' in config:
+        if "obfs" in config:
             params.append(f"obfs={config['obfs']}")
 
         # Up/Down bandwidth
-        if 'up_mbps' in config:
+        if "up_mbps" in config:
             params.append(f"upmbps={config['up_mbps']}")
-        if 'down_mbps' in config:
+        if "down_mbps" in config:
             params.append(f"downmbps={config['down_mbps']}")
 
         # Protocol (for hysteria2)
-        if config.get('type', '').lower() in ['hysteria2', 'hy2']:
+        if config.get("type", "").lower() in ["hysteria2", "hy2"]:
             params.append("type=webtransport")  # Default type for hysteria2
 
         query = "&".join(params)
@@ -380,17 +396,17 @@ def _build_hysteria_url(config: dict[str, Any]) -> str:
 def _try_convert_to_url(config: dict[str, Any]) -> str:
     """Try to determine the proxy type and convert to URL."""
     # Try to identify the type based on available fields
-    if 'uuid' in config and 'security' in config:
+    if "uuid" in config and "security" in config:
         # Likely a VLESS config
-        config['type'] = 'vless'
+        config["type"] = "vless"
         return _build_vless_url(config)
-    if 'password' in config and 'sni' in config:
+    if "password" in config and "sni" in config:
         # Likely a Trojan config
-        config['type'] = 'trojan'
+        config["type"] = "trojan"
         return _build_trojan_url(config)
-    if 'cipher' in config and 'password' in config:
+    if "cipher" in config and "password" in config:
         # Likely a Shadowsocks config
-        config['type'] = 'ss'
+        config["type"] = "ss"
         return _build_shadowsocks_url(config)
     # Cannot determine the type
     return ""

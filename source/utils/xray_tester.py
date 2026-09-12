@@ -86,8 +86,11 @@ def _ensure_error_log() -> str:
         # Keep only the 7 most recent log files
         try:
             entries = sorted(
-                (os.path.join(_log_dir, f) for f in os.listdir(_log_dir)
-                 if f.startswith("xray-errors-") and f.endswith(".log")),
+                (
+                    os.path.join(_log_dir, f)
+                    for f in os.listdir(_log_dir)
+                    if f.startswith("xray-errors-") and f.endswith(".log")
+                ),
                 key=os.path.getmtime,
             )
             for old in entries[:-7]:  # remove all but the last 7
@@ -142,25 +145,27 @@ def _cleanup_all() -> None:
 
 # Regex for validating UUIDs (standard format: 8-4-4-4-12 hex)
 _RE_UUID = re.compile(
-    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
     re.I,
 )
 
 # Flow values removed or unsupported in current xray
-_UNSUPPORTED_FLOWS = frozenset({
-    'xtls-rprx-direct',
-    'xtls-rprx-direct-udp443',
-    'xtls-rprx-splice',
-    'xtls-rprx-splice-udp443',
-    'xtls-rprx-vision-udp443',
-    'xtls-rprx-origin',
-})
+_UNSUPPORTED_FLOWS = frozenset(
+    {
+        "xtls-rprx-direct",
+        "xtls-rprx-direct-udp443",
+        "xtls-rprx-splice",
+        "xtls-rprx-splice-udp443",
+        "xtls-rprx-vision-udp443",
+        "xtls-rprx-origin",
+    }
+)
 
 # Valid shortId: 2-32 hex characters
-_RE_SHORTID_VALID = re.compile(r'^[0-9a-f]{2,32}$', re.I)
+_RE_SHORTID_VALID = re.compile(r"^[0-9a-f]{2,32}$", re.I)
 
 # Supported Reality transports (xray URL type= maps to raw transport)
-_REALITY_TRANSPORTS = frozenset({'raw', 'tcp', 'xhttp', 'grpc'})
+_REALITY_TRANSPORTS = frozenset({"raw", "tcp", "xhttp", "grpc"})
 
 
 def filter_xray_compatible(configs: list[str]) -> tuple[list[str], list[tuple[str, str]]]:
@@ -184,12 +189,10 @@ def filter_xray_compatible(configs: list[str]) -> tuple[list[str], list[tuple[st
 
     if rejected:
         from collections import Counter
+
         counts = Counter(r for _, r in rejected)
-        summary = ', '.join(f'{k}({v})' for k, v in counts.most_common(5))
-        log(
-            f"Xray compat filter: removed {len(rejected)} config(s) "
-            f"({summary})"
-        )
+        summary = ", ".join(f"{k}({v})" for k, v in counts.most_common(5))
+        log(f"Xray compat filter: removed {len(rejected)} config(s) ({summary})")
 
     return compatible, rejected
 
@@ -204,90 +207,94 @@ def _xray_incompatible_reason(cfg: str) -> str:
 
     # ── Protocol-level rejects ────────────────────────────────────
     # Hysteria2: removed from xray-core, no longer supported
-    if cfg_lower.startswith('hysteria2://') or cfg_lower.startswith('hy2://'):
-        return 'hysteria2 unsupported by xray'
+    if cfg_lower.startswith("hysteria2://") or cfg_lower.startswith("hy2://"):
+        return "hysteria2 unsupported by xray"
 
     # ── UUID validation (vless, vmess) ────────────────────────────
-    if cfg_lower.startswith('vless://') or cfg_lower.startswith('vmess://'):
+    if cfg_lower.startswith("vless://") or cfg_lower.startswith("vmess://"):
         # Extract UUID: vless://uuid@host or vmess base64
-        if cfg_lower.startswith('vless://'):
+        if cfg_lower.startswith("vless://"):
             try:
-                after_proto = cfg[cfg.index('://') + 3:]
-                uuid_part = after_proto.split('@')[0] if '@' in after_proto else ''
+                after_proto = cfg[cfg.index("://") + 3 :]
+                uuid_part = after_proto.split("@")[0] if "@" in after_proto else ""
                 # URL-decode then strip non-hex
                 from urllib.parse import unquote
+
                 decoded = unquote(uuid_part)
                 # Check for URL-encoded garbage (%25 repeated)
-                if '%25' in uuid_part or '%2540' in uuid_part:
-                    return 'invalid UUID (url-encoded garbage)'
+                if "%25" in uuid_part or "%2540" in uuid_part:
+                    return "invalid UUID (url-encoded garbage)"
                 # Check for non-UUID text
-                clean = decoded.strip().rstrip('.')
+                clean = decoded.strip().rstrip(".")
                 if not _RE_UUID.match(clean):
                     # Check if it looks like readable text (not a UUID at all)
-                    if len(clean) > 40 or not all(c in '0123456789abcdefABCDEF-' for c in clean):
-                        return 'invalid UUID (not a valid format)'
+                    if len(clean) > 40 or not all(c in "0123456789abcdefABCDEF-" for c in clean):
+                        return "invalid UUID (not a valid format)"
                     # It's hex-like but wrong length or format
-                    return 'invalid UUID (bad format)'
+                    return "invalid UUID (bad format)"
             except (ValueError, IndexError):
-                return 'invalid UUID (parse error)'
+                return "invalid UUID (parse error)"
 
     # ── VLESS encryption field ────────────────────────────────────
-    if 'encryption=none=@' in cfg or 'encryption=none=/' in cfg:
-        return 'garbage encryption value'
+    if "encryption=none=@" in cfg or "encryption=none=/" in cfg:
+        return "garbage encryption value"
 
     # ── Flow validation (VLESS) — prefix match against deprecated flows ──
-    if 'flow=' in cfg_lower:
-        flow_match = re.search(r'[?&]flow=([^&#]+)', cfg_lower)
+    if "flow=" in cfg_lower:
+        flow_match = re.search(r"[?&]flow=([^&#]+)", cfg_lower)
         if flow_match:
-            flow_val = flow_match.group(1).lower().split('&')[0].split('#')[0]
+            flow_val = flow_match.group(1).lower().split("&")[0].split("#")[0]
             from urllib.parse import unquote
+
             flow_val = unquote(flow_val)
             # Check if flow starts with a deprecated prefix (catches
             # both exact matches and malformed variants like
             # xtls-rprx-vision-udp443-udp443-udp443)
             for deprecated in _UNSUPPORTED_FLOWS:
-                if flow_val == deprecated or flow_val.startswith(deprecated + '-'):
-                    return f'unsupported flow: {flow_val}'
+                if flow_val == deprecated or flow_val.startswith(deprecated + "-"):
+                    return f"unsupported flow: {flow_val}"
 
     # ── Reality password (no spaces) — checks both password= and pbk= ─
-    if 'password=' in cfg or 'pbk=' in cfg:
-        for param in ('password', 'pbk'):
-            pw_match = re.search(rf'(?:^|[?&]){param}=([^&#]+)', cfg)
+    if "password=" in cfg or "pbk=" in cfg:
+        for param in ("password", "pbk"):
+            pw_match = re.search(rf"(?:^|[?&]){param}=([^&#]+)", cfg)
             if pw_match:
                 pw_val = pw_match.group(1)
                 from urllib.parse import unquote
+
                 pw_val = unquote(pw_val)
-                if ' ' in pw_val:
-                    return f'reality {param} contains space'
+                if " " in pw_val:
+                    return f"reality {param} contains space"
 
     # ── Reality shortId length ────────────────────────────────────
-    if 'sid=' in cfg:
-        sid_match = re.search(r'sid=([^&#]+)', cfg)
+    if "sid=" in cfg:
+        sid_match = re.search(r"sid=([^&#]+)", cfg)
         if sid_match:
             sid_val = sid_match.group(1)
             from urllib.parse import unquote
+
             sid_val = unquote(sid_val)
             if not _RE_SHORTID_VALID.match(sid_val):
                 if len(sid_val) < 2:
-                    return 'reality shortId too short'
+                    return "reality shortId too short"
                 if len(sid_val) > 32:
-                    return 'reality shortId too long'
-                return 'reality shortId invalid chars'
+                    return "reality shortId too long"
+                return "reality shortId invalid chars"
 
     # ── Reality transport compatibility ───────────────────────────
-    if 'security=reality' in cfg_lower and 'type=' in cfg_lower:
-        type_match = re.search(r'[?&]type=([^&#]+)', cfg_lower)
+    if "security=reality" in cfg_lower and "type=" in cfg_lower:
+        type_match = re.search(r"[?&]type=([^&#]+)", cfg_lower)
         if type_match:
-            transport = type_match.group(1).lower().split('&')[0].split('#')[0]
+            transport = type_match.group(1).lower().split("&")[0].split("#")[0]
             if transport not in _REALITY_TRANSPORTS:
-                return f'reality with unsupported transport: {transport}'
+                return f"reality with unsupported transport: {transport}"
 
-    return ''
+    return ""
 
 
 class XrayTester:
     """Test VPN configs using Xray-core.
-    
+
     Supports:
     - Single config testing (one Xray process per config)
     - Batch testing (multiple configs tested concurrently)
@@ -328,7 +335,7 @@ class XrayTester:
 
     def _find_xray(self) -> str | None:
         """Find Xray binary with cross-platform support.
-        
+
         Returns:
             Absolute path to xray binary if found, None otherwise.
             Callers must check for None — the old fallback of returning
@@ -349,7 +356,7 @@ class XrayTester:
 
     def _get_next_port(self) -> int:
         """Get next available port with range skipping.
-        
+
         Port ranges:
         - 20000-21999: Batch tester
         - 22000-23999: Proxy chains
@@ -377,7 +384,7 @@ class XrayTester:
                 try:
                     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                    sock.bind(('127.0.0.1', port))
+                    sock.bind(("127.0.0.1", port))
                     sock.close()
                     reserved_ports.add(port)
                     self._port_counter[0] = port + 1
@@ -390,7 +397,7 @@ class XrayTester:
 
     def _wait_for_port(self, port: int, timeout: float = 1.5) -> bool:
         """Wait for SOCKS port to be listening."""
-        return wait_for_port('127.0.0.1', port, timeout)
+        return wait_for_port("127.0.0.1", port, timeout)
 
     def _url_to_outbound(self, url: str, tag: str = "proxy") -> dict | None:
         """Convert URL to outbound based on protocol.
@@ -421,56 +428,54 @@ class XrayTester:
 
         return {
             "log": {"loglevel": "error", "access": "", "error": ""},
-            "inbounds": [{
-                "tag": "socks",
-                "listen": "127.0.0.1",
-                "port": socks_port,
-                "protocol": "mixed",
-                "settings": {"auth": "noauth", "udp": True},
-                "sniffing": {
-                    "enabled": True,
-                    "routeOnly": True,
-                    "destOverride": ["http", "tls", "quic"]
+            "inbounds": [
+                {
+                    "tag": "socks",
+                    "listen": "127.0.0.1",
+                    "port": socks_port,
+                    "protocol": "mixed",
+                    "settings": {"auth": "noauth", "udp": True},
+                    "sniffing": {
+                        "enabled": True,
+                        "routeOnly": True,
+                        "destOverride": ["http", "tls", "quic"],
+                    },
                 }
-            }],
+            ],
             "outbounds": [
                 outbound,
                 {"tag": "direct", "protocol": "freedom"},
-                {"tag": "block", "protocol": "blackhole"}
+                {"tag": "block", "protocol": "blackhole"},
             ],
             "routing": {
                 "domainStrategy": "AsIs",
-                "rules": [{
-                    "type": "field",
-                    "inboundTag": ["socks"],
-                    "outboundTag": "proxy"
-                }]
-            }
+                "rules": [{"type": "field", "inboundTag": ["socks"], "outboundTag": "proxy"}],
+            },
         }
 
     def create_chain_config(self, proxy_urls: list, socks_port: int) -> dict | None:
         """Create Xray config with multiple chained VLESS outbounds (v2rayN-style).
-        
+
         Uses dialerProxy to chain multiple VLESS proxies in a SINGLE Xray instance.
         This is the SAME approach used by v2rayN for proxy chaining.
-        
+
         Architecture:
           App → Xray (:socks_port) → VLESS hop1 → dialerProxy → VLESS hop2 → Internet
-        
+
         ⚠️  TRANSPORT REQUIREMENTS:
         All hops MUST use WebSocket (ws) or HTTPUpgrade transport with TLS.
         Reality protocol does NOT work with dialerProxy chaining.
-        
+
         Supported: VLESS+WS+TLS, VLESS+HTTPUpgrade+TLS, VMess+WS+TLS
         NOT Supported: VLESS+Reality, VLESS+TCP
-        
+
         Args:
             proxy_urls: List of VLESS/VMess URLs to chain ['vless://hop1', 'vless://hop2']
             socks_port: Local SOCKS port for user apps
-        
+
         Returns:
             Xray config dict or None
-        
+
         Example:
             config = tester.create_chain_config(
                 proxy_urls=["vless://uuid1@hop1.example.com:443?...", "vless://uuid2@hop2.example.com:443?..."],
@@ -500,7 +505,9 @@ class XrayTester:
         for i, url in enumerate(reversed_urls):
             outbound = self._url_to_outbound(url, f"chain-{i}")
             if not outbound:
-                log(f"Failed to parse proxy URL at position {len(proxy_urls)-i} (reversed index {i+1})")
+                log(
+                    f"Failed to parse proxy URL at position {len(proxy_urls) - i} (reversed index {i + 1})"
+                )
                 return None
             self._apply_fragment(outbound)
 
@@ -508,55 +515,52 @@ class XrayTester:
                 # All hops except the last one need dialerProxy
                 if "streamSettings" not in outbound:
                     outbound["streamSettings"] = {}
-                outbound["streamSettings"]["sockopt"] = {
-                    "dialerProxy": f"chain-{i+1}"
-                }
+                outbound["streamSettings"]["sockopt"] = {"dialerProxy": f"chain-{i + 1}"}
 
             outbound["tag"] = f"chain-{i}"
             chain_tags.append(f"chain-{i}")
             outbounds.append(outbound)
 
         # The FIRST hop in user's order is at the END of our reversed array
-        first_hop_tag = f"chain-{len(reversed_urls)-1}"
+        first_hop_tag = f"chain-{len(reversed_urls) - 1}"
 
         log(f"Created chain config with {len(proxy_urls)} hops")
 
         # Build complete config
         return {
             "log": {"loglevel": "error", "access": "", "error": ""},
-            "inbounds": [{
-                "tag": "socks",
-                "listen": "127.0.0.1",
-                "port": socks_port,
-                "protocol": "mixed",
-                "settings": {"auth": "noauth", "udp": True},
-                "sniffing": {
-                    "enabled": True,
-                    "routeOnly": True,
-                    "destOverride": ["http", "tls", "quic"]
+            "inbounds": [
+                {
+                    "tag": "socks",
+                    "listen": "127.0.0.1",
+                    "port": socks_port,
+                    "protocol": "mixed",
+                    "settings": {"auth": "noauth", "udp": True},
+                    "sniffing": {
+                        "enabled": True,
+                        "routeOnly": True,
+                        "destOverride": ["http", "tls", "quic"],
+                    },
                 }
-            }],
-            "outbounds": outbounds + [
+            ],
+            "outbounds": outbounds
+            + [
                 {"tag": "direct", "protocol": "freedom", "settings": {"domainStrategy": "UseIPv4"}},
-                {"tag": "block", "protocol": "blackhole"}
+                {"tag": "block", "protocol": "blackhole"},
             ],
             "routing": {
                 "domainStrategy": "AsIs",
-                "rules": [{
-                    "type": "field",
-                    "inboundTag": ["socks"],
-                    "outboundTag": first_hop_tag
-                }]
-            }
+                "rules": [{"type": "field", "inboundTag": ["socks"], "outboundTag": first_hop_tag}],
+            },
         }
 
     def _validate_chain_transport(self, url: str, hop_number: int) -> tuple[bool, str]:
         """Validate proxy URL has compatible transport for chaining.
-        
+
         Args:
             url: Proxy URL to validate
             hop_number: Human-readable hop position (1-based)
-            
+
         Returns:
             Tuple of (is_valid, error_message)
         """
@@ -571,43 +575,53 @@ class XrayTester:
 
         # Check for Reality protocol (not compatible with dialerProxy)
         if security == "reality":
-            log(f"ERROR: Hop {hop_number} uses Reality protocol which is NOT compatible with dialerProxy chaining")
+            log(
+                f"ERROR: Hop {hop_number} uses Reality protocol which is NOT compatible with dialerProxy chaining"
+            )
             log("Please use WebSocket (ws) or HTTPUpgrade transport with TLS instead")
             return False, "Reality protocol not compatible"
 
         # Check transport type
         if network not in CHAIN_TRANSPORT_WHITELIST:
-            log(f"ERROR: Hop {hop_number} uses '{network}' transport which is NOT compatible with dialerProxy")
+            log(
+                f"ERROR: Hop {hop_number} uses '{network}' transport which is NOT compatible with dialerProxy"
+            )
             log(f"Supported transports: {', '.join(CHAIN_TRANSPORT_WHITELIST)}")
             return False, f"Unsupported transport: {network}"
 
         # Check TLS requirement
         if security != CHAIN_SECURITY_REQUIRED:
-            log(f"ERROR: Hop {hop_number} has security='{security}' but dialerProxy requires '{CHAIN_SECURITY_REQUIRED}'")
+            log(
+                f"ERROR: Hop {hop_number} has security='{security}' but dialerProxy requires '{CHAIN_SECURITY_REQUIRED}'"
+            )
             return False, f"Security must be '{CHAIN_SECURITY_REQUIRED}', got '{security}'"
 
         return True, ""
 
-    def create_multi_config(self, urls: list[str], base_port: int) -> tuple[dict | None, dict[int, str]]:
+    def create_multi_config(
+        self, urls: list[str], base_port: int
+    ) -> tuple[dict | None, dict[int, str]]:
         """Create SINGLE Xray config with multiple inbounds/outbounds (SMART batching).
-        
+
         OPTIMAL BATCH SIZE: 100 configs per Xray instance.
         This creates ONE Xray process with 100 inbounds instead of 100 processes.
-        
+
         Returns: (config_dict, port_to_url_mapping) or (None, {}) if failed
         """
         # SMART: Validate batch size
         if len(urls) > self.MAX_BATCH_SIZE:
-            log(f"WARNING: Batch size {len(urls)} exceeds maximum {self.MAX_BATCH_SIZE}. Split into smaller batches.")
+            log(
+                f"WARNING: Batch size {len(urls)} exceeds maximum {self.MAX_BATCH_SIZE}. Split into smaller batches."
+            )
 
         config = {
             "log": {"loglevel": "error", "access": "", "error": ""},
             "inbounds": [],
             "outbounds": [
                 {"tag": "direct", "protocol": "freedom"},
-                {"tag": "block", "protocol": "blackhole"}  # FIX: Required for proper routing
+                {"tag": "block", "protocol": "blackhole"},  # FIX: Required for proper routing
             ],
-            "routing": {"domainStrategy": "AsIs", "rules": []}
+            "routing": {"domainStrategy": "AsIs", "rules": []},
         }
         port_map = {}
         used_ports = set()
@@ -645,7 +659,7 @@ class XrayTester:
                     # inbounds, so xray would fail with EADDRINUSE.
                     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     sock.settimeout(0.1)
-                    sock.bind(('127.0.0.1', port))
+                    sock.bind(("127.0.0.1", port))
                     sock.close()
                     break  # Port is free (we just claimed it)
                 except (OSError, OverflowError):
@@ -664,7 +678,7 @@ class XrayTester:
                 continue
 
             # Skip malformed URLs
-            if '://' not in url:
+            if "://" not in url:
                 skipped_urls.append((url, "Missing protocol prefix"))
                 continue
 
@@ -720,16 +734,12 @@ class XrayTester:
                 "listen": "127.0.0.1",
                 "port": port,
                 "protocol": "mixed",
-                "settings": {"auth": "noauth", "udp": True}
+                "settings": {"auth": "noauth", "udp": True},
             }
             config["inbounds"].append(inbound)
             config["outbounds"].append(outbound)
 
-            rule = {
-                "type": "field",
-                "inboundTag": [f"mixed{port}"],
-                "outboundTag": f"proxy{port}"
-            }
+            rule = {"type": "field", "inboundTag": [f"mixed{port}"], "outboundTag": f"proxy{port}"}
             config["routing"]["rules"].append(rule)
 
             port_map[port] = url
@@ -738,22 +748,30 @@ class XrayTester:
         if skipped_urls:
             # Log first few skipped configs for debugging (verbose only in batch mode)
             from config.settings import BATCH_MODE_OVERRIDE, XRAY_BATCH_MODE
-            _batch_mode = BATCH_MODE_OVERRIDE if BATCH_MODE_OVERRIDE is not None else XRAY_BATCH_MODE
+
+            _batch_mode = (
+                BATCH_MODE_OVERRIDE if BATCH_MODE_OVERRIDE is not None else XRAY_BATCH_MODE
+            )
             if _batch_mode != "batch":
                 sample = skipped_urls[:5]
                 reasons = {}
                 for _, reason in sample:
                     reasons[reason] = reasons.get(reason, 0) + 1
-                log(f"Skipped {len(skipped_urls)} invalid configs: {', '.join([f'{k}({v})' for k,v in list(reasons.items())[:3]])}...")
+                log(
+                    f"Skipped {len(skipped_urls)} invalid configs: {', '.join([f'{k}({v})' for k, v in list(reasons.items())[:3]])}..."
+                )
 
         if not port_map:
             return None, {}
 
         from config.settings import BATCH_MODE_OVERRIDE as _override
         from config.settings import XRAY_BATCH_MODE as _mode
+
         _effective = _override if _override is not None else _mode
         if _effective != "batch":
-            log(f"Created multi-config with {len(port_map)} valid inbounds (ports {min(port_map.keys())}-{max(port_map.keys())})")
+            log(
+                f"Created multi-config with {len(port_map)} valid inbounds (ports {min(port_map.keys())}-{max(port_map.keys())})"
+            )
         return config, port_map
 
     @staticmethod
@@ -763,12 +781,19 @@ class XrayTester:
             "Xray 26.2.6",
             "Penetrates Everything",
             "A unified platform",
-            "[Warning]", "[Info]",
-            "infra/conf", "deprecated",
-            "goroutine", "runtime.",
-            "fp=0x", "sp=0x", "pc=0x",
-            "runtime stack:", "fatal error:",
-            "errno=", "ulimit",
+            "[Warning]",
+            "[Info]",
+            "infra/conf",
+            "deprecated",
+            "goroutine",
+            "runtime.",
+            "fp=0x",
+            "sp=0x",
+            "pc=0x",
+            "runtime stack:",
+            "fatal error:",
+            "errno=",
+            "ulimit",
             "Reading config:",
         ]
         return any(p in error_detail for p in spam_patterns)
@@ -789,10 +814,10 @@ class XrayTester:
         Cleans up the temp file on write failure.
         """
         try:
-            fd, config_file = tempfile.mkstemp(suffix='.json', prefix='xray_')
+            fd, config_file = tempfile.mkstemp(suffix=".json", prefix="xray_")
             try:
                 os.chmod(config_file, 0o600)
-                with os.fdopen(fd, 'w') as f:
+                with os.fdopen(fd, "w") as f:
                     f.write(config_json)
             except OSError:
                 os.close(fd)
@@ -809,21 +834,25 @@ class XrayTester:
         if sys.platform == "win32":
             return subprocess.Popen(
                 cmd,
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 creationflags=subprocess.CREATE_NO_WINDOW,
                 bufsize=1024 * 1024,
             )
         return subprocess.Popen(
             cmd,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             bufsize=1024 * 1024,
         )
 
-    def start_xray_instance(self, config: dict, socks_port: int, verbose: bool = False) -> tuple[bool, subprocess.Popen | None, str]:
+    def start_xray_instance(
+        self, config: dict, socks_port: int, verbose: bool = False
+    ) -> tuple[bool, subprocess.Popen | None, str]:
         """Start Xray with single config and wait for port readiness."""
         # Validate and serialize config
         try:
-            config_json = json.dumps(config, separators=(',', ':'))
+            config_json = json.dumps(config, separators=(",", ":"))
             json.loads(config_json)
         except json.JSONDecodeError as e:
             err = f"Invalid JSON config: {e}"
@@ -831,7 +860,7 @@ class XrayTester:
                 log(err)
             return False, None, err
 
-        if not config.get('inbounds') or not config.get('outbounds'):
+        if not config.get("inbounds") or not config.get("outbounds"):
             err = "Invalid config structure: missing inbounds or outbounds"
             if verbose:
                 log(f"{err}: {config_json[:500]}")
@@ -848,10 +877,16 @@ class XrayTester:
 
             if process.poll() is not None:
                 stdout, stderr = process.communicate(timeout=2)
-                stderr_text = stderr.decode('utf-8', errors='ignore').strip() if stderr else ""
-                stdout_text = stdout.decode('utf-8', errors='ignore').strip() if stdout else ""
-                error_detail = stderr_text[:LOG_XRAY_ERROR_LENGTH] if stderr_text else (
-                    stdout_text[:LOG_XRAY_ERROR_LENGTH] if stdout_text else "Xray exited immediately"
+                stderr_text = stderr.decode("utf-8", errors="ignore").strip() if stderr else ""
+                stdout_text = stdout.decode("utf-8", errors="ignore").strip() if stdout else ""
+                error_detail = (
+                    stderr_text[:LOG_XRAY_ERROR_LENGTH]
+                    if stderr_text
+                    else (
+                        stdout_text[:LOG_XRAY_ERROR_LENGTH]
+                        if stdout_text
+                        else "Xray exited immediately"
+                    )
                 )
 
                 if self._is_xray_spam(error_detail):
@@ -879,9 +914,13 @@ class XrayTester:
                 except subprocess.TimeoutExpired:
                     process.kill()
                     stdout, stderr = b"", b""
-                stderr_text = stderr.decode('utf-8', errors='ignore').strip() if stderr else ""
-                stdout_text = stdout.decode('utf-8', errors='ignore').strip() if stdout else ""
-                error_detail = stderr_text[:2000] if stderr_text else (stdout_text[:2000] if stdout_text else "")
+                stderr_text = stderr.decode("utf-8", errors="ignore").strip() if stderr else ""
+                stdout_text = stdout.decode("utf-8", errors="ignore").strip() if stdout else ""
+                error_detail = (
+                    stderr_text[:2000]
+                    if stderr_text
+                    else (stdout_text[:2000] if stdout_text else "")
+                )
                 if error_detail:
                     log(f"Xray port error: {error_detail[:1000]}")
 
@@ -906,11 +945,13 @@ class XrayTester:
         except (OSError, ValueError, subprocess.TimeoutExpired) as e:
             self._cleanup_config_file(config_file)
             error_str = str(e)
-            is_config_error = any([
-                'empty "password"' in error_str,
-                'unsupported "encryption"' in error_str,
-                "failed to build outbound" in error_str.lower(),
-            ])
+            is_config_error = any(
+                [
+                    'empty "password"' in error_str,
+                    'unsupported "encryption"' in error_str,
+                    "failed to build outbound" in error_str.lower(),
+                ]
+            )
             if verbose and not is_config_error:
                 log(f"Failed to start Xray: {e}")
 
@@ -929,8 +970,11 @@ class XrayTester:
         config_file = self._config_files.pop(process.pid, None)
         mp = ManagedProcess(process, config_file=config_file)
         try:
-            mp.stop(force=False, kill_timeout=XRAY_PROCESS_KILL_TIMEOUT,
-                    force_kill_timeout=XRAY_PROCESS_FORCE_KILL_TIMEOUT)
+            mp.stop(
+                force=False,
+                kill_timeout=XRAY_PROCESS_KILL_TIMEOUT,
+                force_kill_timeout=XRAY_PROCESS_FORCE_KILL_TIMEOUT,
+            )
         except (OSError, subprocess.TimeoutExpired, RuntimeError) as e:
             log(f"ERROR: Failed to stop process {process.pid}: {e}")
             if PSUTIL_AVAILABLE:
@@ -947,10 +991,10 @@ class XrayTester:
 
     def _get_session(self) -> requests.Session:
         """Get thread-local session (no lock contention)."""
-        if not hasattr(self, '_thread_local') or self._thread_local is None:
+        if not hasattr(self, "_thread_local") or self._thread_local is None:
             self._thread_local = threading.local()
 
-        if not hasattr(self._thread_local, 'session'):
+        if not hasattr(self._thread_local, "session"):
             session = requests.Session()
             adapter = HTTPAdapter(max_retries=0, pool_connections=1, pool_maxsize=1)
             session.mount("http://", adapter)
@@ -963,11 +1007,10 @@ class XrayTester:
         """Minimal validation - let Xray decide if config is valid."""
         if not url or not isinstance(url, str):
             return False, "Empty URL"
-        if '://' not in url:
+        if "://" not in url:
             return False, "No protocol"
         # Let Xray validate the rest
         return True, ""
-
 
     def _track_error(self, error_msg: str, category: str = None) -> None:
         """Track error for summary statistics with deduplication."""
@@ -1003,7 +1046,10 @@ class XrayTester:
             # Store up to 3 sample errors per category
             if category not in self._error_samples:
                 self._error_samples[category] = []
-            if len(self._error_samples[category]) < 3 and normalized not in self._error_samples[category]:
+            if (
+                len(self._error_samples[category]) < 3
+                and normalized not in self._error_samples[category]
+            ):
                 self._error_samples[category].append(error_msg[:200])
 
     def _normalize_error(self, error_msg: str) -> str:
@@ -1014,13 +1060,18 @@ class XrayTester:
         # Remove ports, IPs, UUIDs, timestamps
         normalized = error_msg
         # Remove port numbers
-        normalized = re.sub(r':\d+', ':PORT', normalized)
+        normalized = re.sub(r":\d+", ":PORT", normalized)
         # Remove UUIDs
-        normalized = re.sub(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', 'UUID', normalized, flags=re.I)
+        normalized = re.sub(
+            r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+            "UUID",
+            normalized,
+            flags=re.I,
+        )
         # Remove IP addresses
-        normalized = re.sub(r'\d+\.\d+\.\d+\.\d+', 'IP', normalized)
+        normalized = re.sub(r"\d+\.\d+\.\d+\.\d+", "IP", normalized)
         # Remove file paths
-        normalized = re.sub(r'C:\\[^\\s]+|/[^\\s]+\\.json', 'FILE', normalized)
+        normalized = re.sub(r"C:\\[^\\s]+|/[^\\s]+\\.json", "FILE", normalized)
 
         return normalized[:150]  # Truncate for comparison
 
@@ -1030,7 +1081,7 @@ class XrayTester:
             if not self._error_stats:
                 return
 
-            log(f"\n{'='*70}")
+            log(f"\n{'=' * 70}")
             log("DETAILED ERROR SUMMARY:")
             total = sum(self._error_stats.values())
 
@@ -1043,9 +1094,9 @@ class XrayTester:
                     for i, sample in enumerate(self._error_samples[category], 1):
                         log(f"    [{i}] {sample}")
 
-            log(f"\n  {'='*60}")
+            log(f"\n  {'=' * 60}")
             log(f"  TOTAL ERRORS: {total}")
-            log(f"{'='*70}\n")
+            log(f"{'=' * 70}\n")
 
             # Reset for next batch
             self._error_stats.clear()
@@ -1053,9 +1104,9 @@ class XrayTester:
 
     def _validate_response(self, test_url: str, body: str) -> bool:
         """Validate response body is genuine, not a block/cache/error page."""
-        if 'cdn-cgi/trace' in test_url:
-            return 'ip=' in body
-        if 'generate_204' in test_url:
+        if "cdn-cgi/trace" in test_url:
+            return "ip=" in body
+        if "generate_204" in test_url:
             return len(body.strip()) == 0
         return bool(body.strip())
 
@@ -1083,17 +1134,6 @@ class XrayTester:
             return True
         except (TimeoutError, ConnectionRefusedError, OSError):
             return False
-
-
-
-
-
-
-
-
-
-
-
 
     def cleanup(self) -> None:
         """Stop all running Xray instances with guaranteed cleanup."""
@@ -1123,13 +1163,13 @@ class XrayTester:
         self._config_files.clear()
 
         # Clear thread-local sessions to prevent memory leak
-        if hasattr(self, '_thread_local') and self._thread_local is not None:
-            if hasattr(self._thread_local, 'session'):
+        if hasattr(self, "_thread_local") and self._thread_local is not None:
+            if hasattr(self._thread_local, "session"):
                 try:
                     self._thread_local.session.close()
                 except (OSError, RuntimeError):
                     pass
-                delattr(self._thread_local, 'session')
+                delattr(self._thread_local, "session")
 
         # No global tester registry to remove from. The shared ProcessRegistry
         # tracks (tester, process) pairs; processes are unregistered when
@@ -1137,15 +1177,19 @@ class XrayTester:
         # calling stop on its processes, they remain in the registry and are
         # caught by the next default_registry.cleanup() call.
 
-
-    def test_batch(self, urls, concurrency=None, timeout=None, verbose=False,
-                    progress_callback=None):
+    def test_batch(
+        self, urls, concurrency=None, timeout=None, verbose=False, progress_callback=None
+    ):
         """Test configs through Xray with batch runner."""
-        return self._batch_runner.test_batch(urls, concurrency, timeout, verbose, progress_callback=progress_callback)
+        return self._batch_runner.test_batch(
+            urls, concurrency, timeout, verbose, progress_callback=progress_callback
+        )
 
     def test_single_config(self, url, timeout, verbose=False, max_retries=1, skip_tcp_ping=False):
         """Test config through Xray HTTP test via batch runner."""
-        return self._batch_runner.test_single_config(url, timeout, verbose, max_retries, skip_tcp_ping)
+        return self._batch_runner.test_single_config(
+            url, timeout, verbose, max_retries, skip_tcp_ping
+        )
 
     def test_through_socks(self, socks_port, timeout, verbose=False):
         """Test connection through SOCKS proxy via batch runner."""

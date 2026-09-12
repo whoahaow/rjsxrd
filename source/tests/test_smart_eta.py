@@ -8,6 +8,7 @@ Covers:
 - Edge cases (no completions, single completion, reset)
 - Stability (not jumping around wildly)
 """
+
 import math
 
 from utils.smart_eta import SmartETA
@@ -15,6 +16,7 @@ from utils.smart_eta import SmartETA
 
 class FakeTime:
     """Deterministic time source for testing."""
+
     def __init__(self, start=0.0):
         self._now = start
 
@@ -53,7 +55,7 @@ class TestSmartETABasics:
         ft = FakeTime()
         eta = SmartETA(total=100, concurrency=10, timeout=5, time_fn=ft)
         # With timeout floor, eta = ceil(100/10) * 5 = 50s
-        assert eta.description == "50s" or eta.description.endswith('s')
+        assert eta.description == "50s" or eta.description.endswith("s")
 
     def test_description_formats_seconds(self):
         """description with ETA <60s."""
@@ -61,7 +63,7 @@ class TestSmartETABasics:
         eta = SmartETA(total=2, concurrency=1, timeout=10, time_fn=ft)
         ft.advance(1.0)
         eta.record_completion(1.0)
-        assert eta.description.endswith('s')
+        assert eta.description.endswith("s")
 
     def test_description_formats_minutes(self):
         ft = FakeTime()
@@ -69,7 +71,7 @@ class TestSmartETABasics:
         ft.advance(4.0)
         eta.record_completion(4.0)
         desc = eta.description
-        assert desc.endswith('m') or desc.endswith('s'), f"got: {desc}"
+        assert desc.endswith("m") or desc.endswith("s"), f"got: {desc}"
 
     def test_description_formats_hours(self):
         ft = FakeTime()
@@ -77,7 +79,7 @@ class TestSmartETABasics:
         ft.advance(10.0)
         eta.record_completion(10.0)
         desc = eta.description
-        assert desc.endswith('h') or desc.endswith('m'), f"got: {desc}"
+        assert desc.endswith("h") or desc.endswith("m"), f"got: {desc}"
 
     def test_reset(self):
         ft = FakeTime()
@@ -128,9 +130,7 @@ class TestSmartETARealistic:
         # floor ≈ 199 * 1 (P80 of batch) = 199s
         # ETA should be around 200s
         eta_at_150 = eta.eta
-        assert eta_at_150 < 500, (
-            f"ETA {eta_at_150:.0f}s should be ~200s for 1s concurrent configs"
-        )
+        assert eta_at_150 < 500, f"ETA {eta_at_150:.0f}s should be ~200s for 1s concurrent configs"
         assert eta_at_150 > 50, (
             f"ETA {eta_at_150:.0f}s too low (should be ~200s for 150-concurrent)"
         )
@@ -155,7 +155,7 @@ class TestSmartETARealistic:
 
     def test_fast_then_slow_transition(self):
         """THE core problem: 50k configs, first 25k fast (1s), last 25k slow (8s).
-        
+
         After the first batch completes, ETA should reflect the slow configs,
         not stay optimistic based on the fast ones. This is what the old
         SmartETA got wrong.
@@ -289,9 +289,7 @@ class TestSmartETAEdgeCases:
         # Both should be finite, and the second shouldn't be 10x the first
         assert math.isfinite(eta_1)
         assert math.isfinite(eta_2)
-        assert eta_2 < eta_1 * 10 or eta_1 < eta_2 * 10, (
-            f"ETA jumped: {eta_1:.0f}s → {eta_2:.0f}s"
-        )
+        assert eta_2 < eta_1 * 10 or eta_1 < eta_2 * 10, f"ETA jumped: {eta_1:.0f}s → {eta_2:.0f}s"
 
     def test_eta_with_zero_duration_completions(self):
         """Configs that completed instantly should not break ETA."""
@@ -336,11 +334,9 @@ class TestSmartETAEdgeCases:
             # ETA should be decreasing or stable, not wildly oscillating
             # Allow some noise but not 2x differences
             for i in range(1, len(etas)):
-                if etas[i] > 0 and etas[i-1] > 0:
-                    ratio = etas[i] / etas[i-1]
-                    assert ratio < 2.0, (
-                        f"ETA oscillation: {etas[i-1]:.0f}s → {etas[i]:.0f}s"
-                    )
+                if etas[i] > 0 and etas[i - 1] > 0:
+                    ratio = etas[i] / etas[i - 1]
+                    assert ratio < 2.0, f"ETA oscillation: {etas[i - 1]:.0f}s → {etas[i]:.0f}s"
 
     def test_reset_clears_ema(self):
         """Reset should clear the EMA so it starts fresh."""

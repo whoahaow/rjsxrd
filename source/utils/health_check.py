@@ -25,11 +25,11 @@ CHECK_INTERNET_TIMEOUT: float = 2.0
 
 def check_internet_connectivity() -> bool:
     """Check if internet is accessible by probing DNS servers.
-    
+
     Tries each server in DNS_SERVERS with a short timeout. Returns True
     on the first successful connection. Returns False only if ALL servers
     are unreachable. Logs which servers failed for diagnostics.
-    
+
     Returns:
         True if any DNS server is reachable, False otherwise
     """
@@ -49,11 +49,11 @@ def check_internet_connectivity() -> bool:
 
 def check_disk_space(path: str = ".", required_mb: float = 100.0) -> tuple[bool, float]:
     """Check available disk space.
-    
+
     Args:
         path: Path to check
         required_mb: Minimum required space in MB
-        
+
     Returns:
         Tuple of (has_enough_space, available_mb)
     """
@@ -63,36 +63,37 @@ def check_disk_space(path: str = ".", required_mb: float = 100.0) -> tuple[bool,
         return available_mb >= required_mb, available_mb
     except (OSError, PermissionError) as e:
         log(f"Could not check disk space: {e}")
-        return True, float('inf')
+        return True, float("inf")
 
 
 def check_memory(min_mb: float = 256.0) -> tuple[bool, float]:
     """Check available system memory.
-    
+
     Args:
         min_mb: Minimum required memory in MB
-        
+
     Returns:
         Tuple of (has_enough_memory, available_mb)
     """
     try:
         import psutil
+
         available = psutil.virtual_memory().available / (1024 * 1024)
         return available >= min_mb, available
     except ImportError:
         # psutil not available, assume OK
-        return True, float('inf')
+        return True, float("inf")
     except (OSError, AttributeError) as e:
         log(f"Could not check memory: {e}")
-        return True, float('inf')
+        return True, float("inf")
 
 
 def check_xray_binary(xray_path: str) -> bool:
     """Check if Xray binary exists and is executable.
-    
+
     Args:
         xray_path: Path to Xray binary
-        
+
     Returns:
         True if Xray exists and is executable
     """
@@ -107,10 +108,10 @@ def check_xray_binary(xray_path: str) -> bool:
 
 def check_github_token(token: str) -> bool:
     """Validate GitHub token format.
-    
+
     Args:
         token: GitHub token to validate
-        
+
     Returns:
         True if token looks valid
     """
@@ -125,22 +126,22 @@ def check_github_token(token: str) -> bool:
 
 def health_check(xray_path: str = None, github_token: str = None) -> dict[str, bool]:
     """Perform comprehensive health check.
-    
+
     Args:
         xray_path: Path to Xray binary
         github_token: GitHub token for API access
-        
+
     Returns:
         Dictionary of health check results
     """
     from config.settings import GITHUB_TOKEN
 
     results = {
-        'internet': check_internet_connectivity(),
-        'disk_space': check_disk_space()[0],
-        'memory': check_memory()[0],
-        'xray_installed': check_xray_binary(xray_path) if xray_path else False,
-        'github_token': check_github_token(github_token or GITHUB_TOKEN),
+        "internet": check_internet_connectivity(),
+        "disk_space": check_disk_space()[0],
+        "memory": check_memory()[0],
+        "xray_installed": check_xray_binary(xray_path) if xray_path else False,
+        "github_token": check_github_token(github_token or GITHUB_TOKEN),
     }
 
     # Log warnings for failed checks
@@ -153,7 +154,7 @@ def health_check(xray_path: str = None, github_token: str = None) -> dict[str, b
 
 def print_health_report(results: dict[str, bool]) -> None:
     """Print formatted health check report.
-    
+
     Args:
         results: Dictionary from health_check()
     """
@@ -164,7 +165,7 @@ def print_health_report(results: dict[str, bool]) -> None:
     all_passed = True
     for check, passed in results.items():
         status = "[PASS]" if passed else "[FAIL]"
-        check_name = check.replace('_', ' ').title()
+        check_name = check.replace("_", " ").title()
         log(f"  {check_name:25} {status}")
         if not passed:
             all_passed = False

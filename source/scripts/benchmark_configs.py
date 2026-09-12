@@ -7,6 +7,7 @@ Usage:
     python scripts/benchmark_configs.py --mode tcp --local
     python scripts/benchmark_configs.py --mode tcp --count 200 --local
 """
+
 import argparse
 import os
 import sys
@@ -45,17 +46,17 @@ def run_xray(path: str, count: int | None) -> None:
     working = _verify_config_file(path)  # reads from file
     elapsed = time.time() - start
 
-    log(f"\n{'='*60}")
+    log(f"\n{'=' * 60}")
     log("xray benchmark results")
-    log(f"{'='*60}")
+    log(f"{'=' * 60}")
     log(f"tested:   {len(configs)}")
     log(f"working:  {len(working)}")
     log(f"failed:   {len(configs) - len(working)}")
-    log(f"rate:     {len(working)/len(configs)*100:.1f}%")
+    log(f"rate:     {len(working) / len(configs) * 100:.1f}%")
     log(f"time:     {elapsed:.2f}s")
     if configs:
-        log(f"per/sec:  {len(configs)/elapsed:.1f}")
-    log(f"{'='*60}")
+        log(f"per/sec:  {len(configs) / elapsed:.1f}")
+    log(f"{'=' * 60}")
 
 
 def run_tcp(path: str, count: int | None) -> None:
@@ -73,21 +74,21 @@ def run_tcp(path: str, count: int | None) -> None:
     failed = sum(1 for _, ok, _ in results if not ok)
     fastest = sorted(working, key=lambda x: x[1])[:5]
 
-    log(f"\n{'='*60}")
+    log(f"\n{'=' * 60}")
     log("tcp ping benchmark results")
-    log(f"{'='*60}")
+    log(f"{'=' * 60}")
     log(f"tested:          {len(configs)}")
     log(f"reachable (tcp): {len(working)}")
     log(f"unreachable:     {failed}")
-    log(f"rate:            {len(working)/len(configs)*100:.1f}%")
+    log(f"rate:            {len(working) / len(configs) * 100:.1f}%")
     log(f"time:            {elapsed:.2f}s")
     if configs:
-        log(f"per/sec:         {len(configs)/elapsed:.1f}")
+        log(f"per/sec:         {len(configs) / elapsed:.1f}")
     log("")
     log("--- 5 fastest ---")
     for url, rtt in fastest:
         log(f"  {rtt:>6.1f}ms  {url[:80]}")
-    log(f"{'='*60}")
+    log(f"{'=' * 60}")
 
 
 def resolve_path(local: bool) -> str:
@@ -97,7 +98,9 @@ def resolve_path(local: bool) -> str:
             return path
         log(f"local file not found: {path}")
 
-    github_url = "https://raw.githubusercontent.com/whoahaow/rjsxrd/main/githubmirror/bypass/bypass-all.txt"
+    github_url = (
+        "https://raw.githubusercontent.com/whoahaow/rjsxrd/main/githubmirror/bypass/bypass-all.txt"
+    )
     import urllib.request
     import tempfile
 
@@ -121,7 +124,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Benchmark VPN configs")
     parser.add_argument("--mode", choices=["xray", "tcp"], default="tcp", help="test mode")
     parser.add_argument("--count", type=int, default=None, help="limit to first N configs")
-    parser.add_argument("--local", action="store_true", help="use local file instead of fetching from github")
+    parser.add_argument(
+        "--local", action="store_true", help="use local file instead of fetching from github"
+    )
     args = parser.parse_args()
 
     path = resolve_path(args.local)

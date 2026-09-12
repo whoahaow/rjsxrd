@@ -6,6 +6,7 @@ Usage:
     python scripts/test_telegram_proxies.py
     python scripts/test_telegram_proxies.py --output-dir ../githubmirror
 """
+
 import argparse
 import os
 import sys
@@ -125,15 +126,21 @@ def run(output_dir: str | None = None) -> None:
     log("=" * 60)
     log(f"  mtproto:    {len(mt_working)}/{len(mtproto)} working")
     log(f"  socks5:     {len(s5_working)}/{len(socks5)} working")
-    log(f"  total:      {total_ok}/{total} ({total_ok/total*100:.1f}%)" if total else "  total:      0")
+    log(
+        f"  total:      {total_ok}/{total} ({total_ok / total * 100:.1f}%)"
+        if total
+        else "  total:      0"
+    )
     log(f"  time:       {elapsed:.1f}s")
     if total and elapsed:
-        log(f"  per/sec:    {total/elapsed:.1f}")
+        log(f"  per/sec:    {total / elapsed:.1f}")
     log("=" * 60)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Test Telegram proxies")
-    parser.add_argument("--output-dir", default=None, help="output directory (default: ../githubmirror)")
+    parser.add_argument(
+        "--output-dir", default=None, help="output directory (default: ../githubmirror)"
+    )
     args = parser.parse_args()
     run(output_dir=args.output_dir)

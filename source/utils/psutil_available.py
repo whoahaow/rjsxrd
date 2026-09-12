@@ -6,6 +6,7 @@ duplicating the try/except ImportError pattern.
 
 try:
     import psutil
+
     HAS_PSUTIL = True
 except ImportError:
     psutil = None  # type: ignore[assignment]

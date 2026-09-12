@@ -18,7 +18,7 @@ def natural_sort_key(path: str) -> list[int | str]:
     Standard string sort gives '-10.txt' < '-2.txt' (lexicographic), which scrambles
     split shards. This splits on digits and sorts the numeric parts as integers.
     """
-    return [int(t) if t.isdigit() else t for t in re.split(r'(\d+)', path)]
+    return [int(t) if t.isdigit() else t for t in re.split(r"(\d+)", path)]
 
 
 def resolve_flag(name: str, overrides: dict | None, default: bool) -> bool:
@@ -88,7 +88,7 @@ def path_in_output(output_dir: str, *parts: str) -> str:
 
 
 # Pre-compiled base64 pattern for performance (used by try_decode_base64_content)
-_BASE64_PATTERN = re.compile(r'^[A-Za-z0-9+/]+=*$')
+_BASE64_PATTERN = re.compile(r"^[A-Za-z0-9+/]+=*$")
 
 
 def try_decode_base64_content(content: str) -> str | None:
@@ -102,36 +102,46 @@ def try_decode_base64_content(content: str) -> str | None:
             return None
 
         # Heuristic 1: If content has many newlines, probably not base64
-        newline_ratio = content_stripped.count('\n') / len(content_stripped)
+        newline_ratio = content_stripped.count("\n") / len(content_stripped)
         if newline_ratio > 0.1:
             return None
 
         # Heuristic 2: If content already has protocol markers, not base64
-        if '://' in content_stripped:
+        if "://" in content_stripped:
             return None
 
         # Heuristic 3: If content looks like plain text (spaces, common words), skip
-        if ' ' in content_stripped and len(content_stripped) > 100:
-            space_ratio = content_stripped.count(' ') / len(content_stripped)
+        if " " in content_stripped and len(content_stripped) > 100:
+            space_ratio = content_stripped.count(" ") / len(content_stripped)
             if space_ratio > 0.05:
                 return None
 
         # Heuristic 4: Character distribution check (base64 has very specific charset)
-        valid_chars = set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n')
+        valid_chars = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n")
         invalid_chars = sum(1 for c in content_stripped if c not in valid_chars)
         if invalid_chars > len(content_stripped) * 0.01:  # >1% invalid chars = not base64
             return None
 
-        cleaned = content_stripped.replace('\n', '').replace(' ', '')
+        cleaned = content_stripped.replace("\n", "").replace(" ", "")
         if not _BASE64_PATTERN.match(cleaned):
             return None
 
         decoded_bytes = base64.b64decode(content_stripped)
-        decoded_content = decoded_bytes.decode('utf-8', errors='ignore')
+        decoded_content = decoded_bytes.decode("utf-8", errors="ignore")
 
-        if any(proto in decoded_content for proto in
-               ['vless://', 'vmess://', 'trojan://', 'ss://', 'ssr://',
-                'hysteria://', 'hy2://', 'tuic://']):
+        if any(
+            proto in decoded_content
+            for proto in [
+                "vless://",
+                "vmess://",
+                "trojan://",
+                "ss://",
+                "ssr://",
+                "hysteria://",
+                "hy2://",
+                "tuic://",
+            ]
+        ):
             return decoded_content
 
         return None

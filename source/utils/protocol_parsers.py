@@ -28,9 +28,10 @@ from utils.vpn_config import parse_url as vpn_parse_url
 
 # ── Shared helpers ─────────────────────────────────────────────────────
 
+
 def _clean_url_part(url: str) -> str:
     """Strip protocol:// prefix case-insensitively."""
-    return url[url.index('://') + 3:]
+    return url[url.index("://") + 3 :]
 
 
 def _split_fragment_query(url_part: str) -> tuple[str, str, str]:
@@ -38,12 +39,12 @@ def _split_fragment_query(url_part: str) -> tuple[str, str, str]:
 
     Handles both #fragment and ?query separators in any order.
     """
-    fragment = ''
-    if '#' in url_part:
-        url_part, fragment = url_part.split('#', 1)
-    query_part = ''
-    if '?' in url_part:
-        base_part, query_part = url_part.split('?', 1)
+    fragment = ""
+    if "#" in url_part:
+        url_part, fragment = url_part.split("#", 1)
+    query_part = ""
+    if "?" in url_part:
+        base_part, query_part = url_part.split("?", 1)
     else:
         base_part = url_part
     return base_part, query_part, fragment
@@ -54,13 +55,13 @@ def _parse_user_host_port(base_part: str) -> tuple[str, str, int] | None:
 
     Returns (user, hostname, port) or None on failure.
     """
-    if '@' not in base_part:
+    if "@" not in base_part:
         return None
-    user, host_port = base_part.rsplit('@', 1)
-    if ':' not in host_port:
+    user, host_port = base_part.rsplit("@", 1)
+    if ":" not in host_port:
         return None
-    hostname, port_str = host_port.rsplit(':', 1)
-    port_str = port_str.strip().rstrip('/')
+    hostname, port_str = host_port.rsplit(":", 1)
+    port_str = port_str.strip().rstrip("/")
     try:
         port = int(port_str)
     except (ValueError, TypeError):
@@ -73,10 +74,11 @@ def _parse_user_host_port(base_part: str) -> tuple[str, str, int] | None:
 def _make_tls_settings(sni: str, fp: str = None) -> dict:
     """Build tlsSettings dict."""
     from config.settings import TLS_FINGERPRINT
+
     return {"serverName": sni, "fingerprint": fp or TLS_FINGERPRINT}
 
 
-def _make_reality_settings(sni: str, pbk: str, fp: str = None, sid: str = '') -> dict | None:
+def _make_reality_settings(sni: str, pbk: str, fp: str = None, sid: str = "") -> dict | None:
     """Build realitySettings dict. Returns None if sni or pbk is missing."""
     sni = sni.strip()
     pbk = pbk.strip()
@@ -109,41 +111,42 @@ def _make_stream_settings(
     """
     stream = {"network": network, "security": security}
 
-    if security == 'tls':
-        sni = params.get('sni', [default_host])[0]
+    if security == "tls":
+        sni = params.get("sni", [default_host])[0]
         if not sni:
             sni = default_host
-        fp_from_url = params.get('fp', [None])[0] or None
+        fp_from_url = params.get("fp", [None])[0] or None
         stream["tlsSettings"] = _make_tls_settings(sni, fp_from_url)
-    elif security == 'reality':
-        fp_from_url = params.get('fp', [None])[0] or None
+    elif security == "reality":
+        fp_from_url = params.get("fp", [None])[0] or None
         reality = _make_reality_settings(
-            params.get('sni', [''])[0],
-            params.get('pbk', [''])[0],
+            params.get("sni", [""])[0],
+            params.get("pbk", [""])[0],
             fp_from_url,
-            params.get('sid', [''])[0],
+            params.get("sid", [""])[0],
         )
         if reality is None:
             return None
         stream["realitySettings"] = reality
 
-    if network == 'ws':
+    if network == "ws":
         stream["wsSettings"] = _make_ws_settings(
-            params.get('path', ['/'])[0],
-            params.get('host', [default_host])[0],
+            params.get("path", ["/"])[0],
+            params.get("host", [default_host])[0],
         )
-    elif network == 'grpc':
-        stream["grpcSettings"] = _make_grpc_settings(params.get('serviceName', [''])[0])
-    elif network == 'httpupgrade':
+    elif network == "grpc":
+        stream["grpcSettings"] = _make_grpc_settings(params.get("serviceName", [""])[0])
+    elif network == "httpupgrade":
         stream["httpupgradeSettings"] = _make_httpupgrade_settings(
-            params.get('path', ['/'])[0],
-            params.get('host', [default_host])[0],
+            params.get("path", ["/"])[0],
+            params.get("host", [default_host])[0],
         )
 
     return stream
 
 
 # ── Protocol parsers ──────────────────────────────────────────────────
+
 
 def parse_vless_to_outbound(url: str, tag: str = "proxy") -> dict | None:
     """Parse VLESS URL to Xray outbound with tag."""
@@ -157,9 +160,10 @@ def parse_vless_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         params = parse_qs(query_part)
 
         stream = _make_stream_settings(
-            params.get('type', ['tcp'])[0],
-            params.get('security', ['none'])[0],
-            params, hostname,
+            params.get("type", ["tcp"])[0],
+            params.get("security", ["none"])[0],
+            params,
+            hostname,
         )
         if stream is None:
             return None
@@ -168,42 +172,67 @@ def parse_vless_to_outbound(url: str, tag: str = "proxy") -> dict | None:
             "tag": tag,
             "protocol": "vless",
             "settings": {
-                "vnext": [{
-                    "address": hostname,
-                    "port": port,
-                    "users": [{
-                        "id": uuid,
-                        "encryption": params.get('encryption', ['none'])[0],
-                        "flow": params.get('flow', [''])[0]
-                    }]
-                }]
+                "vnext": [
+                    {
+                        "address": hostname,
+                        "port": port,
+                        "users": [
+                            {
+                                "id": uuid,
+                                "encryption": params.get("encryption", ["none"])[0],
+                                "flow": params.get("flow", [""])[0],
+                            }
+                        ],
+                    }
+                ]
             },
-            "streamSettings": stream
+            "streamSettings": stream,
         }
-    except (ValueError, IndexError, KeyError, TypeError, json.JSONDecodeError, base64.binascii.Error):
+    except (
+        ValueError,
+        IndexError,
+        KeyError,
+        TypeError,
+        json.JSONDecodeError,
+        base64.binascii.Error,
+    ):
         return None
 
 
 def parse_vmess_to_outbound(url: str, tag: str = "proxy") -> dict | None:
     """Parse VMess URL to Xray outbound."""
     try:
-        encoded = url[url.index('://') + 3:].strip()
+        encoded = url[url.index("://") + 3 :].strip()
 
         # Add padding if needed
         padding = 4 - len(encoded) % 4
         if padding != 4:
-            encoded += '=' * padding
+            encoded += "=" * padding
 
         # Decode base64
         try:
             decoded_bytes = base64.b64decode(encoded)
-        except (ValueError, IndexError, KeyError, TypeError, json.JSONDecodeError, base64.binascii.Error):
+        except (
+            ValueError,
+            IndexError,
+            KeyError,
+            TypeError,
+            json.JSONDecodeError,
+            base64.binascii.Error,
+        ):
             return None
 
         # Decode UTF-8
         try:
-            decoded = decoded_bytes.decode('utf-8', errors='ignore')
-        except (ValueError, IndexError, KeyError, TypeError, json.JSONDecodeError, base64.binascii.Error):
+            decoded = decoded_bytes.decode("utf-8", errors="ignore")
+        except (
+            ValueError,
+            IndexError,
+            KeyError,
+            TypeError,
+            json.JSONDecodeError,
+            base64.binascii.Error,
+        ):
             return None
 
         # Parse JSON
@@ -213,69 +242,70 @@ def parse_vmess_to_outbound(url: str, tag: str = "proxy") -> dict | None:
             return None
 
         # Validate required fields
-        if not data.get('add') or not data.get('port') or not data.get('id'):
+        if not data.get("add") or not data.get("port") or not data.get("id"):
             return None
 
         # Build stream settings
-        network = data.get('net', 'tcp')
-        security = data.get('tls', '')
+        network = data.get("net", "tcp")
+        security = data.get("tls", "")
 
-        stream_settings = {
-            "network": network,
-            "security": security if security else 'none'
-        }
+        stream_settings = {"network": network, "security": security if security else "none"}
 
         # Add tlsSettings when security is TLS
-        if security == 'tls':
-            server_name = data.get('host') or data.get('add')
+        if security == "tls":
+            server_name = data.get("host") or data.get("add")
             if not server_name or not server_name.strip():
                 return None
             stream_settings["tlsSettings"] = {
                 "serverName": server_name.strip(),
-                "fingerprint": data.get('fp', 'chrome')
+                "fingerprint": data.get("fp", "chrome"),
             }
 
         # Add transport-specific settings
-        if network == 'ws':
+        if network == "ws":
             stream_settings["wsSettings"] = {
-                "path": data.get('path', '/'),
-                "headers": {
-                    "Host": data.get('host', data.get('add', ''))
-                }
+                "path": data.get("path", "/"),
+                "headers": {"Host": data.get("host", data.get("add", ""))},
             }
-        elif network == 'grpc':
-            stream_settings["grpcSettings"] = {
-                "serviceName": data.get('path', '')
-            }
-        elif network == 'h2':
-            host_value = data.get('host')
+        elif network == "grpc":
+            stream_settings["grpcSettings"] = {"serviceName": data.get("path", "")}
+        elif network == "h2":
+            host_value = data.get("host")
             if isinstance(host_value, list):
-                hosts = host_value if host_value else [data.get('add', '')]
+                hosts = host_value if host_value else [data.get("add", "")]
             else:
-                hosts = [host_value] if host_value else [data.get('add', '')]
+                hosts = [host_value] if host_value else [data.get("add", "")]
 
-            stream_settings["httpSettings"] = {
-                "path": data.get('path', '/'),
-                "host": hosts
-            }
+            stream_settings["httpSettings"] = {"path": data.get("path", "/"), "host": hosts}
 
         return {
             "tag": tag,
             "protocol": "vmess",
             "settings": {
-                "vnext": [{
-                    "address": str(data.get('add', '')),
-                    "port": int(data.get('port', 443)),
-                    "users": [{
-                        "id": str(data.get('id', '')),
-                        "alterId": int(data.get('aid', 0)),
-                        "security": data.get('scy', 'auto')
-                    }]
-                }]
+                "vnext": [
+                    {
+                        "address": str(data.get("add", "")),
+                        "port": int(data.get("port", 443)),
+                        "users": [
+                            {
+                                "id": str(data.get("id", "")),
+                                "alterId": int(data.get("aid", 0)),
+                                "security": data.get("scy", "auto"),
+                            }
+                        ],
+                    }
+                ]
             },
-            "streamSettings": stream_settings
+            "streamSettings": stream_settings,
         }
-    except (ValueError, IndexError, KeyError, TypeError, json.JSONDecodeError, base64.binascii.Error):
+    except (
+        ValueError,
+        IndexError,
+        KeyError,
+        TypeError,
+        json.JSONDecodeError,
+        base64.binascii.Error,
+    ):
         return None
 
 
@@ -290,8 +320,8 @@ def parse_trojan_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         password, hostname, port = parsed
         params = parse_qs(query_part)
 
-        security = params.get('security', ['tls'])[0] if params.get('security') else 'tls'
-        network = params.get('type', ['tcp'])[0] if params.get('type') else 'tcp'
+        security = params.get("security", ["tls"])[0] if params.get("security") else "tls"
+        network = params.get("type", ["tcp"])[0] if params.get("type") else "tcp"
 
         stream = _make_stream_settings(network, security, params, hostname)
         if stream is None:
@@ -300,16 +330,17 @@ def parse_trojan_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         return {
             "tag": tag,
             "protocol": "trojan",
-            "settings": {
-                "servers": [{
-                    "address": hostname,
-                    "port": port,
-                    "password": password
-                }]
-            },
-            "streamSettings": stream
+            "settings": {"servers": [{"address": hostname, "port": port, "password": password}]},
+            "streamSettings": stream,
         }
-    except (ValueError, IndexError, KeyError, TypeError, json.JSONDecodeError, base64.binascii.Error):
+    except (
+        ValueError,
+        IndexError,
+        KeyError,
+        TypeError,
+        json.JSONDecodeError,
+        base64.binascii.Error,
+    ):
         return None
 
 
@@ -322,21 +353,21 @@ def _decode_ss_base64(url_part: str) -> tuple | None:
         # Add padding if needed
         padding = 4 - len(url_part) % 4
         if padding != 4:
-            url_part += '=' * padding
+            url_part += "=" * padding
 
-        decoded = base64.urlsafe_b64decode(url_part).decode('utf-8', errors='ignore')
+        decoded = base64.urlsafe_b64decode(url_part).decode("utf-8", errors="ignore")
 
         # Decoded format: method:password@host:port
-        if '@' in decoded:
-            userinfo, server = decoded.rsplit('@', 1)
-            if ':' in userinfo:
-                method, password = userinfo.split(':', 1)
+        if "@" in decoded:
+            userinfo, server = decoded.rsplit("@", 1)
+            if ":" in userinfo:
+                method, password = userinfo.split(":", 1)
             else:
                 method = userinfo
-                password = ''
+                password = ""
 
-            if ':' in server:
-                hostname, port_str = server.rsplit(':', 1)
+            if ":" in server:
+                hostname, port_str = server.rsplit(":", 1)
                 port = int(port_str)
             else:
                 hostname = server
@@ -354,22 +385,22 @@ def _parse_ss_legacy_format(url: str) -> tuple | None:
     Returns a tuple (method, password, hostname, port) or None on failure.
     """
     try:
-        url_part = url[url.index('://') + 3:]
-        if '#' in url_part:
-            url_part, _ = url_part.split('#', 1)
-        if '?' in url_part:
-            url_part, _ = url_part.split('?', 1)
+        url_part = url[url.index("://") + 3 :]
+        if "#" in url_part:
+            url_part, _ = url_part.split("#", 1)
+        if "?" in url_part:
+            url_part, _ = url_part.split("?", 1)
 
-        if '@' in url_part:
-            userinfo, server = url_part.rsplit('@', 1)
-            if ':' in userinfo:
-                method, password = userinfo.split(':', 1)
+        if "@" in url_part:
+            userinfo, server = url_part.rsplit("@", 1)
+            if ":" in userinfo:
+                method, password = userinfo.split(":", 1)
             else:
                 method = userinfo
-                password = ''
+                password = ""
 
-            if ':' in server:
-                hostname, port_str = server.rsplit(':', 1)
+            if ":" in server:
+                hostname, port_str = server.rsplit(":", 1)
                 port = int(port_str)
             else:
                 hostname = server
@@ -388,20 +419,20 @@ def _parse_ss_last_resort(url: str) -> tuple | None:
     Returns a tuple (method, password, hostname, port) or None on failure.
     """
     try:
-        url_part = url[url.index('://') + 3:]
-        if '#' in url_part:
-            url_part, _ = url_part.split('#', 1)
-        if '?' in url_part:
-            url_part, _ = url_part.split('?', 1)
+        url_part = url[url.index("://") + 3 :]
+        if "#" in url_part:
+            url_part, _ = url_part.split("#", 1)
+        if "?" in url_part:
+            url_part, _ = url_part.split("?", 1)
 
-        if ':' in url_part:
-            parts = url_part.split(':')
+        if ":" in url_part:
+            parts = url_part.split(":")
             if len(parts) >= 2:
                 port_str = parts[-1].strip()
-                hostname = ':'.join(parts[:-1]).split('@')[-1]
+                hostname = ":".join(parts[:-1]).split("@")[-1]
                 try:
                     port = int(port_str)
-                    return 'chacha20-poly1305', '', hostname, port
+                    return "chacha20-poly1305", "", hostname, port
                 except ValueError:
                     pass
     except (ValueError, IndexError):
@@ -417,21 +448,21 @@ def parse_shadowsocks_to_outbound(url: str, tag: str = "proxy") -> dict | None:
     """
     try:
         # Remove protocol prefix (case-insensitive)
-        url_part = url[url.index('://') + 3:]
+        url_part = url[url.index("://") + 3 :]
 
         # Split at # to separate fragment
-        if '#' in url_part:
-            url_part, _ = url_part.split('#', 1)
+        if "#" in url_part:
+            url_part, _ = url_part.split("#", 1)
 
         # Split at ? to separate query params FIRST
-        if '?' in url_part:
-            url_part, query_part = url_part.split('?', 1)
+        if "?" in url_part:
+            url_part, query_part = url_part.split("?", 1)
         else:
-            query_part = ''
+            query_part = ""
 
         # Handle both formats: base64 and plain
-        method = 'chacha20-poly1305'
-        password = ''
+        method = "chacha20-poly1305"
+        password = ""
         hostname = None
         port = None
 
@@ -470,39 +501,45 @@ def parse_shadowsocks_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         params = parse_qs(query_part) if query_part else {}
 
         # Reject plugin configs (not supported by Xray)
-        plugin = params.get('plugin', [None])[0] if params.get('plugin') else None
+        plugin = params.get("plugin", [None])[0] if params.get("plugin") else None
         if plugin:
             return None
 
         # Add network transport settings if specified
-        network = params.get('type', ['tcp'])[0] if params.get('type') else 'tcp'
-        stream_settings = {
-            "network": network,
-            "security": "none"
-        }
+        network = params.get("type", ["tcp"])[0] if params.get("type") else "tcp"
+        stream_settings = {"network": network, "security": "none"}
 
-        if network == 'ws':
+        if network == "ws":
             stream_settings["wsSettings"] = {
-                "path": unquote(params.get('path', ['/'])[0]),
-                "headers": {"Host": unquote(params.get('host', [hostname])[0])}
+                "path": unquote(params.get("path", ["/"])[0]),
+                "headers": {"Host": unquote(params.get("host", [hostname])[0])},
             }
 
         outbound = {
             "tag": tag,
             "protocol": "shadowsocks",
             "settings": {
-                "servers": [{
-                    "address": str(hostname),
-                    "port": int(port),
-                    "password": str(password),
-                    "method": str(method)
-                }]
+                "servers": [
+                    {
+                        "address": str(hostname),
+                        "port": int(port),
+                        "password": str(password),
+                        "method": str(method),
+                    }
+                ]
             },
-            "streamSettings": stream_settings
+            "streamSettings": stream_settings,
         }
 
         return outbound
-    except (ValueError, IndexError, KeyError, TypeError, json.JSONDecodeError, base64.binascii.Error):
+    except (
+        ValueError,
+        IndexError,
+        KeyError,
+        TypeError,
+        json.JSONDecodeError,
+        base64.binascii.Error,
+    ):
         return None
 
 
@@ -517,7 +554,7 @@ def parse_hysteria2_to_outbound(url: str, tag: str = "proxy") -> dict | None:
 
         # Hysteria2 uses QUIC transport with TLS
         auth = unquote(parsed.username) if parsed.username else ""
-        sni = params.get('sni', [parsed.hostname])[0] if params.get('sni') else parsed.hostname
+        sni = params.get("sni", [parsed.hostname])[0] if params.get("sni") else parsed.hostname
 
         # Validate SNI for TLS
         if not sni or not sni.strip():
@@ -528,25 +565,27 @@ def parse_hysteria2_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         return {
             "tag": tag,
             "protocol": "hysteria2",
-            "settings": {
-                "version": 2,
-                "address": parsed.hostname,
-                "port": parsed.port
-            },
+            "settings": {"version": 2, "address": parsed.hostname, "port": parsed.port},
             "streamSettings": {
                 "network": "hysteria",
                 "security": "tls",
-                "hysteriaSettings": {
-                    "version": 2,
-                    "auth": auth
-                },
+                "hysteriaSettings": {"version": 2, "auth": auth},
                 "tlsSettings": {
                     "serverName": sni,
-                    "fingerprint": params.get('fp', ['chrome'])[0] if params.get('fp') else 'chrome'
-                }
-            }
+                    "fingerprint": params.get("fp", ["chrome"])[0]
+                    if params.get("fp")
+                    else "chrome",
+                },
+            },
         }
-    except (ValueError, IndexError, KeyError, TypeError, json.JSONDecodeError, base64.binascii.Error):
+    except (
+        ValueError,
+        IndexError,
+        KeyError,
+        TypeError,
+        json.JSONDecodeError,
+        base64.binascii.Error,
+    ):
         return None
 
 
@@ -563,22 +602,18 @@ def parse_hysteria_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         if not parsed.hostname or not parsed.port:
             return None
 
-        auth = unquote(parsed.username) if parsed.username else params.get('auth', [''])[0]
-        protocol = params.get('protocol', ['udp'])[0]
-        sni = params.get('sni', [parsed.hostname])[0] if params.get('sni') else parsed.hostname
+        auth = unquote(parsed.username) if parsed.username else params.get("auth", [""])[0]
+        protocol = params.get("protocol", ["udp"])[0]
+        sni = params.get("sni", [parsed.hostname])[0] if params.get("sni") else parsed.hostname
 
         # Check for insecure TLS setting
-        insecure = params.get('insecure', ['0'])[0] == '1'
+        insecure = params.get("insecure", ["0"])[0] == "1"
 
         return {
             "tag": tag,
             "protocol": "hysteria",
             "settings": {
-                "servers": [{
-                    "address": parsed.hostname,
-                    "port": parsed.port,
-                    "password": auth
-                }]
+                "servers": [{"address": parsed.hostname, "port": parsed.port, "password": auth}]
             },
             "streamSettings": {
                 "network": "hysteria",
@@ -587,16 +622,24 @@ def parse_hysteria_to_outbound(url: str, tag: str = "proxy") -> dict | None:
                     "version": 1,
                     "auth": auth,
                     "protocol": protocol,
-                    "up_mbps": int(params.get('upmbps', ['100'])[0]) if params.get('upmbps') else 100,
-                    "down_mbps": int(params.get('downmbps', ['100'])[0]) if params.get('downmbps') else 100
+                    "up_mbps": int(params.get("upmbps", ["100"])[0])
+                    if params.get("upmbps")
+                    else 100,
+                    "down_mbps": int(params.get("downmbps", ["100"])[0])
+                    if params.get("downmbps")
+                    else 100,
                 },
-                "tlsSettings": {
-                    "serverName": sni,
-                    "insecure": insecure
-                }
-            }
+                "tlsSettings": {"serverName": sni, "insecure": insecure},
+            },
         }
-    except (ValueError, IndexError, KeyError, TypeError, json.JSONDecodeError, base64.binascii.Error):
+    except (
+        ValueError,
+        IndexError,
+        KeyError,
+        TypeError,
+        json.JSONDecodeError,
+        base64.binascii.Error,
+    ):
         return None
 
 
@@ -612,22 +655,29 @@ def parse_ssr_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         # Add padding if needed
         padding = 4 - len(url_part) % 4
         if padding != 4:
-            url_part += '=' * padding
+            url_part += "=" * padding
 
         # Decode base64
         try:
-            decoded = base64.urlsafe_b64decode(url_part).decode('utf-8', errors='ignore')
-        except (ValueError, IndexError, KeyError, TypeError, json.JSONDecodeError, base64.binascii.Error):
+            decoded = base64.urlsafe_b64decode(url_part).decode("utf-8", errors="ignore")
+        except (
+            ValueError,
+            IndexError,
+            KeyError,
+            TypeError,
+            json.JSONDecodeError,
+            base64.binascii.Error,
+        ):
             return None
 
         # SSR format: host:port:protocol:method:obfs:base64pass/?obfsparam=base64&protoparam=base64&remarks=base64
-        if '/?' in decoded:
-            main_part, query_part = decoded.split('/?', 1)
+        if "/?" in decoded:
+            main_part, query_part = decoded.split("/?", 1)
         else:
             main_part = decoded
-            query_part = ''
+            query_part = ""
 
-        parts = main_part.split(':')
+        parts = main_part.split(":")
         if len(parts) < 6:
             return None
 
@@ -649,11 +699,20 @@ def parse_ssr_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         try:
             password_padding = 4 - len(parts[5]) % 4
             if password_padding != 4:
-                password_base64 = parts[5] + '=' * password_padding
-            password = base64.urlsafe_b64decode(password_base64).decode('utf-8', errors='ignore').strip()
+                password_base64 = parts[5] + "=" * password_padding
+            password = (
+                base64.urlsafe_b64decode(password_base64).decode("utf-8", errors="ignore").strip()
+            )
             if not password:
                 return None
-        except (ValueError, IndexError, KeyError, TypeError, json.JSONDecodeError, base64.binascii.Error):
+        except (
+            ValueError,
+            IndexError,
+            KeyError,
+            TypeError,
+            json.JSONDecodeError,
+            base64.binascii.Error,
+        ):
             return None
 
         # Parse query params (forward-compat: may be used by future checks)
@@ -670,19 +729,20 @@ def parse_ssr_to_outbound(url: str, tag: str = "proxy") -> dict | None:
             "tag": tag,
             "protocol": "shadowsocks",
             "settings": {
-                "servers": [{
-                    "address": hostname,
-                    "port": port,
-                    "password": password,
-                    "method": method
-                }]
+                "servers": [
+                    {"address": hostname, "port": port, "password": password, "method": method}
+                ]
             },
-            "streamSettings": {
-                "network": "tcp",
-                "security": "none"
-            }
+            "streamSettings": {"network": "tcp", "security": "none"},
         }
-    except (ValueError, IndexError, KeyError, TypeError, json.JSONDecodeError, base64.binascii.Error):
+    except (
+        ValueError,
+        IndexError,
+        KeyError,
+        TypeError,
+        json.JSONDecodeError,
+        base64.binascii.Error,
+    ):
         return None
 
 
@@ -726,14 +786,14 @@ def parse_url_to_outbound(url: str, tag: str = "proxy") -> dict | None:
     # Fallback: legacy inline parsers
     url_lower = url.lower()
     dispatch = {
-        'vless://': parse_vless_to_outbound,        # Full support
-        'vmess://': parse_vmess_to_outbound,        # Full support
-        'trojan://': parse_trojan_to_outbound,      # Full support
-        'ss://': parse_shadowsocks_to_outbound,     # Full support (AEAD only)
-        'ssr://': parse_ssr_to_outbound,            # Limited (converted to SS)
-        'hysteria://': parse_hysteria_to_outbound,  # Limited (v1)
-        'hysteria2://': parse_hysteria2_to_outbound, # Full support (v2)
-        'hy2://': parse_hysteria2_to_outbound,      # Alias for hysteria2
+        "vless://": parse_vless_to_outbound,  # Full support
+        "vmess://": parse_vmess_to_outbound,  # Full support
+        "trojan://": parse_trojan_to_outbound,  # Full support
+        "ss://": parse_shadowsocks_to_outbound,  # Full support (AEAD only)
+        "ssr://": parse_ssr_to_outbound,  # Limited (converted to SS)
+        "hysteria://": parse_hysteria_to_outbound,  # Limited (v1)
+        "hysteria2://": parse_hysteria2_to_outbound,  # Full support (v2)
+        "hy2://": parse_hysteria2_to_outbound,  # Alias for hysteria2
     }
 
     for prefix, parser in dispatch.items():

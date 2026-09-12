@@ -11,6 +11,7 @@ Usage:
     python scripts/purge_stale_urls.py --apply             # actually remove
     python scripts/purge_stale_urls.py --days 60 --apply   # custom threshold
 """
+
 import argparse
 import json
 import os
@@ -30,6 +31,7 @@ CACHE_PATH = os.path.join(PROJECT_ROOT, "data", "stale_urls_cache.json")
 
 # Load .env from project root (parent of source/)
 from dotenv import load_dotenv
+
 _env_path = os.path.join(os.path.dirname(PROJECT_ROOT), ".env")
 if os.path.exists(_env_path):
     load_dotenv(_env_path)
@@ -129,7 +131,10 @@ def wait_if_needed(headers: Any) -> bool:
         now = time.time()
         if reset_ts > now:
             wait = min(reset_ts - now + 2, 300)
-            print(f"  rate limit nearly exhausted ({remaining} left), sleeping {wait:.0f}s until reset...", flush=True)
+            print(
+                f"  rate limit nearly exhausted ({remaining} left), sleeping {wait:.0f}s until reset...",
+                flush=True,
+            )
             time.sleep(wait)
             return True
 
@@ -182,7 +187,10 @@ def get_last_commit_date(
                 # No Retry-After header — wait exponentially
                 if attempt < _MAX_RETRIES - 1:
                     backoff = 2 ** (attempt + 1) * 5
-                    print(f"  rate limited (status {resp.status_code}), retrying in {backoff}s...", flush=True)
+                    print(
+                        f"  rate limited (status {resp.status_code}), retrying in {backoff}s...",
+                        flush=True,
+                    )
                     time.sleep(backoff)
                     continue
                 return None, True  # can't recover — uncertain
@@ -190,24 +198,29 @@ def get_last_commit_date(
             # Server error — transient, retry
             if 500 <= resp.status_code < 600:
                 if attempt < _MAX_RETRIES - 1:
-                    time.sleep(2 ** attempt * 2)
+                    time.sleep(2**attempt * 2)
                     continue
                 return None, True  # server error after retries — uncertain
 
             # Unexpected status
-            print(f"  unexpected status {resp.status_code} for {owner}/{repo}/{path}, skipping", flush=True)
+            print(
+                f"  unexpected status {resp.status_code} for {owner}/{repo}/{path}, skipping",
+                flush=True,
+            )
             return None, True
 
         except requests.Timeout:
             if attempt < _MAX_RETRIES - 1:
                 print(f"  timeout, retrying ({attempt + 1}/{_MAX_RETRIES})...", flush=True)
-                time.sleep(2 ** attempt * 2)
+                time.sleep(2**attempt * 2)
                 continue
             return None, True
 
         except requests.RequestException as e:
             if attempt < _MAX_RETRIES - 1:
-                print(f"  request error: {e}, retrying ({attempt + 1}/{_MAX_RETRIES})...", flush=True)
+                print(
+                    f"  request error: {e}, retrying ({attempt + 1}/{_MAX_RETRIES})...", flush=True
+                )
                 time.sleep(2)
                 continue
             return None, True
@@ -263,7 +276,9 @@ def run(dry_run: bool, stale_days: int) -> None:
 
     # Warm up: check rate limit before starting
     remaining, limit = check_rate_limit(session)
-    auth_status = f"authenticated ({limit} req/hr)" if GITHUB_TOKEN else f"unauthenticated ({limit} req/hr)"
+    auth_status = (
+        f"authenticated ({limit} req/hr)" if GITHUB_TOKEN else f"unauthenticated ({limit} req/hr)"
+    )
 
     print(f"checking {len(entries)} GitHub URLs (threshold: {stale_days}d)")
     print(f"auth: {auth_status}")
@@ -273,7 +288,9 @@ def run(dry_run: bool, stale_days: int) -> None:
     if GITHUB_TOKEN and remaining < len(entries):
         print(f"warning: only {remaining} requests available, need {len(entries)}.")
     elif not GITHUB_TOKEN:
-        print(f"note: pacing at {_REQUEST_DELAY:.0f}s/request (~{int(3600/_REQUEST_DELAY)} req/hr) for unauthenticated access")
+        print(
+            f"note: pacing at {_REQUEST_DELAY:.0f}s/request (~{int(3600 / _REQUEST_DELAY)} req/hr) for unauthenticated access"
+        )
         if remaining < 5:
             print("  rate limit nearly exhausted. try again later or set GITHUB_TOKEN.")
             return
@@ -303,7 +320,9 @@ def run(dry_run: bool, stale_days: int) -> None:
                 fresh_count += 1
             done += 1
             if done % 100 == 0 or done == len(entries) or done == 1:
-                print(f"  progress: {done}/{len(entries)} (cached, fresh={fresh_count}, stale={stale_count}, errors={error_count}, skipped={skipped_count})")
+                print(
+                    f"  progress: {done}/{len(entries)} (cached, fresh={fresh_count}, stale={stale_count}, errors={error_count}, skipped={skipped_count})"
+                )
             continue
 
         # Cache hit with error marker — keep URL (uncertain last time, still uncertain)
@@ -339,7 +358,9 @@ def run(dry_run: bool, stale_days: int) -> None:
 
         done += 1
         if done % 100 == 0 or done == len(entries) or done == 1:
-            print(f"  progress: {done}/{len(entries)} (fresh={fresh_count}, stale={stale_count}, errors={error_count}, skipped={skipped_count})")
+            print(
+                f"  progress: {done}/{len(entries)} (fresh={fresh_count}, stale={stale_count}, errors={error_count}, skipped={skipped_count})"
+            )
             save_cache(cache)
 
     # Save final cache
@@ -351,7 +372,9 @@ def run(dry_run: bool, stale_days: int) -> None:
     print()
     fresh_print = fresh_count
     stale_print = stale_count
-    print(f"results: {fresh_print} fresh, {stale_print} stale, {error_count} errors, {skipped_count} skipped (API error, kept)")
+    print(
+        f"results: {fresh_print} fresh, {stale_print} stale, {error_count} errors, {skipped_count} skipped (API error, kept)"
+    )
 
     if stale_urls:
         aged = []
@@ -418,6 +441,8 @@ def run(dry_run: bool, stale_days: int) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Remove stale GitHub URLs from URLS.txt")
     parser.add_argument("--apply", action="store_true", help="actually remove (default: dry run)")
-    parser.add_argument("--days", type=int, default=30, help="stale threshold in days (default: 30)")
+    parser.add_argument(
+        "--days", type=int, default=30, help="stale threshold in days (default: 30)"
+    )
     args = parser.parse_args()
     run(dry_run=not args.apply, stale_days=args.days)

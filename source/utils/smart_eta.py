@@ -11,6 +11,7 @@ Key improvements over earlier versions:
 - No confusing floor multiplier (removed the 0.8 discount)
 - Conservative by default: overestimate rather than underestimate
 """
+
 import math
 import time
 from collections import deque
@@ -47,9 +48,7 @@ class SmartETA:
         # This gives 5k data points out of 50k, which means even when
         # fast configs dominate the first half, the window captures the
         # transition reasonably fast.
-        self.window_size = window_size or max(
-            500, min(max(total // 10, concurrency * 5), 5000)
-        )
+        self.window_size = window_size or max(500, min(max(total // 10, concurrency * 5), 5000))
         self._window: deque = deque(maxlen=self.window_size)
 
         self.completed = 0
@@ -86,7 +85,7 @@ class SmartETA:
         # Update measured batch time every `concurrency` completions.
         # P80 of the most recent batch's durations gives a stable floor.
         if self.completed % self.concurrency == 0:
-            batch = list(self._window)[-self.concurrency:]
+            batch = list(self._window)[-self.concurrency :]
             if batch:
                 durations = sorted(d for _, d in batch)
                 p80_idx = max(0, int(len(durations) * 0.8) - 1)
@@ -114,13 +113,13 @@ class SmartETA:
             window_rate = len(window) / time_span if time_span > 0 else 0.0
         else:
             window_rate = 0.0
-        eta_window = remaining / window_rate if window_rate > 0 else float('inf')
+        eta_window = remaining / window_rate if window_rate > 0 else float("inf")
 
         # ── Estimate 2: global average rate ──────────────────────────
         # Throughput since the start. Stable, includes all history.
         elapsed = self._time() - self.start_time
         global_rate = self.completed / elapsed if elapsed > 0 else 0.0
-        eta_global = remaining / global_rate if global_rate > 0 else float('inf')
+        eta_global = remaining / global_rate if global_rate > 0 else float("inf")
 
         # ── Estimate 3: duration-based ───────────────────────────────
         # How long it'll take if remaining configs look like the current
@@ -131,7 +130,7 @@ class SmartETA:
             batches_needed = math.ceil(remaining / self.concurrency)
             eta_duration = batches_needed * self._ema_duration
         else:
-            eta_duration = float('inf')
+            eta_duration = float("inf")
 
         # ── Floor: timeout-based lower bound ──────────────────────────
         # In the worst case, every remaining config hits the timeout.

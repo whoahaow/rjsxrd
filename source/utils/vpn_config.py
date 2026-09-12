@@ -23,6 +23,7 @@ from utils.security_filter import SS_WEAK_CIPHERS
 
 # ── Base class ──────────────────────────────────────────────────────────
 
+
 @dataclass(slots=True)
 class VPNConfig:
     """Common fields for all VPN protocols.
@@ -31,6 +32,7 @@ class VPNConfig:
     produces the Xray-core outbound dict (same shape the current str→Dict
     parsers return).
     """
+
     host: str
     port: int
     remark: str = ""
@@ -54,6 +56,7 @@ class VPNConfig:
 
 # ── Protocol-specific configs ───────────────────────────────────────────
 
+
 @dataclass(slots=True)
 class VLESSConfig(VPNConfig):
     uuid: str = ""
@@ -72,12 +75,15 @@ class VLESSConfig(VPNConfig):
     def to_xray_outbound(self, tag: str = "proxy") -> dict[str, Any] | None:
         outbound = _make_base_outbound(tag, "vless")
         outbound["settings"] = {
-            "vnext": [{
-                "address": self.host,
-                "port": self.port,
-                "users": [{"id": self.uuid, "flow": self.flow or None,
-                           "encryption": self.encryption}]
-            }]
+            "vnext": [
+                {
+                    "address": self.host,
+                    "port": self.port,
+                    "users": [
+                        {"id": self.uuid, "flow": self.flow or None, "encryption": self.encryption}
+                    ],
+                }
+            ]
         }
         security = "reality" if self.reality else ("tls" if self.tls else None)
         _add_stream_settings(outbound, self, security_override=security)
@@ -113,12 +119,15 @@ class VMessConfig(VPNConfig):
     def to_xray_outbound(self, tag: str = "proxy") -> dict[str, Any]:
         outbound = _make_base_outbound(tag, "vmess")
         outbound["settings"] = {
-            "vnext": [{
-                "address": self.host,
-                "port": self.port,
-                "users": [{"id": self.uuid, "alterId": self.alter_id,
-                           "security": self.security}]
-            }]
+            "vnext": [
+                {
+                    "address": self.host,
+                    "port": self.port,
+                    "users": [
+                        {"id": self.uuid, "alterId": self.alter_id, "security": self.security}
+                    ],
+                }
+            ]
         }
         _add_stream_settings(outbound, self)
         return outbound
@@ -142,12 +151,14 @@ class TrojanConfig(VPNConfig):
     def to_xray_outbound(self, tag: str = "proxy") -> dict[str, Any] | None:
         outbound = _make_base_outbound(tag, "trojan")
         outbound["settings"] = {
-            "servers": [{
-                "address": self.host,
-                "port": self.port,
-                "password": self.password,
-                "flow": self.flow or None,
-            }]
+            "servers": [
+                {
+                    "address": self.host,
+                    "port": self.port,
+                    "password": self.password,
+                    "flow": self.flow or None,
+                }
+            ]
         }
         security = "reality" if self.reality else ("tls" if self.tls else None)
         _add_stream_settings(outbound, self, security_override=security)
@@ -175,12 +186,14 @@ class ShadowsocksConfig(VPNConfig):
     def to_xray_outbound(self, tag: str = "proxy") -> dict[str, Any]:
         outbound = _make_base_outbound(tag, "shadowsocks")
         outbound["settings"] = {
-            "servers": [{
-                "address": self.host,
-                "port": self.port,
-                "method": self.method,
-                "password": self.password,
-            }]
+            "servers": [
+                {
+                    "address": self.host,
+                    "port": self.port,
+                    "method": self.method,
+                    "password": self.password,
+                }
+            ]
         }
         return outbound
 
@@ -211,6 +224,7 @@ class Hysteria2Config(VPNConfig):
 
 # ── Factory ─────────────────────────────────────────────────────────────
 
+
 def parse_url(url: str) -> VPNConfig | None:
     """Parse a VPN URL string into the appropriate typed config.
 
@@ -238,6 +252,7 @@ def parse_url(url: str) -> VPNConfig | None:
 
 
 # ── Protocol parsers ─────────────────────────────────────────────────────
+
 
 def _parse_vless(url: str) -> VLESSConfig | None:
     parsed = urlparse(url)
@@ -380,8 +395,8 @@ def _parse_hysteria2(url: str) -> Hysteria2Config | None:
 
 # ── Shared helpers ──────────────────────────────────────────────────────
 
-def _make_base_outbound(tag: str, protocol: str,
-                        is_quic: bool = False) -> dict[str, Any]:
+
+def _make_base_outbound(tag: str, protocol: str, is_quic: bool = False) -> dict[str, Any]:
     """Build the base Xray outbound dict shared by all protocols."""
     outbound: dict[str, Any] = {
         "tag": tag,
@@ -395,8 +410,9 @@ def _make_base_outbound(tag: str, protocol: str,
     return outbound
 
 
-def _add_stream_settings(outbound: dict[str, Any], cfg: VPNConfig,
-                         security_override: str | None = None) -> None:
+def _add_stream_settings(
+    outbound: dict[str, Any], cfg: VPNConfig, security_override: str | None = None
+) -> None:
     """Add transport-level streamSettings to an outbound dict.
 
     Args:
@@ -415,6 +431,7 @@ def _add_stream_settings(outbound: dict[str, Any], cfg: VPNConfig,
 
     if ss.get("security") == "tls" or (cfg.tls and not security_override):
         from config.settings import TLS_FINGERPRINT
+
         tls_settings: dict[str, Any] = {
             "serverName": cfg.sni or cfg.host,
             "fingerprint": TLS_FINGERPRINT,

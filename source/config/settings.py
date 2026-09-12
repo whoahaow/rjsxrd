@@ -1,4 +1,5 @@
 """Configuration settings for VPN config generator."""
+
 import os
 import re
 
@@ -17,13 +18,13 @@ _MANUAL_SERVERS_CACHE = None
 
 def _validate_int_env(var_name: str, default: int, min_val: int, max_val: int) -> int:
     """Validate integer environment variable with bounds checking.
-    
+
     Args:
         var_name: Environment variable name
         default: Default value if not set or invalid
         min_val: Minimum allowed value
         max_val: Maximum allowed value
-        
+
     Returns:
         Validated integer value within bounds
     """
@@ -34,16 +35,18 @@ def _validate_int_env(var_name: str, default: int, min_val: int, max_val: int) -
             return default
         return value
     except ValueError:
-        log(f"Warning: Invalid {var_name}='{os.environ.get(var_name, '')}', using default {default}")
+        log(
+            f"Warning: Invalid {var_name}='{os.environ.get(var_name, '')}', using default {default}"
+        )
         return default
 
 
 def _validate_github_token(token: str) -> str:
     """Validate GitHub token format.
-    
+
     Args:
         token: GitHub token to validate
-        
+
     Returns:
         Cleaned token or empty string if invalid
     """
@@ -54,12 +57,12 @@ def _validate_github_token(token: str) -> str:
     token = token.strip()
 
     # Check for suspicious characters
-    if '\n' in token or '\r' in token:
+    if "\n" in token or "\r" in token:
         log("Warning: GitHub token contains newline characters, cleaning...")
-        token = token.replace('\n', '').replace('\r', '')
+        token = token.replace("\n", "").replace("\r", "")
 
     # Basic format validation (GitHub tokens are alphanumeric with underscores/hyphens)
-    if not re.match(r'^[a-zA-Z0-9_\-]+$', token):
+    if not re.match(r"^[a-zA-Z0-9_\-]+$", token):
         log("Warning: GitHub token has unexpected format (may contain invalid characters)")
 
     # Warn if token looks too short
@@ -76,11 +79,12 @@ GITHUB_TOKEN = _validate_github_token(
 REPO_NAME = os.environ.get("REPO_NAME", "whoahaow/rjsxrd")
 
 # Validate REPO_NAME format
-if not re.match(r'^[a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+$', REPO_NAME):
+if not re.match(r"^[a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+$", REPO_NAME):
     log(f"Warning: REPO_NAME '{REPO_NAME}' has unexpected format (expected owner/repo)")
 
 # URL sources — lazy-loaded from URLS.txt on first access
 _URLS_CONFIG = None
+
 
 def get_urls_config() -> tuple[list[str], list[str], list[str], list[str]]:
     """Parse URLS.txt once and cache results. Returns (URLS, URLS_EXTRA_BYPASS, URLS_YAML, TELEGRAM_PROXY_URLS)."""
@@ -91,11 +95,17 @@ def get_urls_config() -> tuple[list[str], list[str], list[str], list[str]]:
 
 
 def __getattr__(name) -> list[str]:
-    if name in ('URLS', 'URLS_EXTRA_BYPASS', 'URLS_YAML', 'TELEGRAM_PROXY_URLS'):
+    if name in ("URLS", "URLS_EXTRA_BYPASS", "URLS_YAML", "TELEGRAM_PROXY_URLS"):
         (urls, extra, yaml, tg) = get_urls_config()
-        mapping = {'URLS': urls, 'URLS_EXTRA_BYPASS': extra, 'URLS_YAML': yaml, 'TELEGRAM_PROXY_URLS': tg}
+        mapping = {
+            "URLS": urls,
+            "URLS_EXTRA_BYPASS": extra,
+            "URLS_YAML": yaml,
+            "TELEGRAM_PROXY_URLS": tg,
+        }
         return mapping[name]
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 def parse_urls_file() -> tuple[list[str], list[str], list[str], list[str]]:
     """Parse URLS.txt file with section markers."""
@@ -105,12 +115,12 @@ def parse_urls_file() -> tuple[list[str], list[str], list[str], list[str]]:
     telegram_proxy_urls = []
 
     config_dir = os.path.dirname(__file__)
-    urls_file = os.path.join(config_dir, 'URLS.txt')
+    urls_file = os.path.join(config_dir, "URLS.txt")
 
-    current_section = 'default'  # Default section
+    current_section = "default"  # Default section
 
     try:
-        with open(urls_file, encoding='utf-8') as f:
+        with open(urls_file, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
 
@@ -119,30 +129,30 @@ def parse_urls_file() -> tuple[list[str], list[str], list[str], list[str]]:
                     continue
 
                 # Check for section markers
-                if line.startswith('# '):
+                if line.startswith("# "):
                     section_name = line[2:].strip().lower()
-                    if 'yaml' in section_name:
-                        current_section = 'yaml'
-                    elif 'telegram' in section_name or 'tg' in section_name:
-                        current_section = 'telegram'
-                    elif 'extra' in section_name or 'bypass' in section_name:
-                        current_section = 'extra_bypass'
+                    if "yaml" in section_name:
+                        current_section = "yaml"
+                    elif "telegram" in section_name or "tg" in section_name:
+                        current_section = "telegram"
+                    elif "extra" in section_name or "bypass" in section_name:
+                        current_section = "extra_bypass"
                     else:
-                        current_section = 'default'
+                        current_section = "default"
                     continue
 
                 # Skip pure comment lines (not section markers)
-                if line.startswith('#'):
+                if line.startswith("#"):
                     continue
 
                 # Add URL to current section
-                if current_section == 'default':
+                if current_section == "default":
                     urls.append(line)
-                elif current_section == 'extra_bypass':
+                elif current_section == "extra_bypass":
                     urls_extra_bypass.append(line)
-                elif current_section == 'yaml':
+                elif current_section == "yaml":
                     urls_yaml.append(line)
-                elif current_section == 'telegram':
+                elif current_section == "telegram":
                     telegram_proxy_urls.append(line)
 
     except FileNotFoundError:
@@ -157,7 +167,9 @@ def get_manual_servers() -> list[str]:
     if _MANUAL_SERVERS_CACHE is None:
         servers = []
         try:
-            with open(os.path.join(os.path.dirname(__file__), 'servers.txt'), encoding='utf-8') as f:
+            with open(
+                os.path.join(os.path.dirname(__file__), "servers.txt"), encoding="utf-8"
+            ) as f:
                 servers = [line.strip() for line in f if line.strip()]
         except FileNotFoundError:
             log("servers.txt file not found!")
@@ -171,18 +183,20 @@ MANUAL_SERVERS = get_manual_servers()
 
 # Telegram proxy sources URLs — lazy-loaded via __getattr__ from URLS.txt (telegram section)
 
+
 # SNI domains for filtering - Russian white-list bypass
 def load_sni_domains() -> list[str]:
     """Load SNI domains from whitelist-all.txt file."""
     config_dir = os.path.dirname(__file__)  # Get the directory of the current file
-    whitelist_path = os.path.join(config_dir, 'whitelist-all.txt')
+    whitelist_path = os.path.join(config_dir, "whitelist-all.txt")
     try:
-        with open(whitelist_path, encoding='utf-8') as f:
+        with open(whitelist_path, encoding="utf-8") as f:
             domains = [line.strip() for line in f if line.strip()]
         return domains
     except FileNotFoundError:
         log(f"whitelist-all.txt not found at {whitelist_path}, using empty list")
         return []
+
 
 def get_sni_domains() -> list[str]:
     """Lazy-load SNI domains from whitelist-all.txt with caching."""
@@ -274,15 +288,15 @@ ASYNC_CONCURRENCY_LINUX = _validate_int_env("ASYNC_CONCURRENCY_LINUX", 300, 50, 
 # === Output generation flags ===
 # Control which folders are created and uploaded.
 # Set True to enable, False to skip.
-ENABLE_DEFAULT_FILES = False   # default/ — 1.txt, 2.txt, all.txt, all-secure.txt
-ENABLE_BYPASS_UNSECURE = False # bypass-unsecure/ — configs without security filtering
+ENABLE_DEFAULT_FILES = False  # default/ — 1.txt, 2.txt, all.txt, all-secure.txt
+ENABLE_BYPASS_UNSECURE = False  # bypass-unsecure/ — configs without security filtering
 ENABLE_PROTOCOL_SPLIT = False  # split-by-protocols/ — per-protocol files
-ENABLE_TG_PROXY = False        # tg-proxy/ — Telegram proxies (disabled by default)
-PUBLISH_RAW_FILES = False      # /raw/ subfolders — untested configs before verification
+ENABLE_TG_PROXY = False  # tg-proxy/ — Telegram proxies (disabled by default)
+PUBLISH_RAW_FILES = False  # /raw/ subfolders — untested configs before verification
 
 # === File size limits ===
-MAX_FILE_SIZE_MB = 49.0        # Max per-file before splitting (GitHub ~50MB limit)
-MAX_CONFIGS_PER_FILE = 300     # Max configs per numbered file
+MAX_FILE_SIZE_MB = 49.0  # Max per-file before splitting (GitHub ~50MB limit)
+MAX_CONFIGS_PER_FILE = 300  # Max configs per numbered file
 MAX_NUMBERED_DEFAULT_FILES = 26  # Cap on numbered default/ files (1.txt, 2.txt, ...). Was hardcoded in create_numbered_default_files before 2026-06-16.
 
 # === Xray-core port ranges (env-overridable) ===
@@ -353,7 +367,7 @@ BATCH_MODE_OVERRIDE = None
 
 # === Validation concurrency ===
 V2RAYN_MAX_CONCURRENCY = 1000  # Reference: v2rayN SpeedTestPageSize
-MAX_SAFE_CONCURRENCY = 500     # Conservative cap to avoid resource exhaustion
+MAX_SAFE_CONCURRENCY = 500  # Conservative cap to avoid resource exhaustion
 
 # === Logging ===
 LOG_TRUNCATE_LENGTH = 200

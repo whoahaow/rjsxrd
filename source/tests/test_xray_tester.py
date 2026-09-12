@@ -26,6 +26,7 @@ class TestXrayProtocolParsers:
     def _make_tester(self):
         """Create an XrayTester for parser testing (no xray binary needed)."""
         from utils.xray_tester import XrayTester
+
         # __init__ calls _find_xray which may fail — mock it to return None
         tester = XrayTester.__new__(XrayTester)
         tester.xray_path = None
@@ -55,8 +56,10 @@ class TestXrayProtocolParsers:
 
     def test_vless_ws_reality(self):
         tester = self._make_tester()
-        url = ("vless://uuid@reality.example.com:8443?security=reality&type=ws"
-               "&sni=reality.example.com&pbk=abc123publicKey&path=/ws&host=reality.example.com")
+        url = (
+            "vless://uuid@reality.example.com:8443?security=reality&type=ws"
+            "&sni=reality.example.com&pbk=abc123publicKey&path=/ws&host=reality.example.com"
+        )
         result = tester._url_to_outbound(url, "tag1")
         assert result is not None
         assert result["protocol"] == "vless"
@@ -94,8 +97,13 @@ class TestXrayProtocolParsers:
         """VMess URL is base64-encoded JSON."""
         tester = self._make_tester()
         vmess_data = {
-            "add": "vmess-host.com", "port": 443, "id": "uuid-1234",
-            "aid": "0", "net": "tcp", "type": "none", "tls": "tls",
+            "add": "vmess-host.com",
+            "port": 443,
+            "id": "uuid-1234",
+            "aid": "0",
+            "net": "tcp",
+            "type": "none",
+            "tls": "tls",
         }
         encoded = base64.b64encode(json.dumps(vmess_data).encode()).decode()
         url = f"vmess://{encoded}"
@@ -108,9 +116,15 @@ class TestXrayProtocolParsers:
     def test_vmess_ws_with_path(self):
         tester = self._make_tester()
         vmess_data = {
-            "add": "ws-host.com", "port": 443, "id": "uuid-5678",
-            "aid": "0", "net": "ws", "type": "none", "tls": "tls",
-            "path": "/vmess", "host": "ws-host.com"
+            "add": "ws-host.com",
+            "port": 443,
+            "id": "uuid-5678",
+            "aid": "0",
+            "net": "ws",
+            "type": "none",
+            "tls": "tls",
+            "path": "/vmess",
+            "host": "ws-host.com",
         }
         encoded = base64.b64encode(json.dumps(vmess_data).encode()).decode()
         url = f"vmess://{encoded}"
@@ -263,6 +277,7 @@ class TestXraySecurityEdgeCases:
         import threading
 
         from utils.xray_tester import XrayTester
+
         tester = XrayTester.__new__(XrayTester)
         tester.xray_path = None
         tester._running_processes = []
@@ -333,31 +348,40 @@ class TestXraySecurityEdgeCases:
         # VMess with aid=1 (alterId > 0)
         import base64
         import json
+
         payload = base64.b64encode(
-            json.dumps({
-                "add": "host.com", "port": 443,
-                "id": "uuid-123", "aid": "1",  # aid=1 is insecure
-                "net": "tcp", "tls": "tls",
-                "ps": "insecure-vmess",
-            }).encode()
+            json.dumps(
+                {
+                    "add": "host.com",
+                    "port": 443,
+                    "id": "uuid-123",
+                    "aid": "1",  # aid=1 is insecure
+                    "net": "tcp",
+                    "tls": "tls",
+                    "ps": "insecure-vmess",
+                }
+            ).encode()
         ).decode()
-        result = tester._url_to_outbound(
-            f"vmess://{payload}", "tag"
-        )
+        result = tester._url_to_outbound(f"vmess://{payload}", "tag")
         assert result is not None
 
     def test_vmess_with_security_none_parsed(self):
         """SECURITY: VMess with scy=none (security=none) should be parsed."""
         import base64
         import json
+
         payload = base64.b64encode(
-            json.dumps({
-                "add": "host.com", "port": 443,
-                "id": "uuid-123", "aid": "0",
-                "scy": "none",  # insecure cipher
-                "net": "tcp",
-                "ps": "vmess-no-encryption",
-            }).encode()
+            json.dumps(
+                {
+                    "add": "host.com",
+                    "port": 443,
+                    "id": "uuid-123",
+                    "aid": "0",
+                    "scy": "none",  # insecure cipher
+                    "net": "tcp",
+                    "ps": "vmess-no-encryption",
+                }
+            ).encode()
         ).decode()
         tester = self._make_tester()
         result = tester._url_to_outbound(f"vmess://{payload}", "tag")
@@ -386,6 +410,7 @@ class TestXraySecurityEdgeCases:
         tester = self._make_tester()
         # Short-form SSR: just server:port in base64, no method/password/protocol/obfs
         import base64
+
         result = tester._url_to_outbound(
             f"ssr://{base64.b64encode(b'server.com:8388').decode()}",
             "tag",
@@ -404,6 +429,7 @@ class TestXraySecurityEdgeCases:
         # Standard SSR: base64(server:port:protocol:method:obfs:password)
         # chacha20-ietf-poly1305 is a secure AEAD cipher
         import base64
+
         payload = base64.b64encode(
             b"server.com:8388:origin:chacha20-ietf-poly1305:plain:password123"
         ).decode()
@@ -417,10 +443,9 @@ class TestXraySecurityEdgeCases:
         attempt (the parsed Shadowsocks outbound is rejected for weak cipher)."""
         tester = self._make_tester()
         import base64
+
         # rc4-md5 is a weak cipher
-        payload = base64.b64encode(
-            b"server.com:8388:origin:rc4-md5:plain:password123"
-        ).decode()
+        payload = base64.b64encode(b"server.com:8388:origin:rc4-md5:plain:password123").decode()
         result = tester._url_to_outbound(f"ssr://{payload}", "tag")
         assert result is None, "SSR with rc4-md5 should be rejected (weak cipher)"
 
@@ -484,6 +509,7 @@ class TestSignalHandlerDoesNotOverwriteMain:
         try:
             signal.signal(signal.SIGINT, fake_handler)
             import utils.xray_tester as xt
+
             current = signal.getsignal(signal.SIGINT)
             if current == signal.default_int_handler:
                 signal.signal(signal.SIGINT, xt._signal_handler)
@@ -513,11 +539,12 @@ class TestXrayStartupTimeout:
 
     def _make_tester(self, xray_path: str):
         from utils.xray_tester import XrayTester
+
         return XrayTester(xray_path=xray_path)
 
     def _fake_xray_path(self) -> str:
-        with tempfile.NamedTemporaryFile(suffix='', delete=False) as f:
-            f.write(b'fake')
+        with tempfile.NamedTemporaryFile(suffix="", delete=False) as f:
+            f.write(b"fake")
             return f.name
 
     def test_stuck_xray_startup_returns_failure_not_hang(self):
@@ -537,12 +564,16 @@ class TestXrayStartupTimeout:
         tester._get_next_port = lambda: 12345
 
         try:
-            with mock_patch.object(tester, 'start_xray_instance', side_effect=slow_start_xray), \
-                 mock_patch.object(tester, 'create_single_outbound_config', side_effect=fake_config):
+            with (
+                mock_patch.object(tester, "start_xray_instance", side_effect=slow_start_xray),
+                mock_patch.object(tester, "create_single_outbound_config", side_effect=fake_config),
+            ):
                 t0 = time.time()
-                result = asyncio.run(tester._batch_runner._test_single_config_pipelined_async(
-                    'vless://fake@server.com:443', timeout=5.0, verbose=False
-                ))
+                result = asyncio.run(
+                    tester._batch_runner._test_single_config_pipelined_async(
+                        "vless://fake@server.com:443", timeout=5.0, verbose=False
+                    )
+                )
                 elapsed = time.time() - t0
 
             assert result[1] is False, f"expected failure, got {result}"
@@ -552,9 +583,7 @@ class TestXrayStartupTimeout:
             # 3.12+ calls shutdown_default_executor which waits for it.
             # Total: ~XRAY_STARTUP_TIMEOUT + sleep = 3 + 18 = ~21s worst case.
             # Allow 25s headroom for CI under load.
-            assert elapsed < 25.0, (
-                f"expected <25.0s, took {elapsed:.1f}s"
-            )
+            assert elapsed < 25.0, f"expected <25.0s, took {elapsed:.1f}s"
         finally:
             try:
                 os.unlink(fake_path)
@@ -573,6 +602,7 @@ class TestXrayStartupTimeout:
 
         async def fake_http_ping(socks_port, timeout, verbose=False):
             return (True, 0.123)
+
         tester._batch_runner._http_ping_through_proxy_async = fake_http_ping
         tester.stop_xray_process = lambda proc: None
 
@@ -580,11 +610,15 @@ class TestXrayStartupTimeout:
             return {"outbounds": [{"protocol": "vless", "tag": "proxy"}]}
 
         try:
-            with mock_patch.object(tester, 'start_xray_instance', side_effect=fast_start_xray), \
-                 mock_patch.object(tester, 'create_single_outbound_config', side_effect=fake_config):
-                result = asyncio.run(tester._batch_runner._test_single_config_pipelined_async(
-                    'vless://fake@server.com:443', timeout=5.0, verbose=False
-                ))
+            with (
+                mock_patch.object(tester, "start_xray_instance", side_effect=fast_start_xray),
+                mock_patch.object(tester, "create_single_outbound_config", side_effect=fake_config),
+            ):
+                result = asyncio.run(
+                    tester._batch_runner._test_single_config_pipelined_async(
+                        "vless://fake@server.com:443", timeout=5.0, verbose=False
+                    )
+                )
             assert result[1] is True
             assert result[2] == 0.123
         finally:
@@ -605,11 +639,15 @@ class TestXrayStartupTimeout:
             return {"outbounds": [{"protocol": "vless", "tag": "proxy"}]}
 
         try:
-            with mock_patch.object(tester, 'start_xray_instance', side_effect=failing_start_xray), \
-                 mock_patch.object(tester, 'create_single_outbound_config', side_effect=fake_config):
-                result = asyncio.run(tester._batch_runner._test_single_config_pipelined_async(
-                    'vless://fake@server.com:443', timeout=5.0, verbose=False
-                ))
+            with (
+                mock_patch.object(tester, "start_xray_instance", side_effect=failing_start_xray),
+                mock_patch.object(tester, "create_single_outbound_config", side_effect=fake_config),
+            ):
+                result = asyncio.run(
+                    tester._batch_runner._test_single_config_pipelined_async(
+                        "vless://fake@server.com:443", timeout=5.0, verbose=False
+                    )
+                )
             assert result[1] is False
             assert result[2] == 0.0
         finally:

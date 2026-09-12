@@ -13,12 +13,13 @@ from curl_cffi.requests import Session
 from config.settings import CHROME_UA, GITHUB_API_FALLBACK
 
 # Suppress SSL warnings when verify=False
-warnings.filterwarnings('ignore', message='Unverified HTTPS request')
+warnings.filterwarnings("ignore", message="Unverified HTTPS request")
 
 
 @dataclass
 class FetchResult:
     """Structured result from fetch_data with status info instead of exceptions."""
+
     text: str = ""
     status_code: int = 0
     error: str = ""
@@ -27,16 +28,18 @@ class FetchResult:
 
 def _extract_status(exc: Exception) -> int:
     """Extract HTTP status code from various exception types."""
-    if hasattr(exc, 'response') and hasattr(exc.response, 'status_code'):
+    if hasattr(exc, "response") and hasattr(exc.response, "status_code"):
         return exc.response.status_code
-    if hasattr(exc, 'status_code'):
+    if hasattr(exc, "status_code"):
         return exc.status_code
     return 0
 
 
 def _get_env_proxy() -> str | None:
     """Get proxy from environment variables (set by main.py --proxy arg)."""
-    return os.environ.get('HTTPS_PROXY') or os.environ.get('HTTP_PROXY') or os.environ.get('ALL_PROXY')
+    return (
+        os.environ.get("HTTPS_PROXY") or os.environ.get("HTTP_PROXY") or os.environ.get("ALL_PROXY")
+    )
 
 
 def _get_github_token() -> str | None:
@@ -44,7 +47,7 @@ def _get_github_token() -> str | None:
 
     Used as fallback when callers don't pass token explicitly.
     """
-    return os.environ.get('GITHUB_TOKEN')
+    return os.environ.get("GITHUB_TOKEN")
 
 
 def _raw_to_api_url(url: str) -> str | None:
@@ -61,45 +64,32 @@ def _raw_to_api_url(url: str) -> str | None:
     """
     # raw.githubusercontent.com with refs/heads/
     m = re.match(
-        r'https?://raw\.githubusercontent\.com/([^/]+)/([^/]+)/refs/heads/([^/]+)/(.+)',
-        url
+        r"https?://raw\.githubusercontent\.com/([^/]+)/([^/]+)/refs/heads/([^/]+)/(.+)", url
     )
     if m:
         owner, repo, branch, path = m.groups()
         return f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={branch}"
 
     # raw.githubusercontent.com without refs/heads/
-    m = re.match(
-        r'https?://raw\.githubusercontent\.com/([^/]+)/([^/]+)/([^/]+)/(.+)',
-        url
-    )
+    m = re.match(r"https?://raw\.githubusercontent\.com/([^/]+)/([^/]+)/([^/]+)/(.+)", url)
     if m:
         owner, repo, branch, path = m.groups()
         return f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={branch}"
 
     # github.com/owner/repo/raw/refs/heads/branch/path
-    m = re.match(
-        r'https?://github\.com/([^/]+)/([^/]+)/raw/refs/heads/([^/]+)/(.+)',
-        url
-    )
+    m = re.match(r"https?://github\.com/([^/]+)/([^/]+)/raw/refs/heads/([^/]+)/(.+)", url)
     if m:
         owner, repo, branch, path = m.groups()
         return f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={branch}"
 
     # github.com/owner/repo/raw/branch/path
-    m = re.match(
-        r'https?://github\.com/([^/]+)/([^/]+)/raw/([^/]+)/(.+)',
-        url
-    )
+    m = re.match(r"https?://github\.com/([^/]+)/([^/]+)/raw/([^/]+)/(.+)", url)
     if m:
         owner, repo, branch, path = m.groups()
         return f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={branch}"
 
     # github.com/owner/repo/blob/branch/path
-    m = re.match(
-        r'https?://github\.com/([^/]+)/([^/]+)/blob/([^/]+)/(.+)',
-        url
-    )
+    m = re.match(r"https?://github\.com/([^/]+)/([^/]+)/blob/([^/]+)/(.+)", url)
     if m:
         owner, repo, branch, path = m.groups()
         return f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={branch}"
@@ -142,6 +132,7 @@ def _fetch_via_api(
 
         if resp.status_code == 403:
             import sys
+
             print(f"[github-api] rate limited: {api_url[:80]}", file=sys.stderr)
             return None
 
@@ -160,7 +151,11 @@ def _fetch_via_api(
         if file_size > 1_000_000:
             if file_size > 100_000_000:
                 import sys
-                print(f"[github-api] skipped ({file_size//1024//1024}MB > 100MB limit): {url[:80]}", file=sys.stderr)
+
+                print(
+                    f"[github-api] skipped ({file_size // 1024 // 1024}MB > 100MB limit): {url[:80]}",
+                    file=sys.stderr,
+                )
                 return None
 
             # Re-fetch with raw media type
@@ -175,6 +170,7 @@ def _fetch_via_api(
         return None
     except Exception as e:
         import sys
+
         print(f"[github-api] error: {api_url[:80]}: {e}", file=sys.stderr)
         return None
 
@@ -198,8 +194,8 @@ def build_session(max_pool_size: int = 4, proxy_url: str | None = None) -> Sessi
     # Configure proxy if present
     if effective_proxy:
         session.proxies = {
-            'http': effective_proxy,
-            'https': effective_proxy,
+            "http": effective_proxy,
+            "https": effective_proxy,
         }
 
     # Set user agent
@@ -208,7 +204,14 @@ def build_session(max_pool_size: int = 4, proxy_url: str | None = None) -> Sessi
     return session
 
 
-def fetch_data(url: str, timeout: int = 5, max_attempts: int = 3, session=None, proxy_url: str | None = None, token: str | None = None) -> FetchResult:
+def fetch_data(
+    url: str,
+    timeout: int = 5,
+    max_attempts: int = 3,
+    session=None,
+    proxy_url: str | None = None,
+    token: str | None = None,
+) -> FetchResult:
     """Fetches data from URL with retry logic, fallbacks, and optional auth.
 
     Returns FetchResult instead of raising exceptions — always inspect .success first.
@@ -239,7 +242,7 @@ def fetch_data(url: str, timeout: int = 5, max_attempts: int = 3, session=None, 
     effective_token = token or _get_github_token()
 
     # Only pass token for GitHub URLs — avoids leaking auth to random hosts
-    is_github_url = 'github.com' in url or 'raw.githubusercontent.com' in url
+    is_github_url = "github.com" in url or "raw.githubusercontent.com" in url
     request_token = effective_token if effective_token and is_github_url else None
 
     # Create or reuse session. When reusing, token is passed per-request
@@ -272,6 +275,7 @@ def fetch_data(url: str, timeout: int = 5, max_attempts: int = 3, session=None, 
                 verify = False
             elif attempt == 3:
                 from urllib.parse import urlparse
+
                 parsed = urlparse(url)
                 if parsed.scheme == "https":
                     modified_url = parsed._replace(scheme="http").geturl()
@@ -292,4 +296,6 @@ def fetch_data(url: str, timeout: int = 5, max_attempts: int = 3, session=None, 
                 time.sleep(1)
                 continue
 
-            return FetchResult(text="", status_code=_extract_status(exc), error=str(exc), success=False)
+            return FetchResult(
+                text="", status_code=_extract_status(exc), error=str(exc), success=False
+            )

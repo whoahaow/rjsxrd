@@ -10,9 +10,11 @@ This module imports tqdm once at module load. If tqdm is missing, the
 import fails loudly with a clear ImportError pointing here. The single
 `is_available()` check is the only fallback in the codebase.
 """
+
 try:
     from tqdm import tqdm
     from tqdm.asyncio import tqdm as async_tqdm
+
     _AVAILABLE = True
 except ImportError:
     tqdm = None
@@ -34,7 +36,7 @@ def get_sync_pbar(*args, **kwargs):
     if not _AVAILABLE:
         return None
     if tqdm is None:
-        raise RuntimeError('tqdm not available')
+        raise RuntimeError("tqdm not available")
     return tqdm(*args, **kwargs)
 
 
@@ -43,5 +45,5 @@ def get_async_pbar(*args, **kwargs):
     if not _AVAILABLE:
         return None
     if async_tqdm is None:
-        raise RuntimeError('tqdm not available')
+        raise RuntimeError("tqdm not available")
     return async_tqdm(*args, **kwargs)

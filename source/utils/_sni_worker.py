@@ -4,6 +4,7 @@ Lives in a separate module so it can be pickled to subprocess workers
 without needing to re-import the parent module that owns the dispatch
 function. This is a standard pattern for multiprocessing in Python.
 """
+
 import ipaddress
 
 # Cross-module imports (normal — worker imports from file_utils, not itself).

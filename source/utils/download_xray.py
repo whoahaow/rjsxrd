@@ -57,7 +57,9 @@ def get_current_xray_version(xray_path: Path) -> str | None:
     try:
         result = subprocess.run(
             [str(xray_path), "version"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         # Parse first line: "Xray 26.2.6 (Xray, Penetrates Everything.) ..."
         line = result.stdout.split("\n")[0] if result.stdout else ""
@@ -99,6 +101,7 @@ def fetch_latest_xray_version() -> str | None:
             headers={"User-Agent": "rjsxrd/1.0"},
             method="HEAD",
         )
+
         # Don't follow redirect — we want the redirect URL to parse the version
         class _NoRedirect(urllib.request.HTTPRedirectHandler):
             def redirect_request(self, req, fp, code, msg, headers, newurl):
@@ -119,7 +122,7 @@ def fetch_latest_xray_version() -> str | None:
 
 def get_platform_info() -> tuple[str | None, str | None, str | None]:
     """Detect current platform and return download info.
-    
+
     Returns:
         tuple: (platform_string, filename, xray_binary_name) or (None, None, None) if unsupported
     """
@@ -132,13 +135,11 @@ def get_platform_info() -> tuple[str | None, str | None, str | None]:
         ("win32", "amd64"): ("windows-64", "Xray-windows-64.zip", "xray.exe"),
         ("win32", "x86_64"): ("windows-64", "Xray-windows-64.zip", "xray.exe"),
         ("win32", "arm64"): ("windows-arm64-v8a", "Xray-windows-arm64-v8a.zip", "xray.exe"),
-
         # Linux
         ("linux", "amd64"): ("linux-64", "Xray-linux-64.zip", "xray"),
         ("linux", "x86_64"): ("linux-64", "Xray-linux-64.zip", "xray"),
         ("linux", "arm64"): ("linux-arm64-v8a", "Xray-linux-arm64-v8a.zip", "xray"),
         ("linux", "aarch64"): ("linux-arm64-v8a", "Xray-linux-arm64-v8a.zip", "xray"),
-
         # macOS
         ("darwin", "amd64"): ("macos-64", "Xray-macos-64.zip", "xray"),
         ("darwin", "x86_64"): ("macos-64", "Xray-macos-64.zip", "xray"),
@@ -162,10 +163,11 @@ def get_platform_info() -> tuple[str | None, str | None, str | None]:
 
 def download_file(url, dest_path, show_progress=True) -> bool:
     """Download file with progress indicator.
-    
+
     Returns:
         bool: True if successful, False otherwise
     """
+
     def reporthook(blocknum, blocksize, totalsize) -> None:
         if totalsize > 0 and show_progress:
             readsofar = blocknum * blocksize
@@ -173,7 +175,12 @@ def download_file(url, dest_path, show_progress=True) -> bool:
             downloaded_mb = readsofar / 1024 / 1024
             total_mb = totalsize / 1024 / 1024
             # Use stderr for progress to avoid conflicts with tqdm
-            print(f"\rProgress: {percent:5.1f}% ({downloaded_mb:.1f}MB / {total_mb:.1f}MB)", end='', file=sys.stderr, flush=True)
+            print(
+                f"\rProgress: {percent:5.1f}% ({downloaded_mb:.1f}MB / {total_mb:.1f}MB)",
+                end="",
+                file=sys.stderr,
+                flush=True,
+            )
 
     try:
         urllib.request.urlretrieve(url, dest_path, reporthook)
@@ -189,16 +196,16 @@ def download_file(url, dest_path, show_progress=True) -> bool:
 
 def extract_archive(archive_path, extract_dir) -> bool:
     """Extract zip or tar.gz archive.
-    
+
     Returns:
         bool: True if successful, False otherwise
     """
     try:
         if archive_path.suffix == ".zip":
-            with zipfile.ZipFile(archive_path, 'r') as zip_ref:
+            with zipfile.ZipFile(archive_path, "r") as zip_ref:
                 zip_ref.extractall(extract_dir)
         elif archive_path.suffix in [".gz", ".xz"]:
-            with tarfile.open(archive_path, 'r:*') as tar_ref:
+            with tarfile.open(archive_path, "r:*") as tar_ref:
                 tar_ref.extractall(extract_dir)
         else:
             log(f"Unsupported archive format: {archive_path.suffix}")
@@ -217,13 +224,15 @@ def _clean_xray_dir(xray_dir: Path, xray_exe: str) -> None:
                 f.unlink()
             elif f.is_dir():
                 import shutil
+
                 shutil.rmtree(f)
         except OSError:
             pass
 
 
-def ensure_xray_installed(version=None, xray_dir=None, force=False,
-                          auto_update=True) -> Path | None:
+def ensure_xray_installed(
+    version=None, xray_dir=None, force=False, auto_update=True
+) -> Path | None:
     """Ensure Xray-core is installed and up-to-date.
 
     By default fetches the latest version from GitHub. Override with
@@ -336,8 +345,11 @@ def download_xray(version=XRAY_VERSION) -> Path | None:
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser(description="Download Xray-core binary")
-    parser.add_argument("--version", default=XRAY_VERSION, help=f"Xray version (default: {XRAY_VERSION})")
+    parser.add_argument(
+        "--version", default=XRAY_VERSION, help=f"Xray version (default: {XRAY_VERSION})"
+    )
     parser.add_argument("--force", action="store_true", help="Force re-download")
     parser.add_argument("--output", help="Custom output directory")
     args = parser.parse_args()

@@ -62,7 +62,13 @@ class SimpleTester:
                 writer.close()
                 await writer.wait_closed()
                 return True, round(elapsed, 1)
-            except (TimeoutError, ConnectionRefusedError, ConnectionAbortedError, OSError, socket.gaierror):
+            except (
+                TimeoutError,
+                ConnectionRefusedError,
+                ConnectionAbortedError,
+                OSError,
+                socket.gaierror,
+            ):
                 return False, 0.0
 
     async def run_batch_async(
@@ -87,7 +93,7 @@ class SimpleTester:
             unit="config",
             unit_scale=True,
             unit_divisor=1000,
-            bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}, {rate_fmt}]',
+            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}, {rate_fmt}]",
             mininterval=0.1,
             maxinterval=1.0,
             file=sys.stderr,
@@ -108,9 +114,13 @@ class SimpleTester:
             eta_tracker.record_completion(duration)
             if pbar:
                 pbar.update(1)
-                pbar.set_description(f"TCP ping | ETA {eta_tracker.description} | Working: {working_count} ({success_rate:.1f}%)")
+                pbar.set_description(
+                    f"TCP ping | ETA {eta_tracker.description} | Working: {working_count} ({success_rate:.1f}%)"
+                )
             elif completed[0] % 200 == 0 or completed[0] == len(targets):
-                log(f"TCP ping progress: {completed[0]}/{len(targets)} ({completed[0]/(time.time()-t0+0.01):.1f}/s, ETA: {eta_tracker.description}) - Working: {working_count} ({success_rate:.1f}%)")
+                log(
+                    f"TCP ping progress: {completed[0]}/{len(targets)} ({completed[0] / (time.time() - t0 + 0.01):.1f}/s, ETA: {eta_tracker.description}) - Working: {working_count} ({success_rate:.1f}%)"
+                )
             return url, ok, rtt
 
         tasks = [test_one(h, p, u) for h, p, u in targets]
@@ -162,10 +172,7 @@ class SimpleTester:
             if verbose:
                 for url in skipped_urls:
                     log(f"TCP ping: skipped {url[:80]} (could not extract host:port)")
-            log(
-                f"TCP ping: skipped {len(skipped_urls)} configs "
-                f"(could not extract host:port)"
-            )
+            log(f"TCP ping: skipped {len(skipped_urls)} configs (could not extract host:port)")
 
         if not targets:
             log("TCP ping: no valid targets to test")
@@ -180,18 +187,20 @@ class SimpleTester:
         # asyncio.run() crashes with RuntimeError if called from within one.
         # The async core is available as self.run_batch_async() for async callers.
         if self._in_async_context():
-            log("TCP ping: called from async context — use run_batch_async() directly. "
-                "Falling back: creating temp loop in thread.")
+            log(
+                "TCP ping: called from async context — use run_batch_async() directly. "
+                "Falling back: creating temp loop in thread."
+            )
             # Last resort: run in a new thread with its own event loop
             from utils.executor_cache import ExecutorCache
-            ex = ExecutorCache.get('simple_tester_fallback', max_workers=1)
+
+            ex = ExecutorCache.get("simple_tester_fallback", max_workers=1)
             future = ex.submit(
-                lambda: asyncio.run(self.run_batch_async(
-                    targets, timeout=effective_timeout)))
+                lambda: asyncio.run(self.run_batch_async(targets, timeout=effective_timeout))
+            )
             results = future.result()
         else:
-            results = asyncio.run(self.run_batch_async(
-                targets, timeout=effective_timeout))
+            results = asyncio.run(self.run_batch_async(targets, timeout=effective_timeout))
 
         working_count = sum(1 for _, ok, _ in results if ok)
         log(f"TCP ping: {working_count}/{len(targets)} reachable")

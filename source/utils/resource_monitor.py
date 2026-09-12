@@ -14,7 +14,7 @@ class ResourceMonitor:
 
     def __init__(self, sample_interval: float = 2.0) -> None:
         """Initialize resource monitor.
-        
+
         Args:
             sample_interval: How often to sample resources (seconds)
         """
@@ -70,10 +70,10 @@ class ResourceMonitor:
         try:
             net_io = psutil.net_io_counters()
             return {
-                'bytes_sent': net_io.bytes_sent,
-                'bytes_recv': net_io.bytes_recv,
-                'packets_sent': net_io.packets_sent,
-                'packets_recv': net_io.packets_recv
+                "bytes_sent": net_io.bytes_sent,
+                "bytes_recv": net_io.bytes_recv,
+                "packets_sent": net_io.packets_sent,
+                "packets_recv": net_io.packets_recv,
             }
         except (OSError, AttributeError):
             return {}
@@ -89,26 +89,26 @@ class ResourceMonitor:
     def _take_sample(self) -> dict:
         """Take a single resource usage sample."""
         sample = {
-            'timestamp': time.time(),
-            'cpu_percent': 0.0,
-            'memory_mb': 0.0,
-            'memory_percent': 0.0,
-            'system_cpu_percent': 0.0,
-            'system_memory_available_mb': 0.0
+            "timestamp": time.time(),
+            "cpu_percent": 0.0,
+            "memory_mb": 0.0,
+            "memory_percent": 0.0,
+            "system_cpu_percent": 0.0,
+            "system_memory_available_mb": 0.0,
         }
 
         if PSUTIL_AVAILABLE and self.process:
             try:
                 # Process-specific metrics
-                sample['cpu_percent'] = self.process.cpu_percent(interval=0.1)
+                sample["cpu_percent"] = self.process.cpu_percent(interval=0.1)
                 mem_info = self.process.memory_info()
-                sample['memory_mb'] = mem_info.rss / (1024 * 1024)
-                sample['memory_percent'] = self.process.memory_percent()
+                sample["memory_mb"] = mem_info.rss / (1024 * 1024)
+                sample["memory_percent"] = self.process.memory_percent()
 
                 # System-wide metrics
-                sample['system_cpu_percent'] = psutil.cpu_percent(interval=0)
+                sample["system_cpu_percent"] = psutil.cpu_percent(interval=0)
                 virt_mem = psutil.virtual_memory()
-                sample['system_memory_available_mb'] = virt_mem.available / (1024 * 1024)
+                sample["system_memory_available_mb"] = virt_mem.available / (1024 * 1024)
             except (psutil.NoSuchProcess, psutil.AccessDenied, OSError):
                 pass
 
@@ -126,9 +126,9 @@ class ResourceMonitor:
             return {}
 
         # Calculate statistics
-        cpu_values = [s['cpu_percent'] for s in samples]
-        memory_values = [s['memory_mb'] for s in samples]
-        system_cpu_values = [s['system_cpu_percent'] for s in samples]
+        cpu_values = [s["cpu_percent"] for s in samples]
+        memory_values = [s["memory_mb"] for s in samples]
+        system_cpu_values = [s["system_cpu_percent"] for s in samples]
 
         duration = (self.end_time or time.time()) - (self.start_time or time.time())
 
@@ -136,35 +136,35 @@ class ResourceMonitor:
         network_sent = 0
         network_recv = 0
         if self.network_start and self.network_end:
-            network_sent = self.network_end.get('bytes_sent', 0) - self.network_start.get('bytes_sent', 0)
-            network_recv = self.network_end.get('bytes_recv', 0) - self.network_start.get('bytes_recv', 0)
+            network_sent = self.network_end.get("bytes_sent", 0) - self.network_start.get(
+                "bytes_sent", 0
+            )
+            network_recv = self.network_end.get("bytes_recv", 0) - self.network_start.get(
+                "bytes_recv", 0
+            )
 
         return {
-            'duration_seconds': duration,
-            'samples_count': len(samples),
-
+            "duration_seconds": duration,
+            "samples_count": len(samples),
             # Process CPU
-            'cpu_avg_percent': sum(cpu_values) / len(cpu_values),
-            'cpu_max_percent': max(cpu_values),
-            'cpu_min_percent': min(cpu_values),
-
+            "cpu_avg_percent": sum(cpu_values) / len(cpu_values),
+            "cpu_max_percent": max(cpu_values),
+            "cpu_min_percent": min(cpu_values),
             # Process Memory
-            'memory_avg_mb': sum(memory_values) / len(memory_values),
-            'memory_max_mb': max(memory_values),
-            'memory_min_mb': min(memory_values),
-            'memory_avg_percent': sum(s['memory_percent'] for s in samples) / len(samples),
-
+            "memory_avg_mb": sum(memory_values) / len(memory_values),
+            "memory_max_mb": max(memory_values),
+            "memory_min_mb": min(memory_values),
+            "memory_avg_percent": sum(s["memory_percent"] for s in samples) / len(samples),
             # System CPU
-            'system_cpu_avg_percent': sum(system_cpu_values) / len(system_cpu_values),
-            'system_cpu_max_percent': max(system_cpu_values),
-
+            "system_cpu_avg_percent": sum(system_cpu_values) / len(system_cpu_values),
+            "system_cpu_max_percent": max(system_cpu_values),
             # System Memory
-            'system_memory_avg_available_mb': sum(s['system_memory_available_mb'] for s in samples) / len(samples),
-
+            "system_memory_avg_available_mb": sum(s["system_memory_available_mb"] for s in samples)
+            / len(samples),
             # Network
-            'network_sent_mb': network_sent / (1024 * 1024),
-            'network_recv_mb': network_recv / (1024 * 1024),
-            'network_total_mb': (network_sent + network_recv) / (1024 * 1024)
+            "network_sent_mb": network_sent / (1024 * 1024),
+            "network_recv_mb": network_recv / (1024 * 1024),
+            "network_total_mb": (network_sent + network_recv) / (1024 * 1024),
         }
 
     def print_report(self, title: str = "Resource Usage Report") -> None:
@@ -181,7 +181,7 @@ class ResourceMonitor:
         log("=" * 70)
 
         # Duration
-        duration = summary['duration_seconds']
+        duration = summary["duration_seconds"]
         minutes = int(duration // 60)
         seconds = duration % 60
         log(f"  Duration: {minutes}m {seconds:.1f}s ({duration:.1f}s total)")
@@ -202,7 +202,9 @@ class ResourceMonitor:
         # Memory Usage
         log("")
         log("  Memory Usage (Process):")
-        log(f"    Average: {summary['memory_avg_mb']:.1f} MB ({summary['memory_avg_percent']:.1f}%)")
+        log(
+            f"    Average: {summary['memory_avg_mb']:.1f} MB ({summary['memory_avg_percent']:.1f}%)"
+        )
         log(f"    Maximum: {summary['memory_max_mb']:.1f} MB")
         log(f"    Minimum: {summary['memory_min_mb']:.1f} MB")
 
@@ -222,14 +224,16 @@ class ResourceMonitor:
         log("-" * 70)
         warnings = []
 
-        if summary['memory_max_mb'] > 800:
+        if summary["memory_max_mb"] > 800:
             warnings.append(f"[!] High memory usage detected: {summary['memory_max_mb']:.0f} MB")
 
-        if summary['cpu_max_percent'] > 90:
+        if summary["cpu_max_percent"] > 90:
             warnings.append(f"[!] High CPU spike detected: {summary['cpu_max_percent']:.0f}%")
 
-        if summary['system_cpu_avg_percent'] > 80:
-            warnings.append(f"[!] System CPU heavily loaded: {summary['system_cpu_avg_percent']:.0f}% avg")
+        if summary["system_cpu_avg_percent"] > 80:
+            warnings.append(
+                f"[!] System CPU heavily loaded: {summary['system_cpu_avg_percent']:.0f}% avg"
+            )
 
         if warnings:
             for warning in warnings:

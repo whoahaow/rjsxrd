@@ -14,7 +14,6 @@ Usage:
 """
 
 
-
 class ConfigTagger:
     """Tags configs with protocol and source metadata on first encounter.
 

@@ -17,7 +17,7 @@ from re import Pattern
 # Only 'auto: update' prefix — old formats (Update bypass-, update configs, etc.)
 # are intentionally excluded. They're historical and irrelevant for ongoing cleanup.
 AUTO_PATTERNS: list[Pattern] = [
-    re.compile(r'^auto: update '),
+    re.compile(r"^auto: update "),
 ]
 
 # Safety limit — don't walk more than this many commits
@@ -47,16 +47,22 @@ def _run_git(repo_dir: str, *args: str, check: bool = False) -> subprocess.Compl
     Returns:
         subprocess.CompletedProcess with stdout, stderr, returncode.
     """
-    cmd = ['git'] + list(args)
+    cmd = ["git"] + list(args)
     try:
         return subprocess.run(
-            cmd, cwd=repo_dir, capture_output=True, text=True,
-            timeout=30, check=check,
+            cmd,
+            cwd=repo_dir,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=check,
         )
     except subprocess.TimeoutExpired:
-        return subprocess.CompletedProcess(cmd, returncode=124, stdout='', stderr='timeout')
+        return subprocess.CompletedProcess(cmd, returncode=124, stdout="", stderr="timeout")
     except subprocess.CalledProcessError as e:
-        return subprocess.CompletedProcess(cmd, returncode=e.returncode, stdout=e.stdout or '', stderr=e.stderr or '')
+        return subprocess.CompletedProcess(
+            cmd, returncode=e.returncode, stdout=e.stdout or "", stderr=e.stderr or ""
+        )
 
 
 def _walk_auto_commits(repo_dir: str) -> tuple:
@@ -72,22 +78,22 @@ def _walk_auto_commits(repo_dir: str) -> tuple:
         If count is 0, target_revision is 'HEAD'.
     """
     count = 0
-    target = 'HEAD'
+    target = "HEAD"
 
     for _ in range(_MAX_WALK):
-        result = _run_git(repo_dir, 'log', '-1', '--format=%s', target)
+        result = _run_git(repo_dir, "log", "-1", "--format=%s", target)
         if result.returncode != 0:
             break
         msg = result.stdout.strip()
         if not msg or not is_auto_message(msg):
             break
         count += 1
-        target = f'{target}~1'
+        target = f"{target}~1"
 
     return count, target
 
 
-def squash_auto_commits(repo_dir: str = '.') -> int:
+def squash_auto_commits(repo_dir: str = ".") -> int:
     """Squash contiguous auto commits at the tip of HEAD into the index.
 
     Uses ``git reset --soft <last-non-auto-commit>`` to preserve the
@@ -112,13 +118,13 @@ def squash_auto_commits(repo_dir: str = '.') -> int:
         return 0
 
     # Resolve the target revision to a stable SHA
-    result = _run_git(repo_dir, 'rev-parse', '--verify', target)
+    result = _run_git(repo_dir, "rev-parse", "--verify", target)
     if result.returncode != 0 or not result.stdout.strip():
         return 0
 
     target_sha = result.stdout.strip()
 
     # Soft reset: move HEAD back, keep index and working tree
-    result = _run_git(repo_dir, 'reset', '--soft', target_sha, check=True)
+    result = _run_git(repo_dir, "reset", "--soft", target_sha, check=True)
 
     return count

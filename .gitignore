@@ -182,3 +182,7 @@ source/data/
 
 # Logs directory for run diagnostics
 /logs/
+
+# MSYS/bash crash dumps (leave a dirty working tree otherwise)
+*.stackdump
+

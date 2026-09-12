@@ -519,9 +519,9 @@ git clone https://github.com/whoahaow/rjsxrd
 cd rjsxrd
 cp .env.example .env          # create and fill in .env with your settings
 nano .env                      # specify GITHUB_TOKEN and REPO_NAME
-cd source
-python -m pip install -r requirements.txt
-python main.py                 # configs will appear in ../githubmirror
+uv venv --python 3.12 .venv
+uv pip install --python .venv/Scripts/python.exe -r source/requirements.txt
+cd source && ../.venv/Scripts/python.exe main.py   # configs will appear in ../githubmirror
 ```
 
 > **Important:** Copy `.env.example` to `.env` and fill in `GITHUB_TOKEN` (a token with repo access) and `REPO_NAME` (in `owner/repo` format). Telegram notifications and performance tuning are optional.
@@ -531,16 +531,18 @@ python main.py                 # configs will appear in ../githubmirror
 The project includes a set of unit tests to verify the correctness of the main modules (658 tests, 26 files):
 
 ```bash
+# test toolchain — from the repository root
+uv pip install --python .venv/Scripts/python.exe -r source/requirements-dev.txt
+
 cd source
-pip install pytest pytest-cov pytest-asyncio pytest-xdist pytest-mock
-pytest                              # Run all tests
-pytest -v                           # Verbose output
-pytest --cov=fetchers --cov=utils   # With coverage report
-pytest -m unit                      # Only fast unit tests
-pytest -n auto                      # Parallel run
+../.venv/Scripts/python.exe -m pytest                       # Run all tests
+../.venv/Scripts/python.exe -m pytest -v                     # Verbose output
+../.venv/Scripts/python.exe -m pytest --cov=fetchers --cov=utils   # With coverage report
+../.venv/Scripts/python.exe -m pytest -m unit                # Only fast unit tests
+../.venv/Scripts/python.exe -m pytest -n auto                # Parallel run
 ```
 
-Detailed test documentation — in [`docs/development/testing.en.md`](docs/development/testing.en.md).
+Detailed test documentation — in [`docs/development/testing.en.md`](docs/development/testing.en.md). Environment setup — in [`docs/development/development-environment.en.md`](docs/development/development-environment.en.md).
 
 #### Run modes
 

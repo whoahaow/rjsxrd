@@ -50,6 +50,7 @@ rjsxrd collects, filters, and verifies thousands of VPN configs from open source
 | [Security](development/security-system.en.md) | Filtering of insecure configs and SNI/CIDR |
 | [Performance](development/performance.en.md) | Parallelism, batch mode, Xray compatibility |
 | [Testing](development/testing.en.md) | Set of tests and verification scenarios |
+| [Development environment](development/development-environment.en.md) | Environment setup with uv and checks before committing |
 
 ---
 

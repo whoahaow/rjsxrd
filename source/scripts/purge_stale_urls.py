@@ -22,6 +22,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 import requests
+from dotenv import load_dotenv
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
@@ -30,8 +31,6 @@ URLS_FILE = os.path.join(PROJECT_ROOT, "config", "URLS.txt")
 CACHE_PATH = os.path.join(PROJECT_ROOT, "data", "stale_urls_cache.json")
 
 # Load .env from project root (parent of source/)
-from dotenv import load_dotenv
-
 _env_path = os.path.join(os.path.dirname(PROJECT_ROOT), ".env")
 if os.path.exists(_env_path):
     load_dotenv(_env_path)

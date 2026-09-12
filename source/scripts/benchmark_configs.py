@@ -18,7 +18,7 @@ PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 REPO_ROOT = os.path.join(PROJECT_ROOT, "..")  # rjsxrd root
 sys.path.insert(0, PROJECT_ROOT)
 
-from utils.logger import log
+from utils.logger import log  # noqa: E402 - must follow the sys.path insert
 
 
 def load_configs(path: str, count: int | None = None) -> list[str]:
@@ -115,7 +115,9 @@ def resolve_path(local: bool) -> str:
     tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding="utf-8")
     tmp.write(content)
     tmp.close()
-    count = len([line for line in content.splitlines() if line.strip() and not line.strip().startswith("#")])
+    count = len(
+        [line for line in content.splitlines() if line.strip() and not line.strip().startswith("#")]
+    )
     log(f"fetched {count} configs from bypass-all.txt")
     return tmp.name
 

@@ -17,11 +17,12 @@ PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 REPO_ROOT = os.path.join(PROJECT_ROOT, "..")
 sys.path.insert(0, PROJECT_ROOT)
 
-from utils.logger import log
-from utils.telegram_proxy_verifier import TelegramProxyVerifier
-from processors.telegram_proxy_processor import TelegramProxyProcessor
-from processors.config_processor import download_all_configs
-from config.settings import TELEGRAM_PROXY_URLS
+# Project imports must follow the sys.path insert above.
+from utils.logger import log  # noqa: E402
+from utils.telegram_proxy_verifier import TelegramProxyVerifier  # noqa: E402
+from processors.telegram_proxy_processor import TelegramProxyProcessor  # noqa: E402
+from processors.config_processor import download_all_configs  # noqa: E402
+from config.settings import TELEGRAM_PROXY_URLS  # noqa: E402
 
 
 def run(output_dir: str | None = None) -> None:

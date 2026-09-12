@@ -4,18 +4,18 @@ Provides file I/O, config deduplication, SNI/CIDR filtering, and subscription he
 Security validation extracted to utils/security_filter.py.
 """
 
-import os
-import ipaddress
-import math
-import re
 import base64
+import ipaddress
 import json
+import math
+import os
+import re
 from functools import lru_cache
-from typing import List, Tuple, Optional
 from urllib.parse import parse_qs, urlparse
-from utils.logger import log
+
 from config.settings import SNI_DOMAINS
 from utils.executor_cache import get_file_io_executor, get_regex_executor
+from utils.logger import log
 
 # ahocorasick-rs (Rust binding) for fast SNI domain matching. Per-haystack
 # API: build the automaton once with all patterns, then check each
@@ -36,7 +36,7 @@ _VPN_PROTOCOL_PATTERN = re.compile(r'^' + _VPN_PROTOCOLS + r'://', re.IGNORECASE
 _GLUE_PATTERN = re.compile(_VPN_PROTOCOLS + r'://', re.IGNORECASE)
 
 
-def _write_chunk(args: Tuple[List[str], str]) -> str:
+def _write_chunk(args: tuple[list[str], str]) -> str:
     chunk_lines, chunk_path = args
     with open(chunk_path, 'w', encoding='utf-8', buffering=65536) as f:
         f.write(''.join(chunk_lines))
@@ -68,7 +68,7 @@ def split_and_replace_file(filepath: str, max_size_mb: float = 49.0) -> list[str
     if file_size_bytes <= max_bytes:
         return [filepath]
 
-    with open(filepath, 'r', encoding='utf-8', buffering=65536) as f:
+    with open(filepath, encoding='utf-8', buffering=65536) as f:
         lines = [l.strip() + '\n' for l in f if l.strip()]
 
     if not lines:
@@ -93,7 +93,7 @@ def split_and_replace_file(filepath: str, max_size_mb: float = 49.0) -> list[str
     return created
 
 
-def _decode_vmess_host_port(line: str) -> Optional[Tuple[str, int]]:
+def _decode_vmess_host_port(line: str) -> tuple[str, int] | None:
     """vmess:// — base64-decode the JSON payload and extract add/port."""
     if not line.lower().startswith('vmess://'):
         return None
@@ -118,7 +118,7 @@ def _decode_vmess_host_port(line: str) -> Optional[Tuple[str, int]]:
     return None
 
 
-def _decode_ssr_host_port(line: str) -> Optional[Tuple[str, int]]:
+def _decode_ssr_host_port(line: str) -> tuple[str, int] | None:
     """ssr:// — base64-decode the host:port:protocol:method:obfs:password format.
 
     SSR format: host:port:protocol:method:obfs:base64pass.
@@ -160,7 +160,7 @@ def _decode_ssr_host_port(line: str) -> Optional[Tuple[str, int]]:
     return None
 
 
-def _decode_generic_host_port(line: str) -> Optional[Tuple[str, int]]:
+def _decode_generic_host_port(line: str) -> tuple[str, int] | None:
     """Generic urlparse-based fallback for vless://, trojan://, ss://, etc."""
     parsed = urlparse(line)
     if parsed.hostname and parsed.port:
@@ -189,7 +189,7 @@ _HOST_PORT_HANDLERS = (
 )
 
 
-def extract_host_port(line: str) -> Optional[Tuple[str, int]]:
+def extract_host_port(line: str) -> tuple[str, int] | None:
     """Extract (host, port) from any supported protocol URL.
 
     Dispatch table: tries each scheme-specific handler first, then the
@@ -226,7 +226,7 @@ def load_cidr_whitelist(cidr_file_path: str = "../source/config/cidrwhitelist.tx
     """
     ip_set = set()
     try:
-        with open(cidr_file_path, 'r', encoding='utf-8', buffering=65536) as f:
+        with open(cidr_file_path, encoding='utf-8', buffering=65536) as f:
             for line in f:
                 line = line.strip()
                 if not line:
@@ -246,7 +246,7 @@ def load_cidr_whitelist(cidr_file_path: str = "../source/config/cidrwhitelist.tx
     return ip_set
 
 
-def extract_ip_from_config(config: str) -> Optional[str]:
+def extract_ip_from_config(config: str) -> str | None:
     host_port = extract_host_port(config)
     if not host_port:
         return None
@@ -262,7 +262,7 @@ def is_ip_in_cidr_whitelist(ip_str: str, cidr_whitelist: set) -> bool:
     return ip_str in cidr_whitelist
 
 
-def prepare_config_content(content: str) -> List[str]:
+def prepare_config_content(content: str) -> list[str]:
     """Normalize config content by separating glued configs on newlines."""
     content = _GLUE_PATTERN.sub(r'\n\1://', content)
     return [
@@ -272,7 +272,7 @@ def prepare_config_content(content: str) -> List[str]:
     ]
 
 
-def deduplicate_configs(configs: List[str]) -> List[str]:
+def deduplicate_configs(configs: list[str]) -> list[str]:
     seen = set()
     result = []
     for c in configs:
@@ -286,7 +286,7 @@ def deduplicate_configs(configs: List[str]) -> List[str]:
 
 
 @lru_cache(maxsize=131072)
-def _get_dedup_key(config: str) -> Optional[Tuple]:
+def _get_dedup_key(config: str) -> tuple | None:
     try:
         # VMess: host/port live in the base64-encoded JSON payload,
         # not in the URL itself (urlparse sees the b64 string as netloc).
@@ -336,7 +336,7 @@ def is_valid_vpn_config_url(line: str) -> bool:
 
 
 
-def apply_sni_cidr_filter(configs: List[str], filter_secure: bool = True) -> List[str]:
+def apply_sni_cidr_filter(configs: list[str], filter_secure: bool = True) -> list[str]:
     if AhoCorasick is None:
         log("ahocorasick-rs not installed, running without SNI filter")
         return configs

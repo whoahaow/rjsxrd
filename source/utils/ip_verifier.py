@@ -5,13 +5,12 @@ ip_verifier.py (proxy setup, chaining). Single module for all proxy operations.
 """
 
 import os
-import time
 import socket
 import subprocess
-from typing import Dict, Optional
+import time
+from urllib.parse import urlparse
 
 import requests
-from urllib.parse import urlparse
 
 from utils.logger import log
 from utils.process_registry import default_registry
@@ -35,40 +34,34 @@ def _make_request(url: str, proxies: dict = None, timeout: float = 5.0):
         return requests.get(url, proxies=proxies, timeout=timeout)
 
 
-def get_real_ip(timeout: float = 5.0) -> Optional[str]:
+def get_real_ip(timeout: float = 5.0) -> str | None:
     """Get external IP without proxy."""
     for url in IP_CHECK_URLS:
         try:
             response = _make_request(url, timeout=timeout)
-            if 'ipwho.is' in url:
+            if 'ipwho.is' in url or 'ipify' in url:
                 return response.json().get('ip')
-            elif 'ipify' in url:
-                return response.json().get('ip')
-            else:
-                return response.text.strip()
+            return response.text.strip()
         except (OSError, requests.Timeout, requests.ConnectionError, ValueError):
             continue
     return None
 
 
-def get_proxy_ip(proxy_url: str, timeout: float = 5.0) -> Optional[str]:
+def get_proxy_ip(proxy_url: str, timeout: float = 5.0) -> str | None:
     """Get external IP through proxy."""
     proxies = {'http': proxy_url, 'https': proxy_url}
     for url in IP_CHECK_URLS:
         try:
             response = _make_request(url, proxies=proxies, timeout=timeout)
-            if 'ipwho.is' in url:
+            if 'ipwho.is' in url or 'ipify' in url:
                 return response.json().get('ip')
-            elif 'ipify' in url:
-                return response.json().get('ip')
-            else:
-                return response.text.strip()
+            return response.text.strip()
         except (OSError, requests.Timeout, requests.ConnectionError, ValueError):
             continue
     return None
 
 
-def verify_protection(proxy_host: str = '127.0.0.1', proxy_port: int = 10808, timeout: float = 5.0) -> Dict:
+def verify_protection(proxy_host: str = '127.0.0.1', proxy_port: int = 10808, timeout: float = 5.0) -> dict:
     """Verify proxy actually hides real IP.
 
     Returns dict with: active, real_ip, proxy_ip, different, country, error.
@@ -79,7 +72,7 @@ def verify_protection(proxy_host: str = '127.0.0.1', proxy_port: int = 10808, ti
     }
     try:
         result['real_ip'] = get_real_ip(timeout=timeout)
-        proxy_url = "socks5h://{0}:{1}".format(proxy_host, proxy_port)
+        proxy_url = f"socks5h://{proxy_host}:{proxy_port}"
         result['proxy_ip'] = get_proxy_ip(proxy_url, timeout=timeout)
 
         try:
@@ -128,7 +121,7 @@ def _mask_ip(ip: str) -> str:
     if ':' in ip:
         return "IPv6:***"
     parts = ip.split('.')
-    return "{0}.***.***.***".format(parts[0]) if len(parts) == 4 else "***"
+    return f"{parts[0]}.***.***.***" if len(parts) == 4 else "***"
 
 
 def _clear_proxy_env_vars() -> None:
@@ -141,7 +134,7 @@ def _clear_proxy_env_vars() -> None:
 default_registry.register_callback(_clear_proxy_env_vars)
 
 
-def setup_global_proxy(proxy_url: str, timeout: float = 8.0) -> Dict:
+def setup_global_proxy(proxy_url: str, timeout: float = 8.0) -> dict:
     """Setup global proxy using a proxy URL.
 
     For vless://, vmess://, trojan://, ss:// — starts persistent Xray instance.
@@ -179,8 +172,8 @@ def setup_global_proxy(proxy_url: str, timeout: float = 8.0) -> Dict:
                 os.environ[var] = proxy_url
 
         elif protocol in ['vless', 'vmess', 'trojan', 'ss', 'hysteria2', 'hy2']:
-            from utils.xray_tester import XrayTester
             from utils.download_xray import ensure_xray_installed
+            from utils.xray_tester import XrayTester
 
             xray_path = ensure_xray_installed()
             if not xray_path:
@@ -196,7 +189,7 @@ def setup_global_proxy(proxy_url: str, timeout: float = 8.0) -> Dict:
 
             success, process, error = tester.start_xray_instance(config, socks_port, verbose=True)
             if not success:
-                result['error'] = "Failed to start Xray: {0}".format(error)
+                result['error'] = f"Failed to start Xray: {error}"
                 return result
 
             result['socks_port'] = socks_port
@@ -206,7 +199,7 @@ def setup_global_proxy(proxy_url: str, timeout: float = 8.0) -> Dict:
                 tester.stop_xray_process(process)
                 return result
 
-            socks_url = "socks5h://127.0.0.1:{0}".format(socks_port)
+            socks_url = f"socks5h://127.0.0.1:{socks_port}"
             result['proxy_ip'] = get_proxy_ip(socks_url, timeout=timeout)
             try:
                 proxies = {'http': socks_url, 'https': socks_url}
@@ -218,7 +211,7 @@ def setup_global_proxy(proxy_url: str, timeout: float = 8.0) -> Dict:
             for var in _PROXY_ENV_VARS:
                 os.environ[var] = socks_url
         else:
-            result['error'] = "Unsupported protocol: {0}".format(protocol)
+            result['error'] = f"Unsupported protocol: {protocol}"
             return result
 
         if result['real_ip'] and result['proxy_ip']:
@@ -227,11 +220,11 @@ def setup_global_proxy(proxy_url: str, timeout: float = 8.0) -> Dict:
         return result
 
     except (OSError, subprocess.TimeoutExpired, subprocess.CalledProcessError, ValueError, TypeError, requests.RequestException) as e:
-        result['error'] = "{0}: {1}".format(type(e).__name__, str(e))
+        result['error'] = f"{type(e).__name__}: {str(e)}"
         return result
 
 
-def setup_proxy_chain(proxy_urls: list, timeout: float = 8.0) -> Dict:
+def setup_proxy_chain(proxy_urls: list, timeout: float = 8.0) -> dict:
     """Setup 2-hop proxy chain using single Xray instance with dialerProxy.
 
     Args:
@@ -254,17 +247,17 @@ def setup_proxy_chain(proxy_urls: list, timeout: float = 8.0) -> Dict:
         VALID_PROTOCOLS = ['vless', 'vmess', 'trojan', 'ss', 'hysteria2', 'hy2', 'socks5', 'socks5h']
         for i, url in enumerate(proxy_urls):
             if not url or '://' not in url:
-                result['error'] = "Invalid proxy URL at position {0}".format(i + 1)
+                result['error'] = f"Invalid proxy URL at position {i + 1}"
                 return result
             protocol = url.split('://')[0].lower()
             if protocol not in VALID_PROTOCOLS:
-                result['error'] = "Unsupported protocol '{0}' at position {1}".format(protocol, i + 1)
+                result['error'] = f"Unsupported protocol '{protocol}' at position {i + 1}"
                 return result
 
             from utils.security_filter import has_insecure_setting
             if has_insecure_setting(url):
-                result['error'] = "Insecure proxy at position {0}".format(i + 1)
-                log("  WARNING: Proxy {0} has insecure settings".format(i + 1))
+                result['error'] = f"Insecure proxy at position {i + 1}"
+                log(f"  WARNING: Proxy {i + 1} has insecure settings")
                 return result
 
         result['real_ip'] = get_real_ip(timeout=timeout)
@@ -273,8 +266,8 @@ def setup_proxy_chain(proxy_urls: list, timeout: float = 8.0) -> Dict:
             return result
         log("Real IP detected: {0}".format(_mask_ip(result['real_ip'])))
 
-        from utils.xray_tester import XrayTester
         from utils.download_xray import ensure_xray_installed
+        from utils.xray_tester import XrayTester
 
         xray_path = ensure_xray_installed()
         if not xray_path:
@@ -293,7 +286,7 @@ def setup_proxy_chain(proxy_urls: list, timeout: float = 8.0) -> Dict:
         log("Starting Xray instance...")
         success, process, error = tester.start_xray_instance(config, ENTRY_SOCKS_PORT, verbose=True)
         if not success:
-            result['error'] = "Xray failed: {0}".format(error)
+            result['error'] = f"Xray failed: {error}"
             return result
 
         if not _wait_for_tcp_port('127.0.0.1', ENTRY_SOCKS_PORT, timeout=3.0):
@@ -301,8 +294,8 @@ def setup_proxy_chain(proxy_urls: list, timeout: float = 8.0) -> Dict:
             tester.stop_xray_process(process)
             return result
 
-        log("  * Xray ready on port {0}".format(ENTRY_SOCKS_PORT))
-        socks_url = "socks5h://127.0.0.1:{0}".format(ENTRY_SOCKS_PORT)
+        log(f"  * Xray ready on port {ENTRY_SOCKS_PORT}")
+        socks_url = f"socks5h://127.0.0.1:{ENTRY_SOCKS_PORT}"
 
         # Test hop 1 alone
         log("  Testing hop 1...")
@@ -314,11 +307,11 @@ def setup_proxy_chain(proxy_urls: list, timeout: float = 8.0) -> Dict:
             success_temp, process_temp, _ = tester_temp.start_xray_instance(config_temp, temp_port, verbose=False)
             if success_temp:
                 if _wait_for_tcp_port('127.0.0.1', temp_port, timeout=2.0):
-                    hop1_ip = get_proxy_ip("socks5h://127.0.0.1:{0}".format(temp_port), timeout=timeout)
+                    hop1_ip = get_proxy_ip(f"socks5h://127.0.0.1:{temp_port}", timeout=timeout)
                     if hop1_ip:
-                        log("  * Hop 1 IP: {0}".format(_mask_ip(hop1_ip)))
+                        log(f"  * Hop 1 IP: {_mask_ip(hop1_ip)}")
                 else:
-                    log("  * Hop 1 port {0} not ready".format(temp_port))
+                    log(f"  * Hop 1 port {temp_port} not ready")
                 tester_temp.stop_xray_process(process_temp)
             else:
                 log("  * Hop 1 xray failed to start")
@@ -339,16 +332,15 @@ def setup_proxy_chain(proxy_urls: list, timeout: float = 8.0) -> Dict:
                     log("     Country: {0}, ASN: {1}".format(result['country'], result['asn']))
                     chain_success = True
                     break
-                elif 'ipify' in url:
+                if 'ipify' in url:
                     result['proxy_ip'] = response.json().get('ip')
                     chain_success = True
                     break
-                else:
-                    result['proxy_ip'] = response.text.strip()
-                    chain_success = True
-                    break
+                result['proxy_ip'] = response.text.strip()
+                chain_success = True
+                break
             except (OSError, requests.RequestException, ValueError, TypeError) as e:
-                log("  * Error: {0}: {1}".format(type(e).__name__, str(e)[:100]))
+                log(f"  * Error: {type(e).__name__}: {str(e)[:100]}")
 
         if not chain_success:
             result['error'] = "Failed to get IP through proxy chain"
@@ -364,13 +356,13 @@ def setup_proxy_chain(proxy_urls: list, timeout: float = 8.0) -> Dict:
                     success_temp2, process_temp2, _ = tester_temp2.start_xray_instance(config_temp2, temp_port, verbose=False)
                     if success_temp2:
                         if _wait_for_tcp_port('127.0.0.1', temp_port, timeout=2.0):
-                            proxies = {'http': "socks5h://127.0.0.1:{0}".format(temp_port), 'https': "socks5h://127.0.0.1:{0}".format(temp_port)}
+                            proxies = {'http': f"socks5h://127.0.0.1:{temp_port}", 'https': f"socks5h://127.0.0.1:{temp_port}"}
                             resp = requests.get('https://ipwho.is/', proxies=proxies, timeout=timeout)
                             hop1_details = resp.json()
                             log("  Hop 1 details: {0}, ASN: {1}".format(hop1_details.get('country'), hop1_details.get('asn', {}).get('org', '')))
                         tester_temp2.stop_xray_process(process_temp2)
             except (requests.RequestException, ValueError, KeyError) as e:
-                log("  (skipping hop1 details: {0}: {1})".format(type(e).__name__, str(e)[:80]))
+                log(f"  (skipping hop1 details: {type(e).__name__}: {str(e)[:80]})")
 
         # Verify chain
         if result.get('proxy_ip') and result.get('real_ip'):
@@ -394,5 +386,5 @@ def setup_proxy_chain(proxy_urls: list, timeout: float = 8.0) -> Dict:
         return result
 
     except (OSError, subprocess.TimeoutExpired, subprocess.CalledProcessError, ValueError, TypeError, requests.RequestException) as e:
-        result['error'] = "{0}: {1}".format(type(e).__name__, str(e))
+        result['error'] = f"{type(e).__name__}: {str(e)}"
         return result

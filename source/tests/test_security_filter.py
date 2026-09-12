@@ -1,12 +1,13 @@
 """Tests for security_filter.py — security checks for VPN configs."""
 
-import sys
-import os
 
 from utils.security_filter import (
-    has_insecure_setting, filter_secure_configs,
-    SS_WEAK_CIPHERS, SS_SECURE_CIPHERS,
+    SS_SECURE_CIPHERS,
+    SS_WEAK_CIPHERS,
+    filter_secure_configs,
+    has_insecure_setting,
 )
+
 
 class TestCipherConstants:
     """Cipher sets contain expected values."""

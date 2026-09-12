@@ -11,13 +11,10 @@ Usage:
     tcp_workers = specs.safe_tcp_workers()
 """
 
-import os
-import sys
 import multiprocessing
 from dataclasses import dataclass
-from typing import Optional
 
-from utils.psutil_available import psutil, HAS_PSUTIL
+from utils.psutil_available import psutil
 
 
 @dataclass(frozen=True)
@@ -140,7 +137,7 @@ def _detect_wsl() -> bool:
         return False
 
 
-def _detect_container_memory_mb() -> Optional[float]:
+def _detect_container_memory_mb() -> float | None:
     """Detect cgroup v2/v1 memory limit. Returns None if no limit found.
 
     psutil.virtual_memory() inside a container reports *host* memory, not
@@ -173,7 +170,7 @@ def _detect_container_memory_mb() -> Optional[float]:
 # Module-level cached instance (lazy, import-safe)
 # ------------------------------------------------------------------
 
-_SPECS: Optional[SystemSpecs] = None
+_SPECS: SystemSpecs | None = None
 
 
 def get_specs() -> SystemSpecs:

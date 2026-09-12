@@ -9,7 +9,7 @@ If either is not set, all functions are silent no-ops.
 
 import os
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
 try:
     import requests as _requests

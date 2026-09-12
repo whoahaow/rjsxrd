@@ -1,7 +1,9 @@
 """Tests for SimpleTester and extract_host_port."""
 import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+
 from utils.file_utils import extract_host_port
 
 

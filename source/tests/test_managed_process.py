@@ -6,14 +6,12 @@ was: stop() returned early for already-exited processes, skipping the
 config file cleanup. These tests prevent that regression.
 """
 import os
-import sys
-import signal
 import subprocess
+import sys
 import tempfile
-import time
-from unittest.mock import patch, MagicMock
 
 from utils.managed_process import ManagedProcess
+
 
 class TestManagedProcessConfigCleanup:
     """Config file cleanup is the PRIMARY safety property of ManagedProcess.

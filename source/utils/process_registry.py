@@ -17,7 +17,8 @@ import atexit
 import signal
 import subprocess
 import threading
-from typing import Callable, List, Tuple, Optional
+from collections.abc import Callable
+
 from utils.logger import log
 from utils.managed_process import ManagedProcess
 
@@ -40,16 +41,16 @@ class ProcessRegistry:
     """
 
     def __init__(self, name: str = "default") -> None:
-        self._entries: List[Tuple[object, subprocess.Popen]] = []
+        self._entries: list[tuple[object, subprocess.Popen]] = []
         self._lock = threading.Lock()
         self._name = name
         # Proxy monitor instances (for proxy chain health monitoring).
         # Tracked separately from xray processes because monitors are thread
         # objects, not subprocesses. Cleaned up BEFORE process termination.
-        self._proxy_monitors: List[object] = []
+        self._proxy_monitors: list[object] = []
         # Per-registry cleanup callbacks (e.g. main.py's proxy monitor cleanup).
         # Run in registration order during cleanup, before process termination.
-        self._cleanup_callbacks: List[Callable[[], None]] = []
+        self._cleanup_callbacks: list[Callable[[], None]] = []
 
     def register(self, tester: object, process: subprocess.Popen) -> None:
         """Track a (tester, process) pair. Idempotent — duplicate registration

@@ -1,7 +1,6 @@
 """Proxy detection utility - scans common ports for active SOCKS/HTTP proxies."""
 
 import socket
-from typing import Optional, Dict, List
 
 COMMON_PROXY_PORTS = [
     10808,  # v2rayN, Hiddify default
@@ -21,18 +20,18 @@ def check_port_open(host: str = '127.0.0.1', port: int = 10808, timeout: float =
         result = sock.connect_ex((host, port))
         sock.close()
         return result == 0
-    except (OSError, socket.timeout):
+    except (TimeoutError, OSError):
         return False
 
 
-def find_active_proxy_port(host: str = '127.0.0.1', ports: List[int] = None) -> Optional[int]:
+def find_active_proxy_port(host: str = '127.0.0.1', ports: list[int] = None) -> int | None:
     """Scan common proxy ports to find active one.
     
     Returns:
         Port number if found, None otherwise
     """
     ports_to_scan = ports or COMMON_PROXY_PORTS
-    
+
     for port in ports_to_scan:
         if check_port_open(host, port):
             return port

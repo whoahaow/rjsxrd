@@ -4,14 +4,12 @@ Covers: file creation, update, no-change skip, rate limit handling,
 conflict resolution, missing file handling, and batch upload.
 """
 
-import sys
-import os
 import time
-from unittest.mock import patch, MagicMock
-from typing import Optional
+from unittest.mock import MagicMock, patch
 
 from utils.github_handler import (
-    GitHubHandler, _GitHubClient, RateLimitStatus,
+    GitHubHandler,
+    _GitHubClient,
 )
 
 
@@ -57,11 +55,11 @@ class FakeGitHubClient(_GitHubClient):
         if self._fail_on_create:
             raise RuntimeError("Simulated create failure")
         if remote_path in self.files:
-            raise RuntimeError("File already exists: {0}".format(remote_path))
+            raise RuntimeError(f"File already exists: {remote_path}")
         self._sha_counter += 1
         self.files[remote_path] = {
             "content": content,
-            "sha": "sha-{0}".format(self._sha_counter),
+            "sha": f"sha-{self._sha_counter}",
         }
         return True
 
@@ -72,7 +70,7 @@ class FakeGitHubClient(_GitHubClient):
             raise RuntimeError("409 conflict - stale SHA")
         entry = self.files.get(remote_path)
         if entry is None:
-            raise RuntimeError("File not found: {0}".format(remote_path))
+            raise RuntimeError(f"File not found: {remote_path}")
         if entry["sha"] != sha:
             # Simulate 409 Conflict
             from github import GithubException
@@ -80,7 +78,7 @@ class FakeGitHubClient(_GitHubClient):
             raise exc
         self._sha_counter += 1
         entry["content"] = content
-        entry["sha"] = "sha-{0}".format(self._sha_counter)
+        entry["sha"] = f"sha-{self._sha_counter}"
         return True
 
 
@@ -239,9 +237,9 @@ class TestUploadMultipleFiles:
 
         files = []
         for i in range(3):
-            local = tmp_path / "file{0}.txt".format(i)
-            local.write_text("content {0}".format(i))
-            files.append((str(local), "remote{0}.txt".format(i)))
+            local = tmp_path / f"file{i}.txt"
+            local.write_text(f"content {i}")
+            files.append((str(local), f"remote{i}.txt"))
 
         failures = handler.upload_multiple_files(files)
 

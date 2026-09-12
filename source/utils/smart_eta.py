@@ -11,10 +11,10 @@ Key improvements over earlier versions:
 - No confusing floor multiplier (removed the 0.8 discount)
 - Conservative by default: overestimate rather than underestimate
 """
-import time
 import math
+import time
 from collections import deque
-from typing import Optional, Callable
+from collections.abc import Callable
 
 
 class SmartETA:
@@ -34,8 +34,8 @@ class SmartETA:
         total: int,
         concurrency: int,
         timeout: float,
-        window_size: Optional[int] = None,
-        time_fn: Optional[Callable[[], float]] = None,
+        window_size: int | None = None,
+        time_fn: Callable[[], float] | None = None,
     ) -> None:
         self.total = total
         self.concurrency = concurrency
@@ -58,7 +58,7 @@ class SmartETA:
 
         # EMA of per-config duration. Updates every completion.
         # Gives a running average that adapts as the mix of fast/slow changes.
-        self._ema_duration: Optional[float] = None
+        self._ema_duration: float | None = None
 
         # measured batch time: initialized to timeout so the first batch
         # has a non-zero floor. Previously was 0 until the first batch
@@ -187,7 +187,7 @@ class SmartETA:
             return f"{eta_sec / 60:.1f}m"
         return f"{eta_sec:.0f}s"
 
-    def reset(self, total: Optional[int] = None, concurrency: Optional[int] = None) -> None:
+    def reset(self, total: int | None = None, concurrency: int | None = None) -> None:
         """Reset for a new batch run."""
         self.completed = 0
         self.start_time = self._time()

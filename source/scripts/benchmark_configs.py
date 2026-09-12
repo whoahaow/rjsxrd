@@ -46,7 +46,7 @@ def run_xray(path: str, count: int | None) -> None:
     elapsed = time.time() - start
 
     log(f"\n{'='*60}")
-    log(f"xray benchmark results")
+    log("xray benchmark results")
     log(f"{'='*60}")
     log(f"tested:   {len(configs)}")
     log(f"working:  {len(working)}")
@@ -74,7 +74,7 @@ def run_tcp(path: str, count: int | None) -> None:
     fastest = sorted(working, key=lambda x: x[1])[:5]
 
     log(f"\n{'='*60}")
-    log(f"tcp ping benchmark results")
+    log("tcp ping benchmark results")
     log(f"{'='*60}")
     log(f"tested:          {len(configs)}")
     log(f"reachable (tcp): {len(working)}")
@@ -83,8 +83,8 @@ def run_tcp(path: str, count: int | None) -> None:
     log(f"time:            {elapsed:.2f}s")
     if configs:
         log(f"per/sec:         {len(configs)/elapsed:.1f}")
-    log(f"")
-    log(f"--- 5 fastest ---")
+    log("")
+    log("--- 5 fastest ---")
     for url, rtt in fastest:
         log(f"  {rtt:>6.1f}ms  {url[:80]}")
     log(f"{'='*60}")

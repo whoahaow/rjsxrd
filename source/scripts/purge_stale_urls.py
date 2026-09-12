@@ -16,8 +16,8 @@ import json
 import os
 import sys
 import time
-from datetime import datetime, timezone, timedelta
-from typing import Optional, Tuple, List, Any
+from datetime import datetime, timedelta, UTC
+from typing import Any
 from urllib.parse import urlparse
 
 import requests
@@ -42,7 +42,7 @@ _REQUEST_DELAY = 1.2 if GITHUB_TOKEN else 65.0  # 1.2s/auth (~3000/hr) vs 65s/un
 _MAX_RETRIES = 3
 
 
-def parse_github_url(url: str) -> Optional[Tuple[str, str, str, str]]:
+def parse_github_url(url: str) -> tuple[str, str, str, str] | None:
     """Parse a GitHub URL into (owner, repo, branch, path) or None.
 
     Handles raw.githubusercontent.com and github.com URLs. For
@@ -68,7 +68,7 @@ def parse_github_url(url: str) -> Optional[Tuple[str, str, str, str]]:
 
             return owner, repo, branch, file_path
 
-        elif host == "github.com":
+        if host == "github.com":
             parts = parsed.path.strip("/").split("/", 5)
             if len(parts) >= 5 and parts[2] in ("blob", "raw"):
                 return parts[0], parts[1], parts[3], "/".join(parts[4:])
@@ -77,7 +77,7 @@ def parse_github_url(url: str) -> Optional[Tuple[str, str, str, str]]:
     return None
 
 
-def make_cache_key(parsed: Tuple[str, str, str, str]) -> str:
+def make_cache_key(parsed: tuple[str, str, str, str]) -> str:
     """Cache key includes owner/repo/branch/path so same file on
     different branches doesn't share a cache entry."""
     return f"{parsed[0]}/{parsed[1]}/{parsed[2]}/{parsed[3]}"
@@ -91,7 +91,7 @@ def build_session() -> requests.Session:
     return session
 
 
-def check_rate_limit(session: requests.Session) -> Tuple[int, int]:
+def check_rate_limit(session: requests.Session) -> tuple[int, int]:
     """Check remaining API quota. Returns (remaining, limit)."""
     try:
         resp = session.get("https://api.github.com/rate_limit", timeout=10)
@@ -138,7 +138,7 @@ def wait_if_needed(headers: Any) -> bool:
 
 def get_last_commit_date(
     session: requests.Session, owner: str, repo: str, path: str, branch: str
-) -> Tuple[Optional[str], bool]:
+) -> tuple[str | None, bool]:
     """Check the last commit date for a file via GitHub Commits API.
 
     Returns:
@@ -215,7 +215,7 @@ def get_last_commit_date(
     return None, True
 
 
-def collect_github_urls() -> List[Tuple[int, str, Tuple[str, str, str, str]]]:
+def collect_github_urls() -> list[tuple[int, str, tuple[str, str, str, str]]]:
     if not os.path.exists(URLS_FILE):
         print(f"ERROR: {URLS_FILE} not found")
         sys.exit(1)
@@ -223,7 +223,7 @@ def collect_github_urls() -> List[Tuple[int, str, Tuple[str, str, str, str]]]:
     with open(URLS_FILE, encoding="utf-8") as f:
         lines = f.readlines()
 
-    entries: List[Tuple[int, str, Tuple[str, str, str, str]]] = []
+    entries: list[tuple[int, str, tuple[str, str, str, str]]] = []
     for i, line in enumerate(lines):
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):
@@ -259,7 +259,7 @@ def run(dry_run: bool, stale_days: int) -> None:
     cache = load_cache()
     entries = collect_github_urls()
     threshold = timedelta(days=stale_days)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # Warm up: check rate limit before starting
     remaining, limit = check_rate_limit(session)
@@ -280,7 +280,7 @@ def run(dry_run: bool, stale_days: int) -> None:
 
     print()
 
-    results: List[Tuple[str, Optional[str], bool]] = []
+    results: list[tuple[str, str | None, bool]] = []
     done = 0
     fresh_count = 0
     stale_count = 0

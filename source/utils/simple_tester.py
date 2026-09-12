@@ -8,13 +8,12 @@ import asyncio
 import socket
 import sys
 import time
-from typing import List, Tuple
 
 from config.settings import VALIDATION_TCP_CONCURRENCY
-from utils.logger import log
 from utils.file_utils import extract_host_port
-from utils.smart_eta import SmartETA
+from utils.logger import log
 from utils.progress import get_async_pbar
+from utils.smart_eta import SmartETA
 
 
 def get_concurrency_limit() -> int:
@@ -49,7 +48,7 @@ class SimpleTester:
 
     async def _tcp_ping_one(
         self, host: str, port: int, sem: asyncio.Semaphore, timeout: float = None
-    ) -> Tuple[bool, float]:
+    ) -> tuple[bool, float]:
         """TCP connect to a single host:port, return (reachable, rtt_ms)."""
         _timeout = timeout or self.timeout
         async with sem:
@@ -63,18 +62,12 @@ class SimpleTester:
                 writer.close()
                 await writer.wait_closed()
                 return True, round(elapsed, 1)
-            except (
-                asyncio.TimeoutError,
-                ConnectionRefusedError,
-                ConnectionAbortedError,
-                OSError,
-                socket.gaierror,
-            ):
+            except (TimeoutError, ConnectionRefusedError, ConnectionAbortedError, OSError, socket.gaierror):
                 return False, 0.0
 
     async def run_batch_async(
-        self, targets: List[Tuple[str, int, str]], timeout: float = None
-    ) -> List[Tuple[str, bool, float]]:
+        self, targets: list[tuple[str, int, str]], timeout: float = None
+    ) -> list[tuple[str, bool, float]]:
         """Run TCP ping on all targets concurrently with semaphore and progress bar.
 
         This is the async core of test_batch(). Use it directly when calling
@@ -102,7 +95,7 @@ class SimpleTester:
             leave=True,
         )
 
-        async def test_one(host: str, port: int, url: str) -> Tuple[str, bool, float]:
+        async def test_one(host: str, port: int, url: str) -> tuple[str, bool, float]:
             t0 = time.time()
             ok, rtt = await self._tcp_ping_one(host, port, sem, timeout=_timeout)
             duration = time.time() - t0
@@ -137,11 +130,11 @@ class SimpleTester:
 
     def test_batch(
         self,
-        configs: List[str],
+        configs: list[str],
         timeout: float = None,
         verbose: bool = False,
         progress_callback=None,
-    ) -> List[Tuple[str, bool, float]]:
+    ) -> list[tuple[str, bool, float]]:
         """Test configs via TCP ping.
 
         Args:

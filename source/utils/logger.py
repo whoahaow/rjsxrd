@@ -7,11 +7,11 @@ This is a thin wrapper around stdlib logging that preserves the original public 
 """
 
 import logging
+import re
 import sys
 from collections import defaultdict
 from enum import IntEnum
 from urllib.parse import urlparse
-import re
 
 
 class LogLevel(IntEnum):

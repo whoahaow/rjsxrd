@@ -1,12 +1,9 @@
 """Tests for BatchRunner — shared-xray batch mode dispatch and orchestration."""
 
 import os
-import sys
 import threading
-import time
-from unittest.mock import patch as mock_patch, MagicMock, PropertyMock
-
-import pytest
+from unittest.mock import MagicMock
+from unittest.mock import patch as mock_patch
 
 
 class TestBatchModeSwitch:
@@ -30,8 +27,8 @@ class TestBatchModeSwitch:
 
     def test_batch_mode_dispatches_to_shared_xray(self):
         """When XRAY_BATCH_MODE='batch', test_batch calls _test_batch_shared_xray."""
-        from utils.xray_batch import BatchRunner
         from config.settings import BATCH_MODE_OVERRIDE
+        from utils.xray_batch import BatchRunner
 
         # Save original override
         orig_override = BATCH_MODE_OVERRIDE
@@ -59,8 +56,8 @@ class TestBatchModeSwitch:
 
     def test_single_mode_dispatches_to_async(self):
         """When XRAY_BATCH_MODE='single', test_batch uses existing async path."""
-        from utils.xray_batch import BatchRunner
         from config.settings import BATCH_MODE_OVERRIDE
+        from utils.xray_batch import BatchRunner
 
         orig_override = BATCH_MODE_OVERRIDE
 
@@ -85,8 +82,8 @@ class TestBatchModeSwitch:
 
     def test_override_takes_precedence_over_env(self):
         """BATCH_MODE_OVERRIDE takes precedence over XRAY_BATCH_MODE env var."""
-        from utils.xray_batch import BatchRunner
         from config.settings import BATCH_MODE_OVERRIDE
+        from utils.xray_batch import BatchRunner
 
         orig_override = BATCH_MODE_OVERRIDE
 
@@ -139,6 +136,7 @@ class TestBatchSharedXray:
     def _make_tester_with_mocks(self):
         """Create BatchRunner with all xray methods mocked."""
         from unittest.mock import MagicMock
+
         from utils.xray_batch import BatchRunner
 
         tester = MagicMock()
@@ -337,6 +335,7 @@ class TestBatchSettings:
         # Re-import the module to trigger the import-time validation
         # We need to reload the module
         import importlib
+
         import config.settings
         importlib.reload(config.settings)
 

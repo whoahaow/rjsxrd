@@ -1,23 +1,22 @@
 """Main module for VPN config generator with refactored, streamlined logic."""
 
-import os
-import sys
 import argparse
+import os
 import signal
-from typing import Optional, List, Tuple, Any
-
-from utils.logger import log, print_logs
-from utils.download_xray import ensure_xray_installed
-from processors.config_processor import process_all_configs
-from utils.github_handler import GitHubHandler
-from utils.proxy_detector import find_active_proxy_port
-from utils.ip_verifier import verify_protection
-from utils.resource_monitor import start_monitoring, stop_monitoring, print_resource_report
-from utils.process_registry import default_registry, install_signal_handler
+import sys
+from typing import Any
 
 import requests
 
-from utils.telegram_notifier import notify_start, notify_success, notify_error
+from processors.config_processor import process_all_configs
+from utils.download_xray import ensure_xray_installed
+from utils.github_handler import GitHubHandler
+from utils.ip_verifier import verify_protection
+from utils.logger import log, print_logs
+from utils.process_registry import default_registry, install_signal_handler
+from utils.proxy_detector import find_active_proxy_port
+from utils.resource_monitor import print_resource_report, start_monitoring, stop_monitoring
+from utils.telegram_notifier import notify_error, notify_start, notify_success
 
 
 def _signal_handler(signum, frame) -> None:
@@ -65,10 +64,10 @@ def register_signal_handlers() -> None:
 
 
 def _setup_proxy_and_monitoring(
-    proxy_chain: Optional[str],
-    proxy_url: Optional[str],
+    proxy_chain: str | None,
+    proxy_url: str | None,
     no_proxy_check: bool,
-) -> Tuple[Optional[int], bool, Any]:
+) -> tuple[int | None, bool, Any]:
     """Set up proxy chain, single proxy, or auto-detect.
 
     Returns:
@@ -86,8 +85,8 @@ def _setup_proxy_and_monitoring(
             sys.exit(1)
 
         log(f"Setting up proxy chain: {len(chain_list)} hops (EXPERIMENTAL)")
-        from utils.proxy_monitor import ProxyMonitor
         from utils.ip_verifier import setup_proxy_chain
+        from utils.proxy_monitor import ProxyMonitor
         result = setup_proxy_chain(chain_list, timeout=8.0)
 
         if result['active']:
@@ -162,7 +161,7 @@ def _run_pipeline_and_upload(
     skip_xray: bool,
     tcp_ping: bool,
     verbose: bool,
-    flag_overrides: Optional[dict],
+    flag_overrides: dict | None,
     dry_run: bool,
     use_git: bool,
 ) -> bool:

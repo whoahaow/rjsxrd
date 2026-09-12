@@ -13,9 +13,6 @@ Usage:
     assert tagger.get_sources(url) == ["URLS.txt"]
 """
 
-from typing import Dict, List, Optional, Set
-from urllib.parse import urlparse
-import re
 
 
 class ConfigTagger:
@@ -28,13 +25,13 @@ class ConfigTagger:
 
     def __init__(self) -> None:
         # url -> set of source labels
-        self._sources: Dict[str, Set[str]] = {}
+        self._sources: dict[str, set[str]] = {}
         # url -> protocol scheme (lowercase, e.g. 'vless')
-        self._protocols: Dict[str, str] = {}
+        self._protocols: dict[str, str] = {}
         # url -> bool (cached security check result)
-        self._secure: Dict[str, Optional[bool]] = {}
+        self._secure: dict[str, bool | None] = {}
         # url -> (host, port) or None
-        self._host_ports: Dict[str, Optional[tuple]] = {}
+        self._host_ports: dict[str, tuple | None] = {}
 
     def tag(self, url: str, source: str = "") -> None:
         """Tag a config with metadata extracted from its URL.
@@ -55,27 +52,27 @@ class ConfigTagger:
                 self._sources[url] = set()
             self._sources[url].add(source)
 
-    def tag_batch(self, urls: List[str], source: str = "") -> None:
+    def tag_batch(self, urls: list[str], source: str = "") -> None:
         """Tag multiple configs from the same source."""
         for url in urls:
             self.tag(url, source=source)
 
-    def get_protocol(self, url: str) -> Optional[str]:
+    def get_protocol(self, url: str) -> str | None:
         """Return the cached protocol scheme (e.g. 'vless', 'vmess'). None if unknown."""
         return self._protocols.get(url)
 
-    def get_sources(self, url: str) -> List[str]:
+    def get_sources(self, url: str) -> list[str]:
         """Return all source labels for this config."""
         return list(self._sources.get(url, set()))
 
     @property
-    def all_urls(self) -> List[str]:
+    def all_urls(self) -> list[str]:
         """Return all tagged URLs."""
         return list(self._protocols.keys())
 
-    def protocols(self) -> Dict[str, List[str]]:
+    def protocols(self) -> dict[str, list[str]]:
         """Group URLs by protocol. Returns {protocol: [urls]}."""
-        groups: Dict[str, List[str]] = {}
+        groups: dict[str, list[str]] = {}
         for url, proto in self._protocols.items():
             groups.setdefault(proto, []).append(url)
         return groups

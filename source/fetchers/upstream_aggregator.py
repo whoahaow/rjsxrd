@@ -1,19 +1,18 @@
 """Fetches upstream source lists and extracts yudou226.top + guidongone gist configs."""
 
-import re
 import concurrent.futures
-import threading
-from typing import List, Optional
-from urllib.parse import urlparse
-import sys
 import os
+import re
+import sys
+import threading
+from urllib.parse import urlparse
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from fetchers.fetcher import fetch_data
-from utils.logger import log
-from utils.file_utils import prepare_config_content
 from utils.executor_cache import ExecutorCache
+from utils.file_utils import prepare_config_content
+from utils.logger import log
 
 MERMEROO_URL = "https://raw.githubusercontent.com/mermeroo/V2RAY-CLASH-BASE64-Subscription.Links/main/SUB%20LINKS"
 LEON406_URL = "https://raw.githubusercontent.com/Leon406/jsdelivr/master/subscribe/subpools"
@@ -21,7 +20,7 @@ LEON406_URL = "https://raw.githubusercontent.com/Leon406/jsdelivr/master/subscri
 GUIDONGONE_PATH_PATTERN = re.compile(r"/guidongone/")
 
 
-def _fetch_and_extract_urls(source_url: str) -> List[str]:
+def _fetch_and_extract_urls(source_url: str) -> list[str]:
     result = fetch_data(source_url, timeout=15)
     if not result.success:
         return []
@@ -38,15 +37,13 @@ def _fetch_and_extract_urls(source_url: str) -> List[str]:
         except ValueError:
             continue
 
-        if host == "hh.yudou226.top":
-            urls.append(line)
-        elif host == "gist.githubusercontent.com" and GUIDONGONE_PATH_PATTERN.search(parsed.path):
+        if host == "hh.yudou226.top" or host == "gist.githubusercontent.com" and GUIDONGONE_PATH_PATTERN.search(parsed.path):
             urls.append(line)
 
     return urls
 
 
-def _fetch_config(url: str) -> Optional[List[str]]:
+def _fetch_config(url: str) -> list[str] | None:
     result = fetch_data(url, timeout=15)
     if not result.success:
         return None
@@ -66,7 +63,9 @@ def _fetch_config(url: str) -> Optional[List[str]]:
     return configs or None
 
 
-def fetch_upstream_dynamic_configs(seen: Optional[set] = None, seen_lock: Optional[threading.Lock] = None) -> List[str]:
+# Quoted: threading.Lock is a factory function before Python 3.13, so the
+# PEP 604 union is not runtime-evaluable at function-definition time.
+def fetch_upstream_dynamic_configs(seen: set | None = None, seen_lock: "threading.Lock | None" = None) -> list[str]:
     all_new_urls = []
     for src_url in (MERMEROO_URL, LEON406_URL):
         urls = _fetch_and_extract_urls(src_url)

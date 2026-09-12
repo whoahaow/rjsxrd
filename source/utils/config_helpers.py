@@ -5,12 +5,11 @@ module focused on orchestration. These are pure utility functions
 with no dependency on ConfigPipeline internals.
 """
 
-import os
-import re
 import base64
 import binascii
+import os
+import re
 import threading
-from typing import List, Optional
 
 
 def natural_sort_key(path: str) -> list[int | str]:
@@ -22,7 +21,7 @@ def natural_sort_key(path: str) -> list[int | str]:
     return [int(t) if t.isdigit() else t for t in re.split(r'(\d+)', path)]
 
 
-def resolve_flag(name: str, overrides: Optional[dict], default: bool) -> bool:
+def resolve_flag(name: str, overrides: dict | None, default: bool) -> bool:
     """Resolve a feature flag value from CLI overrides, falling back to settings.
 
     Used by process_all_configs to honor per-run CLI overrides of the 5
@@ -46,7 +45,7 @@ def resolve_flag(name: str, overrides: Optional[dict], default: bool) -> bool:
     return default
 
 
-def add_unique(configs: List[str], target: List[str], seen: set, seen_lock: threading.Lock) -> int:
+def add_unique(configs: list[str], target: list[str], seen: set, seen_lock: threading.Lock) -> int:
     """Append only configs not already in `seen` to `target`. Returns count added.
 
     Thread-safe. The seen set is checked under lock; the actual append to target
@@ -92,7 +91,7 @@ def path_in_output(output_dir: str, *parts: str) -> str:
 _BASE64_PATTERN = re.compile(r'^[A-Za-z0-9+/]+=*$')
 
 
-def try_decode_base64_content(content: str) -> Optional[str]:
+def try_decode_base64_content(content: str) -> str | None:
     """Try to decode base64 content. Returns decoded string if successful, None otherwise.
 
     Uses quick heuristics to skip obvious non-base64 content before attempting decode.

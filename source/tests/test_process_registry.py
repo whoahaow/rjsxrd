@@ -1,12 +1,11 @@
 """Tests for the shared ProcessRegistry (utils/process_registry.py)."""
-import sys
-import os
+import subprocess
 import threading
 import time
-import subprocess
-from unittest.mock import MagicMock, patch as mock_patch
+from unittest.mock import MagicMock
 
 from utils.process_registry import ProcessRegistry, default_registry, install_signal_handler
+
 
 class _FakeProcess:
     """Drop-in for subprocess.Popen for registry tests.
@@ -364,6 +363,7 @@ class TestInstallSignalHandler:
         and the cleanup would run multiple times (harmless but wasteful).
         """
         import signal as _signal
+
         import utils.process_registry as _pr
         original = _signal.getsignal(_signal.SIGINT)
         try:
@@ -378,6 +378,7 @@ class TestInstallSignalHandler:
         """install_signal_handler must register when SIGINT is still the
         default handler (no other module has claimed it yet)."""
         import signal as _signal
+
         import utils.process_registry as _pr
         if _signal.getsignal(_signal.SIGINT) != _signal.default_int_handler:
             # Another test already installed a handler — can't test this

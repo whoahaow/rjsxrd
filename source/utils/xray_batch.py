@@ -5,24 +5,27 @@ configs via Xray-core. Delegates process lifecycle and config building
 to the parent XrayTester instance.
 """
 
-import os
-import sys
-import time
 import asyncio
-import threading
 import concurrent.futures
-from typing import List, Tuple, Dict, Optional, Callable
+import sys
+import threading
+import time
+from collections.abc import Callable
 
 import requests
 
-from utils.logger import log
+from config.settings import (
+    MAX_CONFIGS_PER_FILE,
+    XRAY_BASE_PORT,
+    XRAY_BATCH_PORT_RANGE_SIZE,
+    XRAY_STARTUP_TIMEOUT,
+)
+from utils.curl_import import CURL_CFFI_AVAILABLE, AsyncSession, CurlSession
 from utils.executor_cache import ExecutorCache
+from utils.logger import log
+from utils.progress import get_async_pbar
+from utils.progress import get_sync_pbar as _tqdm_sync
 from utils.smart_eta import SmartETA
-from config.settings import XRAY_STARTUP_TIMEOUT, MAX_CONFIGS_PER_FILE, XRAY_BASE_PORT, XRAY_BATCH_PORT_RANGE_SIZE
-from utils.progress import get_async_pbar, get_sync_pbar as _tqdm_sync
-
-from utils.curl_import import CurlSession, AsyncSession, CURL_CFFI_AVAILABLE
-
 
 
 class BatchRunner:
@@ -39,12 +42,12 @@ class BatchRunner:
 
     # ── Public API ──────────────────────────────────────────────────
 
-    def test_through_socks(self, socks_port: int, timeout: float, verbose: bool = False) -> Tuple[bool, float]:
+    def test_through_socks(self, socks_port: int, timeout: float, verbose: bool = False) -> tuple[bool, float]:
         """Test connection through SOCKS proxy - HTTP only (port already verified)."""
         return self._http_ping_through_proxy(socks_port, timeout, verbose)
 
     def test_single_config(self, url: str, timeout: float, verbose: bool = False,
-                           max_retries: int = 1, skip_tcp_ping: bool = False) -> Tuple[str, bool, float, str]:
+                           max_retries: int = 1, skip_tcp_ping: bool = False) -> tuple[str, bool, float, str]:
         """Test config through Xray HTTP test only."""
         last_error = "Unknown error"
 
@@ -87,10 +90,10 @@ class BatchRunner:
         return (url, False, 0.0, last_error)
 
     def _process_single_chunk(
-        self, chunk_urls: List[str], chunk_idx: int,
+        self, chunk_urls: list[str], chunk_idx: int,
         timeout: float, concurrency: int, verbose: bool,
         startup_delay: float,
-    ) -> List[Tuple[str, bool, float]]:
+    ) -> list[tuple[str, bool, float]]:
         """Process one chunk: build shared config, start xray, test, cleanup.
 
         Runs a single chunk end-to-end: creates one xray config with N
@@ -99,7 +102,7 @@ class BatchRunner:
 
         Designed to run in a worker thread (parallel chunks).
         """
-        from config.settings import XRAY_BASE_PORT, XRAY_BATCH_PORT_RANGE_SIZE, XRAY_BATCH_PROCESSES
+        from config.settings import XRAY_BATCH_PROCESSES
 
         # Cycle chunk port base within available space to prevent overflow
         # past 65535 and to stay below the OS ephemeral port range.
@@ -146,10 +149,10 @@ class BatchRunner:
             self.tester.stop_xray_process(process)
 
     def _test_batch_shared_xray(
-        self, urls: List[str], concurrency: int = None, timeout: float = None,
+        self, urls: list[str], concurrency: int = None, timeout: float = None,
         verbose: bool = False,
-        progress_callback: Optional[callable] = None,
-    ) -> List[Tuple[str, bool, float]]:
+        progress_callback: Callable | None = None,
+    ) -> list[tuple[str, bool, float]]:
         """Batch mode: parallel chunks with shared xray per chunk (v2rayN-style).
 
         Chunks profiles by XRAY_BATCH_SIZE. Runs up to XRAY_BATCH_PROCESSES
@@ -169,9 +172,12 @@ class BatchRunner:
             List of (url, success, latency) sorted by latency (working first).
         """
         from config.settings import (
-            XRAY_BATCH_SIZE, XRAY_BATCH_PROCESSES,
+            ASYNC_CONCURRENCY_LINUX,
+            ASYNC_CONCURRENCY_WIN32,
+            VALIDATION_HTTP_TIMEOUT,
+            XRAY_BATCH_PROCESSES,
+            XRAY_BATCH_SIZE,
             XRAY_BATCH_STARTUP_DELAY_MS,
-            VALIDATION_HTTP_TIMEOUT, ASYNC_CONCURRENCY_WIN32, ASYNC_CONCURRENCY_LINUX,
         )
         if not urls:
             return []
@@ -209,7 +215,7 @@ class BatchRunner:
             f"{max_processes} in parallel"
         )
 
-        all_results: List[Tuple[str, bool, float]] = []
+        all_results: list[tuple[str, bool, float]] = []
         results_lock = threading.Lock()
         working_count = [0]
         last_callback_file = [0]
@@ -230,7 +236,7 @@ class BatchRunner:
             leave=True,
         )
 
-        def _run_chunk(chunk_urls: List[str], chunk_idx: int) -> List[Tuple[str, bool, float]]:
+        def _run_chunk(chunk_urls: list[str], chunk_idx: int) -> list[tuple[str, bool, float]]:
             """Wrapper that processes a chunk and updates shared progress state."""
             chunk_results = self._process_single_chunk(
                 chunk_urls, chunk_idx, default_timeout,
@@ -298,9 +304,9 @@ class BatchRunner:
 
         return sorted_results
 
-    def test_batch(self, urls: List[str], concurrency: int = None, timeout: float = None,
+    def test_batch(self, urls: list[str], concurrency: int = None, timeout: float = None,
                    verbose: bool = False,
-                   progress_callback: Optional[callable] = None) -> List[Tuple[str, bool, float]]:
+                   progress_callback: Callable | None = None) -> list[tuple[str, bool, float]]:
         """Test configs through Xray with TCP+TLS fallback. Uses async on all platforms.
 
         Args:
@@ -313,13 +319,17 @@ class BatchRunner:
             return []
 
         # Check batch mode — short-circuit to shared xray if enabled
-        from config.settings import XRAY_BATCH_MODE, BATCH_MODE_OVERRIDE
+        from config.settings import BATCH_MODE_OVERRIDE, XRAY_BATCH_MODE
         batch_mode = BATCH_MODE_OVERRIDE if BATCH_MODE_OVERRIDE is not None else XRAY_BATCH_MODE
         if batch_mode == "batch":
             return self._test_batch_shared_xray(urls, concurrency, timeout, verbose, progress_callback)
 
         try:
-            from config.settings import VALIDATION_HTTP_TIMEOUT, ASYNC_CONCURRENCY_WIN32, ASYNC_CONCURRENCY_LINUX
+            from config.settings import (
+                ASYNC_CONCURRENCY_LINUX,
+                ASYNC_CONCURRENCY_WIN32,
+                VALIDATION_HTTP_TIMEOUT,
+            )
             default_timeout = VALIDATION_HTTP_TIMEOUT
         except ImportError:
             default_timeout = 10.0
@@ -353,9 +363,9 @@ class BatchRunner:
 
     # ── Async batch internals ───────────────────────────────────────
 
-    def _test_batch_async_wrapper(self, urls: List[str], concurrency: int, timeout: float,
+    def _test_batch_async_wrapper(self, urls: list[str], concurrency: int, timeout: float,
                                   verbose: bool,
-                                  progress_callback: Optional[callable] = None) -> List[Tuple[str, bool, float]]:
+                                  progress_callback: Callable | None = None) -> list[tuple[str, bool, float]]:
         """Simple async wrapper: Xray in threads, HTTP via requests (hybrid approach)."""
         executor = ExecutorCache.get('xray_worker', max_workers=min(concurrency, 300))
 
@@ -380,9 +390,9 @@ class BatchRunner:
         finally:
             loop.close()
 
-    async def _test_batch_async(self, urls: List[str], concurrency: int, timeout: float,
+    async def _test_batch_async(self, urls: list[str], concurrency: int, timeout: float,
                                 verbose: bool,
-                                progress_callback: Optional[callable] = None) -> List[Tuple[str, bool, float]]:
+                                progress_callback: Callable | None = None) -> list[tuple[str, bool, float]]:
         """Test configs with PIPELINED ASYNC (Xray startup overlaps with HTTP testing)."""
         eta_tracker = SmartETA(len(urls), concurrency, timeout)
 
@@ -413,7 +423,7 @@ class BatchRunner:
         working_results: list = []
         last_callback_file = [0]
 
-        async def test_with_semaphore(url: str) -> Tuple[str, bool, float]:
+        async def test_with_semaphore(url: str) -> tuple[str, bool, float]:
             try:
                 async with semaphore:
                     t0 = time.time()
@@ -451,7 +461,7 @@ class BatchRunner:
                         elif count % 50 == 0 or count == len(urls):
                             log(f"Progress: {count}/{len(urls)} ({count/(time.time()-t0+0.01):.1f}/s, ETA: {eta_tracker.description}) - Working: {working_count} ({success_rate:.1f}%)")
                         return result
-                    except (OSError, RuntimeError, asyncio.TimeoutError) as e:
+                    except (TimeoutError, OSError, RuntimeError) as e:
                         duration = time.time() - t0
                         if verbose:
                             log(f"Async test failed for {url[:60]}: {type(e).__name__}: {str(e)[:100]}")
@@ -492,7 +502,7 @@ class BatchRunner:
         return results
 
     async def _test_single_config_pipelined_async(self, url: str, timeout: float, verbose: bool = False,
-                                                   cleanup_futures: "list | None" = None) -> Tuple[str, bool, float]:
+                                                   cleanup_futures: "list | None" = None) -> tuple[str, bool, float]:
         """Pipelined test: Xray in thread, curl_cffi async HTTP with socks5h://."""
         loop = asyncio.get_running_loop()
 
@@ -512,7 +522,7 @@ class BatchRunner:
                 loop.run_in_executor(None, start_xray_sync),
                 timeout=XRAY_STARTUP_TIMEOUT,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             self.tester._track_error("xray_startup_timeout")
             if verbose:
                 log(f"Xray startup timed out after {XRAY_STARTUP_TIMEOUT}s for {url[:60]}")
@@ -535,14 +545,14 @@ class BatchRunner:
 
     # ── HTTP ping methods ───────────────────────────────────────────
 
-    def _http_ping_through_proxy(self, socks_port: int, timeout: float, verbose: bool = False) -> Tuple[bool, float]:
+    def _http_ping_through_proxy(self, socks_port: int, timeout: float, verbose: bool = False) -> tuple[bool, float]:
         """HTTP request through proxy using curl_cffi."""
         if CURL_CFFI_AVAILABLE:
             return self._http_ping_through_proxy_curl(socks_port, timeout, verbose)
         return self._http_ping_through_proxy_requests(socks_port, timeout, verbose)
 
     def _http_ping_through_proxy_curl(self, socks_port: int, timeout: float,
-                                       verbose: bool = False) -> Tuple[bool, float]:
+                                       verbose: bool = False) -> tuple[bool, float]:
         """HTTP request through proxy using curl_cffi (sync Session)."""
         proxy_url = f"socks://127.0.0.1:{socks_port}"
 
@@ -571,7 +581,7 @@ class BatchRunner:
         return False, 0.0
 
     def _http_ping_through_proxy_requests(self, socks_port: int, timeout: float,
-                                           verbose: bool = False) -> Tuple[bool, float]:
+                                           verbose: bool = False) -> tuple[bool, float]:
         """HTTP request through proxy using requests with socks5h:// (remote DNS)."""
         session = self.tester._get_session()
         proxies = {
@@ -603,7 +613,7 @@ class BatchRunner:
         return False, 0.0
 
     async def _http_ping_through_proxy_async(self, socks_port: int, timeout: float,
-                                              verbose: bool = False) -> Tuple[bool, float]:
+                                              verbose: bool = False) -> tuple[bool, float]:
         """Native curl_cffi async HTTP test through SOCKS5 proxy."""
         if not CURL_CFFI_AVAILABLE:
             return self._http_ping_through_proxy(socks_port, timeout, verbose)
@@ -629,7 +639,7 @@ class BatchRunner:
                             log(f"Port {socks_port}: OK via {test_url[:40]} in {latency:.0f}ms")
                         return True, latency
                     break
-            except (asyncio.TimeoutError, Exception):
+            except (TimeoutError, Exception):
                 pass
 
         if verbose:
@@ -641,7 +651,7 @@ class BatchRunner:
     def _run_single_config_test(
         self, url: str, timeout: float, eta_tracker: SmartETA,
         completed: list, failed_count: list, pbar, total_urls: int,
-    ) -> Tuple[str, bool, float]:
+    ) -> tuple[str, bool, float]:
         """Test a single config and update progress tracking.
 
         Extracted from _test_batch_single's inner closure so it can be tested
@@ -677,9 +687,9 @@ class BatchRunner:
                 pbar.set_description(f"Testing | ETA {eta_tracker.description} | Working: {working_count} ({success_rate:.1f}%)")
             return (url, False, 0.0)
 
-    def _test_batch_single(self, urls: List[str], concurrency: int, timeout: float,
+    def _test_batch_single(self, urls: list[str], concurrency: int, timeout: float,
                            verbose: bool,
-                           progress_callback: Optional[callable] = None) -> List[Tuple[str, bool, float]]:
+                           progress_callback: Callable | None = None) -> list[tuple[str, bool, float]]:
         """Single-config mode: Test each config individually with fallback."""
         eta_tracker = SmartETA(len(urls), concurrency, timeout)
         start_time = time.time()
@@ -763,9 +773,9 @@ class BatchRunner:
 
         return working
 
-    def _test_batch_concurrent(self, port_map: Dict[int, str], timeout: float, concurrency: int,
+    def _test_batch_concurrent(self, port_map: dict[int, str], timeout: float, concurrency: int,
                                 verbose: bool = False,
-                                executor_name: Optional[str] = None) -> List[Tuple[str, bool, float]]:
+                                executor_name: str | None = None) -> list[tuple[str, bool, float]]:
         """Test all configs in batch concurrently through different ports.
 
         Args:
@@ -776,7 +786,7 @@ class BatchRunner:
         results = []
         failed_ports = []
 
-        def test_port(port: int) -> Tuple[str, bool, float]:
+        def test_port(port: int) -> tuple[str, bool, float]:
             url = port_map[port]
             try:
                 tested, latency = self.test_through_socks(port, timeout, verbose=False)
@@ -791,7 +801,7 @@ class BatchRunner:
 
         exec_name = executor_name or 'xray_test'
         executor = ExecutorCache.get(exec_name, max_workers=concurrency)
-        futures = {executor.submit(test_port, port): port for port in port_map.keys()}
+        futures = {executor.submit(test_port, port): port for port in port_map}
         for future in concurrent.futures.as_completed(futures):
             try:
                 result = future.result(timeout=timeout + 5)

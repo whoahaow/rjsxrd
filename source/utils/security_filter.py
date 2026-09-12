@@ -1,11 +1,10 @@
 """Security filtering for VPN configs.
 Validates encryption, certificates, and protocol-specific security settings."""
 
-import re
 import base64
 import json
+import re
 from functools import lru_cache
-from typing import List
 
 # Unified weak cipher sets (single source of truth)
 SS_WEAK_CIPHERS = {
@@ -277,7 +276,7 @@ def has_insecure_setting(config_line: str) -> bool:
     return False
 
 
-def filter_secure_configs(configs: List[str]) -> List[str]:
+def filter_secure_configs(configs: list[str]) -> list[str]:
     """Filter out configs with insecure settings using parallel processing.
 
     Args:

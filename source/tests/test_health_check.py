@@ -1,13 +1,16 @@
 """Tests for health_check.py — internet connectivity and system health checks."""
 
-import sys
-import os
 from unittest.mock import patch
 
 from utils.health_check import (
-    check_internet_connectivity, health_check,
-    check_disk_space, check_memory, check_xray_binary, check_github_token,
-    DNS_SERVERS, CHECK_INTERNET_TIMEOUT,
+    CHECK_INTERNET_TIMEOUT,
+    DNS_SERVERS,
+    check_disk_space,
+    check_github_token,
+    check_internet_connectivity,
+    check_memory,
+    check_xray_binary,
+    health_check,
 )
 
 

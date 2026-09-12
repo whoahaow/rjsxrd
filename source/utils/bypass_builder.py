@@ -4,17 +4,21 @@ Extracted from config_processor.py. Handles Xray/TCP verification of bypass
 configs and creates sorted working-config files.
 """
 
-import os
 import glob
+import os
 import re
-from typing import List, Tuple, Optional, Callable
+from collections import defaultdict
+from collections.abc import Callable
 
-from utils.logger import log
+from config.settings import (
+    MAX_CONFIGS_PER_FILE,
+    VALIDATION_HTTP_TIMEOUT,
+    VALIDATION_TCP_TIMEOUT,
+)
 from utils.config_helpers import natural_sort_key, path_in_output
 from utils.file_writer import get_subscription_header, write_configs_file
-from config.settings import MAX_FILE_SIZE_MB, MAX_CONFIGS_PER_FILE, VALIDATION_TCP_TIMEOUT, VALIDATION_HTTP_TIMEOUT
+from utils.logger import log
 from utils.url_stats import URLStats
-from collections import defaultdict
 
 
 def _cleanup_stale_raw_split_shards(output_dir: str, main_path: str, raw_dir_glob: str, prefix: str) -> None:
@@ -47,12 +51,12 @@ def _cleanup_stale_bypass_split_files(output_dir: str, prefix: str, current_file
 
 
 def seal_bypass_files(
-    accumulator: List[Tuple[float, str]],
+    accumulator: list[tuple[float, str]],
     output_dir: str,
     prefix: str,
     seen_keys: set,
     last_sealed_idx: int,
-    upload_file: Optional[Callable[[str, str], None]] = None,
+    upload_file: Callable[[str, str], None] | None = None,
     max_per_file: int = MAX_CONFIGS_PER_FILE,
 ) -> int:
     """Seal full bypass-{N}.txt files from the working accumulator.
@@ -91,7 +95,7 @@ def seal_bypass_files(
     new_idx = last_sealed_idx
     # Delta: only configs in this accumulator that are not yet sealed.
     # These are the configs we may add to files in THIS call.
-    delta: List[Tuple[float, str]] = []
+    delta: list[tuple[float, str]] = []
     for latency, url in accumulator:
         key = _get_dedup_key(url)
         if key is None or key in seen_keys:
@@ -124,7 +128,7 @@ def seal_bypass_files(
             )
             if upload_file:
                 upload_file(local_path, remote_path)
-        except (IOError, OSError, RuntimeError) as e:
+        except (OSError, RuntimeError) as e:
             log(f"Progressive write failed for {local_path}: {e}")
         new_idx += 1
     return new_idx
@@ -144,11 +148,11 @@ def _write_empty_bypass_file(filepath: str, header_name: str) -> None:
     """Write empty bypass file with header. Catches I/O errors so caller doesn't crash."""
     try:
         write_configs_file(filepath, [], get_subscription_header(header_name))
-    except (IOError, OSError) as e:
+    except OSError as e:
         log(f"Warning: could not write empty {filepath}: {e}")
 
 
-def _gather_raw_files(main_path: str, raw_dir: str, prefix: str, label: str) -> List[str]:
+def _gather_raw_files(main_path: str, raw_dir: str, prefix: str, label: str) -> list[str]:
     """Collect raw files to verify: main file if exists, otherwise split shards."""
     files = []
     if os.path.exists(main_path):
@@ -165,21 +169,21 @@ def _gather_raw_files(main_path: str, raw_dir: str, prefix: str, label: str) -> 
 def _load_raw_configs_into_set(filepath: str, target: set) -> None:
     """Load config lines from a raw file (skip comments) into an existing set."""
     try:
-        with open(filepath, 'r', encoding='utf-8', buffering=65536) as f:
+        with open(filepath, encoding='utf-8', buffering=65536) as f:
             target.update(line.strip() for line in f
                           if line.strip() and not line.strip().startswith('#'))
-    except (IOError, OSError, UnicodeDecodeError) as e:
+    except (OSError, UnicodeDecodeError) as e:
         log(f"Warning: Could not read {filepath}: {e}")
 
 
-def verify_config_file(input_path: str, configs: List[str] = None, verbose: bool = False,
+def verify_config_file(input_path: str, configs: list[str] = None, verbose: bool = False,
                         tcp_ping: bool = False, config_to_sources: dict = None,
-                        stats: Optional[URLStats] = None,
-                        progress_callback: Optional[Callable] = None) -> List[str]:
+                        stats: URLStats | None = None,
+                        progress_callback: Callable | None = None) -> list[str]:
     """Verify configs in a file and return sorted working configs."""
     try:
         if configs is None:
-            with open(input_path, 'r', encoding='utf-8') as f:
+            with open(input_path, encoding='utf-8') as f:
                 configs = [line.strip() for line in f if line.strip() and not line.strip().startswith('#')]
             from utils.file_utils import deduplicate_configs
             configs = deduplicate_configs(configs)
@@ -238,20 +242,20 @@ def verify_config_file(input_path: str, configs: List[str] = None, verbose: bool
         log(f"Verification: {len(sorted_configs)}/{len(configs)} working (tcp_ping={tcp_ping})")
         return sorted_configs
 
-    except (IOError, OSError, ValueError) as e:
+    except (OSError, ValueError) as e:
         log(f"Error verifying {input_path}: {e}")
         return []
 
 
 def _run_progressive_seal(
-    working_chunk: List[str],
-    accumulator: List[Tuple[float, str]],
+    working_chunk: list[str],
+    accumulator: list[tuple[float, str]],
     seen_keys: set,
-    last_sealed_idx: List[int],
+    last_sealed_idx: list[int],
     output_dir: str,
     prefix: str,
-    upload_file: Optional[Callable[[str, str], None]],
-    progress_callback: Optional[Callable],
+    upload_file: Callable[[str, str], None] | None,
+    progress_callback: Callable | None,
     total_tested: int,
 ) -> None:
     """Add a per-raw-file batch of working URLs to the global accumulator and
@@ -299,16 +303,16 @@ def _run_progressive_seal(
             # Provide the full sorted working set for upstream display
             sorted_working = sorted(working_chunk)
             progress_callback(sorted_working, total_tested)
-        except (IOError, OSError, RuntimeError) as e:
+        except (OSError, RuntimeError) as e:
             log(f"Progress callback error: {e}")
 
 
 def verify_and_write_bypass(bypass_all_raw_path: str, bypass_all_txt_path: str,
                               output_dir: str, tcp_ping: bool,
-                              config_to_sources: Optional[dict],
-                              stats: Optional[URLStats], verbose: bool,
-                              progress_callback: Optional[Callable] = None,
-                              upload_file: Optional[Callable[[str, str], None]] = None) -> tuple:
+                              config_to_sources: dict | None,
+                              stats: URLStats | None, verbose: bool,
+                              progress_callback: Callable | None = None,
+                              upload_file: Callable[[str, str], None] | None = None) -> tuple:
     """STEP 1: Verify bypass-all-raw.txt and create bypass-all.txt with split files.
 
     Progressive upload flow:
@@ -340,17 +344,17 @@ def verify_and_write_bypass(bypass_all_raw_path: str, bypass_all_txt_path: str,
         return [], []
 
     # Global accumulator across all raw files
-    accumulator: List[Tuple[float, str]] = []
+    accumulator: list[tuple[float, str]] = []
     seen_keys: set = set()
-    last_sealed_idx: List[int] = [0]
+    last_sealed_idx: list[int] = [0]
 
     # Track which raw files fired their callback at least once. If the
     # callback never fires (e.g. < 300 working configs, so no threshold
     # crossed), the accumulator doesn't grow for that raw file and we
     # need to process the return value as a fallback.
-    callback_fired: List[bool] = [False]
+    callback_fired: list[bool] = [False]
 
-    def _cb(sorted_working: List[str], total_tested: int) -> None:
+    def _cb(sorted_working: list[str], total_tested: int) -> None:
         callback_fired[0] = True
         _run_progressive_seal(
             working_chunk=sorted_working,
@@ -447,7 +451,7 @@ def verify_and_write_bypass(bypass_all_raw_path: str, bypass_all_txt_path: str,
         else:
             write_configs_file(bypass_all_txt_path, [], header)
             log(f"WARNING: 0 working configs found. Wrote empty {bypass_all_txt_path}")
-    except (IOError, OSError) as e:
+    except OSError as e:
         log(f"ERROR: failed to write {bypass_all_txt_path}: {e}")
         return working_bypass, []
 
@@ -464,12 +468,12 @@ def verify_and_write_bypass(bypass_all_raw_path: str, bypass_all_txt_path: str,
 def verify_and_write_bypass_unsecure(bypass_unsecure_raw_path: str,
                                        bypass_unsecure_all_txt_path: str,
                                        bypass_all_raw_path: str, output_dir: str,
-                                       working_bypass: List[str], tcp_ping: bool,
-                                       config_to_sources: Optional[dict],
-                                       stats: Optional[URLStats],
+                                       working_bypass: list[str], tcp_ping: bool,
+                                       config_to_sources: dict | None,
+                                       stats: URLStats | None,
                                        verbose: bool,
-                                       progress_callback: Optional[Callable] = None,
-                                       upload_file: Optional[Callable[[str, str], None]] = None) -> List[str]:
+                                       progress_callback: Callable | None = None,
+                                       upload_file: Callable[[str, str], None] | None = None) -> list[str]:
     """STEP 2: Verify bypass-unsecure-all-raw.txt (configs not in secure set).
 
     Uses the same progressive-seal pattern as verify_and_write_bypass:
@@ -494,17 +498,17 @@ def verify_and_write_bypass_unsecure(bypass_unsecure_raw_path: str,
         )
         return []
 
-    unsecure_configs: List[str] = []
+    unsecure_configs: list[str] = []
     unsecure_seen: set = set()
     for raw_file in unsecure_raw_files:
         try:
-            with open(raw_file, 'r', encoding='utf-8', buffering=65536) as f:
+            with open(raw_file, encoding='utf-8', buffering=65536) as f:
                 for line in f:
                     line = line.strip()
                     if line and not line.startswith('#') and line not in unsecure_seen:
                         unsecure_seen.add(line)
                         unsecure_configs.append(line)
-        except (IOError, OSError, UnicodeDecodeError) as e:
+        except (OSError, UnicodeDecodeError) as e:
             log(f"Warning: Could not read unsecure raw file {raw_file}: {e}")
 
     all_bypass_configs = set()
@@ -523,12 +527,12 @@ def verify_and_write_bypass_unsecure(bypass_unsecure_raw_path: str,
     # the secure set's working configs so they are not re-sealed into
     # bypass-unsecure-N.txt files.
     from utils.file_utils import _get_dedup_key
-    accumulator: List[Tuple[float, str]] = []
+    accumulator: list[tuple[float, str]] = []
     seen_keys: set = {_get_dedup_key(u) for u in working_bypass if _get_dedup_key(u) is not None}
-    last_sealed_idx: List[int] = [0]
-    callback_fired: List[bool] = [False]
+    last_sealed_idx: list[int] = [0]
+    callback_fired: list[bool] = [False]
 
-    def _cb_uns(sorted_working: List[str], total_tested: int) -> None:
+    def _cb_uns(sorted_working: list[str], total_tested: int) -> None:
         callback_fired[0] = True
         _run_progressive_seal(
             working_chunk=sorted_working,
@@ -606,7 +610,7 @@ def verify_and_write_bypass_unsecure(bypass_unsecure_raw_path: str,
         else:
             write_configs_file(bypass_unsecure_all_txt_path, [], header)
             log(f"WARNING: 0 working configs. Wrote empty {bypass_unsecure_all_txt_path}")
-    except (IOError, OSError) as e:
+    except OSError as e:
         log(f"ERROR: failed to write {bypass_unsecure_all_txt_path}: {e}")
         return []
 
@@ -621,11 +625,11 @@ def verify_and_write_bypass_unsecure(bypass_unsecure_raw_path: str,
 
 
 def create_working_config_files(output_dir: str = "../githubmirror", tcp_ping: bool = False,
-                                 config_to_sources: Optional[dict] = None,
-                                 stats: Optional[URLStats] = None,
+                                 config_to_sources: dict | None = None,
+                                 stats: URLStats | None = None,
                                  verbose: bool = False,
-                                 progress_callback: Optional[Callable] = None,
-                                 upload_file: Optional[Callable[[str, str], None]] = None) -> tuple:
+                                 progress_callback: Callable | None = None,
+                                 upload_file: Callable[[str, str], None] | None = None) -> tuple:
     """Creates verified working config files sorted by ping (fastest first)."""
     bypass_all_raw_path = path_in_output(output_dir, "bypass", "raw", "bypass-all-raw.txt")
     bypass_all_txt_path = path_in_output(output_dir, "bypass", "bypass-all.txt")

@@ -1,19 +1,18 @@
 """Module for fetching VPN configs from daily-updated repositories with date patterns."""
 
-import datetime
 import base64
 import concurrent.futures
-import threading
-from typing import List, Optional, Tuple
-import sys
+import datetime
 import os
+import sys
+import threading
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from fetchers.fetcher import fetch_data
-from utils.logger import log
-from utils.file_utils import prepare_config_content
 from utils.executor_cache import ExecutorCache
+from utils.file_utils import prepare_config_content
+from utils.logger import log
 
 
 def _substitute_date_pattern(pattern: str, date: datetime.date) -> str:
@@ -40,7 +39,7 @@ def _decode_if_base64(content: str) -> str:
     return content
 
 
-def _fetch_single_url(url: str) -> Tuple[str, Optional[List[str]]]:
+def _fetch_single_url(url: str) -> tuple[str, list[str] | None]:
     result = fetch_data(url, timeout=7)
     if not result.success:
         return (url, None)
@@ -62,17 +61,19 @@ def _fetch_single_url(url: str) -> Tuple[str, Optional[List[str]]]:
     return (url, None)
 
 
-def generate_dated_urls(patterns: List[str], date: datetime.date) -> List[str]:
+def generate_dated_urls(patterns: list[str], date: datetime.date) -> list[str]:
     return [_substitute_date_pattern(p, date) for p in patterns]
 
 
+# Quoted: threading.Lock is a factory function before Python 3.13, so the
+# PEP 604 union is not runtime-evaluable at function-definition time.
 def fetch_configs_from_daily_repo(
-    patterns: List[str],
+    patterns: list[str],
     lookback_days: int = 7,
     max_workers: int = 100,
-    seen: Optional[set] = None,
-    seen_lock: Optional[threading.Lock] = None,
-) -> List[str]:
+    seen: set | None = None,
+    seen_lock: "threading.Lock | None" = None,
+) -> list[str]:
     today = datetime.date.today()
     dates_to_try = [today, today + datetime.timedelta(days=1)]
     dates_to_try.extend(today - datetime.timedelta(days=i) for i in range(1, lookback_days + 1))

@@ -1,20 +1,19 @@
 """Unit tests for config processor."""
 
-import sys
 import os
 from unittest.mock import patch
 
-from utils import bypass_builder
 from processors.config_processor import (
     append_remark_suffix,
-    get_subscription_header,
     create_all_configs_file,
-    create_secure_configs_file,
     create_protocol_split_files,
+    create_secure_configs_file,
+    get_subscription_header,
 )
-from utils.config_helpers import try_decode_base64_content, resolve_flag, add_unique, path_in_output
+from utils import bypass_builder
+from utils.config_helpers import resolve_flag, try_decode_base64_content
 from utils.file_utils import is_valid_vpn_config_url
-from utils.config_tagger import ConfigTagger
+
 
 def filter_valid_configs(configs):
     """Helper to filter valid configs."""
@@ -22,32 +21,32 @@ def filter_valid_configs(configs):
 
 class TestDecodeBase64Content:
     """Test base64 decoding functionality."""
-    
+
     def test_decode_valid_base64(self):
         """Test decoding valid base64 content."""
         # Base64 encoded: "vless://config1\nvmess://config2"
         import base64
         original = "vless://config1\nvmess://config2"
         encoded = base64.b64encode(original.encode()).decode()
-        
+
         result = try_decode_base64_content(encoded)
-        
+
         assert result is not None
         assert 'vless://config1' in result
         assert 'vmess://config2' in result
-    
+
     def test_decode_invalid_base64(self):
         """Test that invalid base64 returns None."""
         result = try_decode_base64_content('not valid base64!!!')
         assert result is None
-    
+
     def test_decode_plain_text(self):
         """Test that plain text (non-base64) returns None."""
         result = try_decode_base64_content('just plain text')
         # May return None or the same text if it decodes to garbage
         # The function tries to decode, so it might succeed with garbage
         assert result is None or result == 'just plain text'
-    
+
     def test_decode_empty_string(self):
         """Test decoding empty string."""
         result = try_decode_base64_content('')
@@ -55,44 +54,44 @@ class TestDecodeBase64Content:
 
 class TestAppendRemarkSuffix:
     """Test remark suffix appending."""
-    
+
     def test_append_default_suffix(self):
         """Test appending default suffix."""
         config = 'vless://uuid@host.com:443#MyConfig'
         result = append_remark_suffix(config)
-        
+
         assert result.endswith('%20t.me%2Frjsxrd')
         assert 'vless://uuid@host.com:443#MyConfig' in result
-    
+
     def test_append_custom_suffix(self):
         """Test appending custom suffix."""
         config = 'vmess://config#Test'
         result = append_remark_suffix(config, suffix='%20custom')
-        
+
         assert result.endswith('%20custom')
-    
+
     def test_config_without_remark(self):
         """Test config without remark."""
         config = 'vless://uuid@host.com:443'
         result = append_remark_suffix(config)
-        
+
         # Should still append suffix
         assert '%20t.me%2Frjsxrd' in result
 
 class TestGetSubscriptionHeader:
     """Test subscription header generation."""
-    
+
     def test_basic_header(self):
         """Test basic subscription header."""
         header = get_subscription_header('all.txt')
-        
+
         assert 'all.txt' in header
         assert 'profile-title' in header.lower()
-    
+
     def test_header_with_file_info(self):
         """Test header with file numbering info."""
         header = get_subscription_header('bypass-1.txt', current_file=1, total_files=5)
-        
+
         assert 'bypass-1.txt' in header
         assert '1' in header
         assert '5' in header
@@ -148,6 +147,7 @@ class TestDownloadAllConfigsDirCreation:
         post-makedirs filesystem state.
         """
         from unittest.mock import patch as mock_patch
+
         from processors import config_processor
 
         # Patch all 4 fetchers + the telegram scraper to no-ops
@@ -206,6 +206,7 @@ class TestDownloadAllConfigsDirCreation:
         """flag_overrides=None means use settings.py. With all settings at False
         (the current default), only bypass/ and qr-codes/ are created."""
         from unittest.mock import patch as mock_patch
+
         from processors import config_processor
         # settings.py has all 4 flags at False by default (verified: lines 212-216)
         with mock_patch.object(config_processor, 'ENABLE_DEFAULT_FILES', False), \
@@ -220,7 +221,7 @@ class TestDownloadAllConfigsDirCreation:
 
 class TestFilterValidConfigs:
     """Test filtering valid configs."""
-    
+
     def test_filter_keeps_valid(self):
         """Test that valid configs are kept."""
         configs = [
@@ -228,11 +229,11 @@ class TestFilterValidConfigs:
             'vmess://eyJhZGQiOiJob3N0In0=',
             'trojan://pass@host.com:443#tag',
         ]
-        
+
         result = filter_valid_configs(configs)
-        
+
         assert len(result) == 3
-    
+
     def test_filter_removes_invalid(self):
         """Test that invalid configs are removed."""
         configs = [
@@ -242,13 +243,13 @@ class TestFilterValidConfigs:
             '',
             'vmess://also-valid',
         ]
-        
+
         result = filter_valid_configs(configs)
-        
+
         assert len(result) == 2
         assert 'Invalid text' not in result
         assert '# Comment' not in result
-    
+
     def test_filter_mixed_content(self):
         """Test filtering mixed valid/invalid content."""
         configs = [
@@ -258,31 +259,31 @@ class TestFilterValidConfigs:
             'another invalid',
             'trojan://config3',
         ]
-        
+
         result = filter_valid_configs(configs)
-        
+
         # Only valid configs should remain
         for config in result:
             assert config.startswith(('vless://', 'vmess://', 'trojan://', 'ss://', 'hysteria'))
 
 class TestConfigProcessingWithMocks:
     """Test config processing with mocked dependencies."""
-    
+
     @patch('processors.config_processor.download_all_configs')
     def test_download_all_configs_signature(self, mock_download):
         """Test that download_all_configs has correct signature."""
         from processors.config_processor import download_all_configs
-        
+
         # Should accept output_dir and scan_for_telegram_proxies params
         mock_download.return_value = (['config1'], [], [], [], [])
-        
+
         result = download_all_configs(output_dir="/tmp", scan_for_telegram_proxies=True)
-        
+
         assert len(result) == 5  # Returns 5-tuple
 
 class TestConfigStatistics:
     """Test config statistics and counting."""
-    
+
     def test_count_by_protocol(self):
         """Test counting configs by protocol."""
         configs = [
@@ -293,16 +294,16 @@ class TestConfigStatistics:
             'trojan://config5',
             'trojan://config6',
         ]
-        
+
         counts = {}
         for config in configs:
             protocol = config.split('://')[0]
             counts[protocol] = counts.get(protocol, 0) + 1
-        
+
         assert counts['vless'] == 2
         assert counts['vmess'] == 1
         assert counts['trojan'] == 3
-    
+
     def test_calculate_success_rate(self):
         """Test calculating success rate."""
         total = 100
@@ -328,6 +329,7 @@ class TestAddUnique:
     def test_basic_dedup_returns_only_new_configs(self):
         """First call returns all configs as new."""
         import threading
+
         from processors.config_processor import add_unique
 
         seen = set()
@@ -341,6 +343,7 @@ class TestAddUnique:
     def test_duplicate_configs_are_skipped(self):
         """Second call with same configs returns 0 added."""
         import threading
+
         from processors.config_processor import add_unique
 
         seen = {'a', 'b'}
@@ -354,6 +357,7 @@ class TestAddUnique:
     def test_empty_input_returns_zero(self):
         """Empty input list returns 0, no modification."""
         import threading
+
         from processors.config_processor import add_unique
 
         seen = {'x'}
@@ -367,6 +371,7 @@ class TestAddUnique:
     def test_empty_and_whitespace_strings_skipped(self):
         """Empty and whitespace-only strings are not added (and don't count)."""
         import threading
+
         from processors.config_processor import add_unique
 
         seen = set()
@@ -380,6 +385,7 @@ class TestAddUnique:
     def test_none_entries_skipped(self):
         """None entries (not just empty strings) should not be added."""
         import threading
+
         from processors.config_processor import add_unique
 
         seen = set()
@@ -398,6 +404,7 @@ class TestAddUnique:
         Total unique: 1000. Each must appear in target exactly once.
         """
         import threading
+
         from processors.config_processor import add_unique
 
         seen = set()
@@ -427,6 +434,7 @@ class TestAddUnique:
     def test_preserves_input_order(self):
         """Order of first appearance is preserved in the target list."""
         import threading
+
         from processors.config_processor import add_unique
 
         seen = set()
@@ -548,9 +556,9 @@ class TestStreamWriteConfigsFile:
 
     def test_progress_logging_at_threshold(self, tmp_path):
         """Progress should be logged every progress_every configs (when > 0)."""
-        from processors import config_processor
-        from utils.file_writer import stream_write_configs_file
         from unittest.mock import patch as mock_patch
+
+        from utils.file_writer import stream_write_configs_file
 
         with mock_patch('utils.file_writer.log') as mock_log:
             stream_write_configs_file(
@@ -570,9 +578,9 @@ class TestStreamWriteConfigsFile:
 
     def test_progress_disabled_when_zero(self, tmp_path):
         """progress_every=0 should suppress all progress logging."""
-        from processors import config_processor
-        from utils.file_writer import stream_write_configs_file
         from unittest.mock import patch as mock_patch
+
+        from utils.file_writer import stream_write_configs_file
 
         with mock_patch('utils.file_writer.log') as mock_log:
             stream_write_configs_file(
@@ -618,10 +626,11 @@ class TestVerifyConfigFileXrayUnavailable:
 
     def test_returns_empty_list_when_xray_not_found(self, tmp_path):
         """If xray binary doesn't exist, the function returns [] (not all-True)."""
+        from unittest.mock import MagicMock
+        from unittest.mock import patch as mock_patch
+
         from processors import config_processor
         from utils.bypass_builder import verify_config_file
-        from unittest.mock import patch as mock_patch
-        from unittest.mock import MagicMock
 
         # Mock XrayTester to return a tester with no xray_path
         mock_tester = MagicMock()
@@ -688,9 +697,9 @@ class TestCreateWorkingConfigFilesZeroWorking:
 
     def test_bypass_all_txt_written_even_when_zero_working(self, tmp_path):
         """When verification yields 0, bypass-all.txt must still be created."""
-        from processors import config_processor
-        from utils.bypass_builder import create_working_config_files
         from unittest.mock import patch as mock_patch
+
+        from utils.bypass_builder import create_working_config_files
 
         output_dir = str(tmp_path)
         raw_dir = tmp_path / "bypass" / "raw"
@@ -713,9 +722,9 @@ class TestCreateWorkingConfigFilesZeroWorking:
 
     def test_stale_split_files_removed_when_zero_working(self, tmp_path):
         """Stale bypass-1.txt, bypass-2.txt etc should be cleaned up."""
-        from processors import config_processor
-        from utils.bypass_builder import create_working_config_files
         from unittest.mock import patch as mock_patch
+
+        from utils.bypass_builder import create_working_config_files
 
         output_dir = str(tmp_path)
         raw_dir = tmp_path / "bypass" / "raw"
@@ -741,9 +750,9 @@ class TestCreateWorkingConfigFilesZeroWorking:
     def test_unsecure_branch_writes_empty_file_too(self, tmp_path):
         """The bypass-unsecure branch must also write an empty file when 0 working
         AND no unsecure_only configs. Regression for the phantom upload bug."""
-        from processors import config_processor
-        from utils.bypass_builder import create_working_config_files
         from unittest.mock import patch as mock_patch
+
+        from utils.bypass_builder import create_working_config_files
 
         output_dir = str(tmp_path)
         # Both raw files exist
@@ -768,9 +777,9 @@ class TestCreateWorkingConfigFilesZeroWorking:
         """When no raw files exist (neither main nor split shards), the function
         must still write empty output files so file_pairs at upload time doesn't
         reference non-existent files. Regression for the silent-fail bug."""
-        from processors import config_processor
-        from utils.bypass_builder import create_working_config_files
         from unittest.mock import patch as mock_patch
+
+        from utils.bypass_builder import create_working_config_files
 
         output_dir = str(tmp_path)
         # Create output dirs but no raw files
@@ -794,9 +803,9 @@ class TestCreateWorkingConfigFilesZeroWorking:
         shards exist, verification must proceed against the shards. Regression
         for the 'silent no-output' bug that previously caused zero files to be
         produced after verification."""
-        from processors import config_processor
-        from utils.bypass_builder import create_working_config_files
         from unittest.mock import patch as mock_patch
+
+        from utils.bypass_builder import create_working_config_files
 
         output_dir = str(tmp_path)
         # Main file missing, but split shards present (this is the post-split
@@ -823,9 +832,9 @@ class TestCreateWorkingConfigFilesZeroWorking:
         """Stale split shards from a previous run must be removed at the start
         of the function to prevent them from corrupting this run's set-based
         dedup logic."""
-        from processors import config_processor
-        from utils.bypass_builder import create_working_config_files
         from unittest.mock import patch as mock_patch
+
+        from utils.bypass_builder import create_working_config_files
 
         output_dir = str(tmp_path)
         bypass_raw = tmp_path / "bypass" / "raw"
@@ -848,9 +857,9 @@ class TestCreateWorkingConfigFilesZeroWorking:
     def test_lexicographic_sort_fixed(self, tmp_path):
         """Split files -10.txt must be processed after -2.txt, not before.
         Regression for the lexicographic sort bug that scrambled shard order."""
-        from processors import config_processor
-        from utils.bypass_builder import create_working_config_files
         from unittest.mock import patch as mock_patch
+
+        from utils.bypass_builder import create_working_config_files
 
         output_dir = str(tmp_path)
         bypass_raw = tmp_path / "bypass" / "raw"
@@ -877,9 +886,9 @@ class TestCreateWorkingConfigFilesZeroWorking:
         but unsecure split shards exist, STEP 2 must still read from them and
         produce bypass-unsecure-all.txt. Asymmetric-fix regression: the secure
         path got this fix first, but the unsecure path was missed."""
-        from processors import config_processor
-        from utils.bypass_builder import create_working_config_files
         from unittest.mock import patch as mock_patch
+
+        from utils.bypass_builder import create_working_config_files
 
         output_dir = str(tmp_path)
 
@@ -964,6 +973,7 @@ class TestBypassSplitFileDisjointness:
     def test_seal_writes_disjoint_files(self, tmp_path):
         """bypass-1.txt and bypass-2.txt have no overlapping configs (by base)."""
         import re
+
         from utils.bypass_builder import seal_bypass_files
 
         output_dir = str(tmp_path)
@@ -1013,7 +1023,6 @@ class TestBypassSplitFileDisjointness:
 
     def test_seal_dedups_at_insert_time(self, tmp_path):
         """A config added twice to the accumulator only appears in one file."""
-        import re
         from utils.bypass_builder import seal_bypass_files
 
         output_dir = str(tmp_path)
@@ -1075,7 +1084,7 @@ class TestBypassSplitFileDisjointness:
                     if m:
                         indices.append(int(m.group(1)))
         # ascending latency = ascending index
-        assert indices == list(range(0, 300)), \
+        assert indices == list(range(300)), \
             f"expected ascending index order, got first 5: {indices[:5]}, last 5: {indices[-5:]}"
 
     def test_seal_uploads_when_callback_provided(self, tmp_path):
@@ -1168,6 +1177,7 @@ class TestMultiRawFileAccumulation:
         """
         import os
         from unittest.mock import patch
+
         from utils import bypass_builder
 
         # 3 raw files with different counts (350, 120, 450)
@@ -1213,8 +1223,8 @@ class TestMultiRawFileAccumulation:
         """If verify_config_file never fires its callback (e.g. mocked),
         the return value is used as a fallback to populate the accumulator.
         """
-        import os
         from unittest.mock import patch
+
         from utils import bypass_builder
 
         # Mock that never fires callback but returns 600 working configs
@@ -1315,7 +1325,6 @@ class TestStaleBypassFilesCleanup:
         exist, stale bypass-N.txt files from a previous run are still
         cleaned up.
         """
-        from unittest.mock import patch
         from utils import bypass_builder
 
         # Setup: previous run had 3 bypass files
@@ -1372,7 +1381,7 @@ class TestCreateNumberedDefaultFilesLimit:
         via env or (future) CLI flag.
         """
         from unittest.mock import patch as mock_patch
-        from processors import config_processor
+
         from utils.file_writer import create_numbered_default_files
 
         sources = [
@@ -1393,7 +1402,7 @@ class TestCreateNumberedDefaultFilesLimit:
         (but the function still returns without crashing).
         """
         from unittest.mock import patch as mock_patch
-        from processors import config_processor
+
         from utils.file_writer import create_numbered_default_files
 
         sources = [
@@ -1548,7 +1557,8 @@ class TestTelegramScrapeErrorHandling:
     def test_scrape_error_does_not_crash_fetch(self, tmp_path):
         """If the telegram scraper raises, the fetch loop continues and
         the error is logged (not silently swallowed)."""
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import MagicMock, patch
+
         from processors import config_processor
         from processors.config_processor import _fetch_and_process_urls
 

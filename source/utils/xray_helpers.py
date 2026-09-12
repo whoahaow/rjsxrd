@@ -4,14 +4,12 @@ Pure functions for error tracking, URL validation, TCP ping, and response
 validation. These have no dependency on XrayTester instance state.
 """
 
-from typing import List, Tuple, Dict, Optional
 import re
-import time
 import socket
 import threading
-from utils.logger import log
-from config.settings import LOG_ERROR_SAMPLE_LENGTH
+import time
 
+from utils.logger import log
 
 # Constants for Xray error compression
 _XRAY_PORT_TIMEOUT = 0.05
@@ -36,7 +34,7 @@ def validate_response(response: str, test_url: str = "") -> bool:
     return True
 
 
-def tcp_ping(host: str, port: int, timeout: float = 3.0) -> Tuple[bool, float]:
+def tcp_ping(host: str, port: int, timeout: float = 3.0) -> tuple[bool, float]:
     """Simple TCP connect test to check if a port is reachable."""
     start_time = time.time()
     try:
@@ -46,7 +44,7 @@ def tcp_ping(host: str, port: int, timeout: float = 3.0) -> Tuple[bool, float]:
         sock.close()
         latency = (time.time() - start_time) * 1000
         return True, latency
-    except (socket.timeout, socket.error, OSError):
+    except (TimeoutError, OSError):
         return False, 0.0
 
 
@@ -67,7 +65,7 @@ def wait_for_port(host: str, port: int, timeout: float = 3.0) -> bool:
     return False
 
 
-def wait_for_ports(ports: List[int], timeout: float = None) -> bool:
+def wait_for_ports(ports: list[int], timeout: float = None) -> bool:
     """Wait for multiple ports to be listening with dynamic timeout.
 
     Dynamic timeout: 50ms per port, min 3s, max 30s.
@@ -99,8 +97,8 @@ def wait_for_ports(ports: List[int], timeout: float = None) -> bool:
 
 
 # Error tracking state (module-level, not tied to XrayTester)
-_error_stats: Dict[str, int] = {}
-_error_samples: Dict[str, List[str]] = {}
+_error_stats: dict[str, int] = {}
+_error_samples: dict[str, list[str]] = {}
 _error_stats_lock = threading.Lock()
 
 

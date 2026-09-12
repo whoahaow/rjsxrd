@@ -255,10 +255,7 @@ def ensure_xray_installed(
         Path: Path to xray binary if successful, None otherwise.
     """
     # Determine xray directory - always install to source/xray (sibling to utils/)
-    if xray_dir is None:
-        xray_dir = Path(__file__).parent.parent / "xray"
-    else:
-        xray_dir = Path(xray_dir)
+    xray_dir = Path(__file__).parent.parent / "xray" if xray_dir is None else Path(xray_dir)
 
     # Get platform info
     platform_name, filename, xray_exe = get_platform_info()

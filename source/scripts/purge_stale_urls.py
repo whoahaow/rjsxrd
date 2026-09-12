@@ -377,10 +377,7 @@ def run(dry_run: bool, stale_days: int) -> None:
     if stale_urls:
         aged = []
         for url, date_str in stale_urls:
-            if date_str:
-                age = (now - datetime.fromisoformat(date_str)).days
-            else:
-                age = -1
+            age = (now - datetime.fromisoformat(date_str)).days if date_str else -1
             aged.append((age, url, date_str))
         aged.sort(key=lambda x: -x[0])
 

@@ -50,10 +50,7 @@ def write_configs_file(
 ) -> None:
     """Write a single configs file with header, optional remark suffix."""
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
-    if add_suffix:
-        configs_with_suffix = [append_remark_suffix(cfg) for cfg in configs]
-    else:
-        configs_with_suffix = configs
+    configs_with_suffix = [append_remark_suffix(cfg) for cfg in configs] if add_suffix else configs
     with open(filepath, "w", encoding="utf-8", buffering=65536) as f:
         f.write(header + "\n".join(configs_with_suffix))
 

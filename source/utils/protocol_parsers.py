@@ -22,6 +22,7 @@ Note: TUIC is not natively supported by Xray-core. TUIC configs will fail testin
 import base64
 import binascii
 import json
+from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
 from utils.security_filter import SS_WEAK_CIPHERS
@@ -72,14 +73,14 @@ def _parse_user_host_port(base_part: str) -> tuple[str, str, int] | None:
     return user, hostname, port
 
 
-def _make_tls_settings(sni: str, fp: str = None) -> dict:
+def _make_tls_settings(sni: str, fp: str | None = None) -> dict:
     """Build tlsSettings dict."""
     from config.settings import TLS_FINGERPRINT
 
     return {"serverName": sni, "fingerprint": fp or TLS_FINGERPRINT}
 
 
-def _make_reality_settings(sni: str, pbk: str, fp: str = None, sid: str = "") -> dict | None:
+def _make_reality_settings(sni: str, pbk: str, fp: str | None = None, sid: str = "") -> dict | None:
     """Build realitySettings dict. Returns None if sni or pbk is missing."""
     sni = sni.strip()
     pbk = pbk.strip()
@@ -110,7 +111,7 @@ def _make_stream_settings(
 
     Returns None if Reality params are invalid.
     """
-    stream = {"network": network, "security": security}
+    stream: dict[str, Any] = {"network": network, "security": security}
 
     if security == "tls":
         sni = params.get("sni", [default_host])[0]
@@ -508,7 +509,7 @@ def parse_shadowsocks_to_outbound(url: str, tag: str = "proxy") -> dict | None:
 
         # Add network transport settings if specified
         network = params.get("type", ["tcp"])[0] if params.get("type") else "tcp"
-        stream_settings = {"network": network, "security": "none"}
+        stream_settings: dict[str, Any] = {"network": network, "security": "none"}
 
         if network == "ws":
             stream_settings["wsSettings"] = {

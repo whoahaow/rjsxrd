@@ -23,13 +23,13 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 ```
 
 Every test module declares its marker (`pytestmark`), so `-m unit` and
-`-m integration` actually select something: 676 and 29 tests out of 705. The two
+`-m integration` actually select something: 677 and 29 tests out of 706. The two
 modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) are marked `integration`.
 
 ## Test structure
 
-**705 tests** in 30 files. A full run takes around 70–80 seconds on the
+**706 tests** in 30 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
@@ -49,7 +49,7 @@ load, so measure with `pytest -q` on your own machine.
 | `test_git_auto_cleaner.py` | 24 | Auto-cleaning of auto-commits |
 | `test_github_handler.py` | 22 | GitHub API, rate limits, 409 conflicts, batch |
 | `test_telegram_proxy_scraper.py` | 21 | Extracting MTProto and SOCKS5 from content |
-| `test_health_check.py` | 21 | Health check: DNS fallback, disk, memory, token |
+| `test_health_check.py` | 22 | Health check: DNS fallback, disk, memory, token |
 | `test_xray_batch.py` | 20 | BatchRunner, shared xray, port allocation |
 | `test_proxy_monitor.py` | 19 | Chain monitoring, stop event |
 | `test_pipeline_e2e.py` | 18 | Full offline pipeline run with every seam stubbed |
@@ -70,8 +70,8 @@ The coverage number depends on what is measured, and the two are not comparable:
 
 | Command | Scope | Coverage |
 |---------|-------|----------|
-| `pytest --cov=fetchers --cov=utils` | two packages | **56 %** (5566 statements, 2433 missed) |
-| `pytest --cov=.` (what CI runs) | all of `source/` | **72 %** (12441 statements, 3436 missed) |
+| `pytest --cov=fetchers --cov=utils` | two packages | **56 %** (5567 statements, 2433 missed) |
+| `pytest --cov=.` (what CI runs) | all of `source/` | **72 %** (12452 statements, 3436 missed) |
 
 ## Manual testing utilities
 
@@ -146,6 +146,10 @@ noisy, the filter is scoped to its module
 (`ignore::DeprecationWarning:<module>.*`), never to the category.
 
 `default::ResourceWarning` is on deliberately: it shows unclosed files and
-sockets. There are currently 10 such warnings and all of them are in the tests
-(`test_config_processor.py`, `test_file_utils.py`, `test_health_check.py`,
-`test_pipeline_e2e.py`). The run stays green — the warnings are only printed.
+sockets. At the last measurement there are 8 such warnings, and every one of
+them is triggered by a test: `test_config_processor.py` — 6,
+`test_file_utils.py` — 1, `test_pipeline_e2e.py` — 1. None is allocated in
+production code — there used to be 10, and two of them were allocated in
+`check_internet_connectivity` (`utils/health_check.py`), which opened a socket
+and never closed it. The socket is now closed with `contextlib.closing`, which
+is why the count fell to 8. The run stays green — the warnings are only printed.

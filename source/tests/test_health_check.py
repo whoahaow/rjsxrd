@@ -53,7 +53,7 @@ class TestCheckInternetConnectivity:
     def test_first_server_success(self):
         """Should return True when first DNS server responds."""
         with patch("utils.health_check.socket.create_connection") as mock_conn:
-            mock_conn.return_value = object()  # fake socket
+            mock_conn.return_value = MagicMock()  # fake socket
 
             result = check_internet_connectivity()
 
@@ -67,7 +67,7 @@ class TestCheckInternetConnectivity:
         """Should try next server when first fails."""
         with patch("utils.health_check.socket.create_connection") as mock_conn:
             # First call raises, second succeeds
-            mock_conn.side_effect = [OSError("timeout"), object()]
+            mock_conn.side_effect = [OSError("timeout"), MagicMock()]
 
             result = check_internet_connectivity()
 
@@ -90,13 +90,24 @@ class TestCheckInternetConnectivity:
             mock_conn.side_effect = [
                 OSError("first failed"),
                 OSError("second failed"),
-                object(),  # third succeeds
+                MagicMock(),  # third succeeds
             ]
 
             result = check_internet_connectivity()
 
             assert result is True
             assert mock_conn.call_count == 3
+
+    def test_closes_the_probe_socket_on_success(self):
+        """A successful probe must close its socket, not drop it."""
+        with patch("utils.health_check.socket.create_connection") as mock_conn:
+            probe = MagicMock()
+            mock_conn.return_value = probe
+
+            result = check_internet_connectivity()
+
+            assert result is True
+            probe.close.assert_called_once_with()
 
     def test_uses_default_timeout_per_server(self):
         """Each probe should use CHECK_INTERNET_TIMEOUT."""

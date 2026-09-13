@@ -1,5 +1,7 @@
 """Tests for the pipeline-and-upload entry point in main.py."""
 
+import sys
+import types
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -22,6 +24,19 @@ def _run_pipeline(use_git: bool, dry_run: bool = False) -> bool:
         dry_run=dry_run,
         use_git=use_git,
     )
+
+
+def _deferred_handler(**handler_kwargs):
+    """Stand in for ``utils.github_handler`` in ``sys.modules``.
+
+    ``_run_pipeline_and_upload`` imports the handler at call time, so the fake
+    is only reachable through the import system. That is what makes these tests
+    prove the import is deferred rather than bound at module level, and why
+    they run on a machine that has no PyGithub installed.
+    """
+    module = types.ModuleType("utils.github_handler")
+    module.GitHubHandler = MagicMock(**handler_kwargs)
+    return patch.dict(sys.modules, {"utils.github_handler": module})
 
 
 class TestUploadPathGuards:
@@ -48,7 +63,7 @@ class TestUploadPathGuards:
         with (
             patch.object(main, "process_all_configs", return_value=FILE_PAIRS),
             patch.object(main, "log"),
-            patch.object(main, "GitHubHandler", return_value=None),
+            _deferred_handler(return_value=None),
             pytest.raises(RuntimeError, match="GitHubHandler"),
         ):
             _run_pipeline(use_git=False)
@@ -75,11 +90,26 @@ class TestUploadPathGuards:
         with (
             patch.object(main, "process_all_configs", return_value=FILE_PAIRS),
             patch.object(main, "log"),
-            patch.object(main, "GitHubHandler", return_value=handler),
+            _deferred_handler(return_value=handler),
         ):
             assert _run_pipeline(use_git=False) is True
 
         handler.upload_multiple_files.assert_called_once_with(FILE_PAIRS)
+
+    def test_a_missing_sdk_fails_at_upload_time_not_at_import_time(self):
+        """With PyGithub absent, the failure lands on the upload, one step later.
+
+        Before the import moved into the upload branch, an environment without
+        PyGithub could not import this module at all; ``sys.modules`` holding
+        ``None`` is how the import system reports a module it cannot provide.
+        """
+        with (
+            patch.object(main, "process_all_configs", return_value=FILE_PAIRS),
+            patch.object(main, "log"),
+            patch.dict(sys.modules, {"utils.github_handler": None}),
+            pytest.raises(ImportError),
+        ):
+            _run_pipeline(use_git=False)
 
     def test_dry_run_never_touches_the_upload_paths(self):
         """A dry run returns before either guard is reached."""

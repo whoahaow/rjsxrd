@@ -1,5 +1,7 @@
 """Tests for utils/logger.py — thread-safe logging."""
 
+import pytest
+
 from utils.logger import (
     CURRENT_LOG_LEVEL,
     LOGS_BY_FILE,
@@ -16,6 +18,8 @@ from utils.logger import (
     set_log_level,
     warning,
 )
+
+pytestmark = pytest.mark.unit
 
 
 class TestLogLevel:

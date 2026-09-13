@@ -13,6 +13,8 @@ import pytest
 from tests.support import make_result
 from utils.git_updater import GitUpdater
 
+pytestmark = pytest.mark.unit
+
 # ── Fixtures ──────────────────────────────────────────────────────────
 
 

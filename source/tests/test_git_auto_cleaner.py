@@ -5,10 +5,15 @@ Covers: is_auto_message (only ^auto: update ), squash_auto_commits edge cases.
 
 from unittest.mock import patch
 
+import pytest
+
 from tests.support import make_result
 from utils.git_auto_cleaner import is_auto_message, squash_auto_commits
 
 # ── Helpers ───────────────────────────────────────────────────────────
+
+
+pytestmark = pytest.mark.unit
 
 
 def _build_git_log_side_effect(messages: list):

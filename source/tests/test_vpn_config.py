@@ -7,6 +7,8 @@ All tests are pure unit — no network, no xray binary, no subprocesses.
 import base64
 import json
 
+import pytest
+
 from utils.vpn_config import (
     Hysteria2Config,
     ShadowsocksConfig,
@@ -15,6 +17,8 @@ from utils.vpn_config import (
     VMessConfig,
     parse_url,
 )
+
+pytestmark = pytest.mark.unit
 
 
 class TestParseUrlFactory:

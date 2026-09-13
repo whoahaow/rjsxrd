@@ -8,7 +8,11 @@ endpoint) in addition to mocked tests, so we catch things like
 
 import socket
 
+import pytest
+
 from utils.ip_verifier import _make_request
+
+pytestmark = pytest.mark.integration
 
 
 class TestMakeRequestImportPath:

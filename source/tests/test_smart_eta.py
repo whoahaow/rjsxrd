@@ -11,7 +11,11 @@ Covers:
 
 import math
 
+import pytest
+
 from utils.smart_eta import SmartETA
+
+pytestmark = pytest.mark.unit
 
 
 class FakeTime:

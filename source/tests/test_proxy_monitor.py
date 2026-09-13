@@ -3,6 +3,7 @@
 import json
 from unittest.mock import MagicMock, patch
 
+import pytest
 import requests
 
 from utils.proxy_monitor import (
@@ -13,6 +14,8 @@ from utils.proxy_monitor import (
     STOP_JOIN_TIMEOUT,
     ProxyMonitor,
 )
+
+pytestmark = pytest.mark.unit
 
 
 class TestProxyMonitorConstants:

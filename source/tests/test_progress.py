@@ -1,6 +1,10 @@
 """Tests for utils/progress.py — single source of truth for tqdm."""
 
+import pytest
+
 from utils.progress import get_async_pbar, get_sync_pbar, is_available
+
+pytestmark = pytest.mark.unit
 
 
 class TestProgressAvailable:

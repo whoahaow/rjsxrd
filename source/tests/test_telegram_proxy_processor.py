@@ -5,6 +5,8 @@ input, and the shape the scraping helpers return) and ``(url, latency_ms)``
 tuples (verification output). Both must produce files that contain whole URLs.
 """
 
+import pytest
+
 from processors.telegram_proxy_processor import TelegramProxyProcessor
 
 MTPROTO_URLS = [
@@ -15,6 +17,9 @@ SOCKS5_URLS = [
     "https://t.me/socks?server=socks-one.example&port=1080",
     "https://t.me/socks?server=socks-two.example&port=1080",
 ]
+
+
+pytestmark = pytest.mark.unit
 
 
 def _create_files(tmp_path, mtproto_proxies, socks5_proxies):

@@ -7,10 +7,14 @@ conflict resolution, missing file handling, and batch upload.
 import time
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from utils.github_handler import (
     GitHubHandler,
     _GitHubClient,
 )
+
+pytestmark = pytest.mark.unit
 
 
 class FakeGitHubClient(_GitHubClient):

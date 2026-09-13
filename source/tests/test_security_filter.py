@@ -1,11 +1,15 @@
 """Tests for security_filter.py — security checks for VPN configs."""
 
+import pytest
+
 from utils.security_filter import (
     SS_SECURE_CIPHERS,
     SS_WEAK_CIPHERS,
     filter_secure_configs,
     has_insecure_setting,
 )
+
+pytestmark = pytest.mark.unit
 
 
 class TestCipherConstants:

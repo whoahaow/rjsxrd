@@ -15,6 +15,10 @@ import time
 from unittest.mock import MagicMock
 from unittest.mock import patch as mock_patch
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
 
 class TestXrayProtocolParsers:
     """Test _url_to_outbound() dispatch for all 8 protocol parsers.

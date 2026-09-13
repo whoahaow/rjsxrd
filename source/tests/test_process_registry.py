@@ -5,7 +5,11 @@ import threading
 import time
 from unittest.mock import MagicMock
 
+import pytest
+
 from utils.process_registry import ProcessRegistry, default_registry, install_signal_handler
+
+pytestmark = pytest.mark.unit
 
 
 class _FakeProcess:

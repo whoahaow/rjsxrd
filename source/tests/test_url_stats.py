@@ -3,7 +3,11 @@
 import os
 import tempfile
 
+import pytest
+
 from utils.url_stats import URLStats
+
+pytestmark = pytest.mark.unit
 
 
 class TestURLStats:

@@ -51,11 +51,17 @@ jobs:
         # the check scoped to the listed files, so a module can join the list
         # without inheriting the residual of everything it imports.
         #
-        # Residual re-measured whenever this list is extended — 87 errors in 22
-        # files at the last measurement, all hygiene families (assignment,
-        # arg-type, var-annotated, no-any-return, return-value). The
-        # undefined-name findings this list used to count were defects and are
-        # resolved; the K05 follow-up card owns the rest.
+        # Residual measured after the last extension: 0 errors in 88 source
+        # files. The 87-error residual this list used to sit beside is fully
+        # burned down — 37 assignment, 19 arg-type, 17 var-annotated,
+        # 13 no-any-return, 1 return-value — and every module that carried it
+        # joined the list, as did the test module that carried the five
+        # annotation-unchecked notes. Appended below the original 27 entries,
+        # in the same order.
+        #
+        # The four `cast()`s in utils/ip_verifier.py, which used to launder
+        # untyped response fields into a declared `str | None`, are now real
+        # isinstance narrowing. No `# type: ignore` was added to reach zero.
         run: |
           cd source
           ../.venv/bin/python -m mypy --follow-imports=silent \
@@ -85,7 +91,30 @@ jobs:
             utils/smart_eta.py \
             utils/system_specs.py \
             utils/telegram_notifier.py \
-            utils/vpn_config.py
+            utils/vpn_config.py \
+            main.py \
+            fetchers/fetcher.py \
+            processors/config_processor.py \
+            processors/telegram_proxy_processor.py \
+            scripts/analyze_url_stats.py \
+            scripts/purge_stale_urls.py \
+            tests/test_config_processor.py \
+            utils/bypass_builder.py \
+            utils/download_xray.py \
+            utils/executor_cache.py \
+            utils/file_writer.py \
+            utils/git_auto_cleaner.py \
+            utils/github_handler.py \
+            utils/health_check.py \
+            utils/logger.py \
+            utils/protocol_parsers.py \
+            utils/proxy_detector.py \
+            utils/simple_tester.py \
+            utils/telegram_proxy_verifier.py \
+            utils/url_stats.py \
+            utils/xray_batch.py \
+            utils/xray_helpers.py \
+            utils/xray_tester.py
 
       - name: Tests
         # Coverage is folded into this run and reported, not gated: the

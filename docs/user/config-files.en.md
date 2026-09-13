@@ -83,6 +83,7 @@ Convenient if you know which protocol you need:
 
 - **Secure** (for example `vless-secure.txt`) — only secure configs
 - **Unsecure** (for example `vless.txt`) — all configs of the protocol
+- A file over the limit (~49 MB) is split into parts: `vless.txt` → `vless-1.txt`, `vless-2.txt`, … — the same limit as the other sets
 
 Supported protocols: VLESS, VMess, Trojan, Shadowsocks, ShadowsocksR, TUIC, Hysteria v1, Hysteria v2.
 

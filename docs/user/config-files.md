@@ -83,6 +83,7 @@ githubmirror/
 
 - **Secure** (например `vless-secure.txt`) — только безопасные конфиги
 - **Unsecure** (например `vless.txt`) — все конфиги протокола
+- Файл больше лимита (~49 MB) делится на части: `vless.txt` → `vless-1.txt`, `vless-2.txt`, … — лимит тот же, что и у остальных наборов
 
 Поддерживаемые протоколы: VLESS, VMess, Trojan, Shadowsocks, ShadowsocksR, TUIC, Hysteria v1, Hysteria v2.
 

@@ -2,12 +2,17 @@
 
 import contextlib
 import os
+from collections.abc import Sequence
 
 from config.settings import DEFAULT_MAX_WORKERS, TELEGRAM_PROXY_URLS
 from fetchers.fetcher import fetch_data
 from fetchers.telegram_proxy_scraper import TelegramProxyScraper
 from utils.executor_cache import ExecutorCache
 from utils.logger import log
+
+# Proxy entries reach this processor in two shapes: plain URLs (scraped input)
+# and (url, latency_ms) pairs (verification output). Both are accepted.
+ProxyEntry = str | tuple[str, float]
 
 
 class TelegramProxyProcessor:
@@ -227,8 +232,8 @@ class TelegramProxyProcessor:
 
     def create_proxy_files(
         self,
-        mtproto_proxies: list[tuple[str, float]],
-        socks5_proxies: list[tuple[str, float]],
+        mtproto_proxies: Sequence[ProxyEntry],
+        socks5_proxies: Sequence[ProxyEntry],
         verify_mtproto: bool = True,
         verify_socks5: bool = True,
         max_workers: int = 200,
@@ -237,8 +242,10 @@ class TelegramProxyProcessor:
         Create Telegram proxy files sorted by ping (fastest first).
 
         Args:
-            mtproto_proxies: List of tuples (proxy_url, latency_ms) for MTProto
-            socks5_proxies: List of tuples (proxy_url, latency_ms) for SOCKS5
+            mtproto_proxies: MTProto proxy URLs, as plain strings or as
+                (proxy_url, latency_ms) pairs from a prior verification
+            socks5_proxies: SOCKS5 proxy URLs, as plain strings or as
+                (proxy_url, latency_ms) pairs from a prior verification
             verify_mtproto: Whether to verify MTProto proxies before creating files
             verify_socks5: Whether to verify SOCKS5 proxies before creating files
             max_workers: Maximum concurrent verification workers (default: 200)
@@ -246,6 +253,11 @@ class TelegramProxyProcessor:
         Returns:
             List[str]: List of created file paths
         """
+        # Work on mutable copies: callers may hand over any sequence, and the
+        # latency sorts below are in place.
+        mtproto_proxies = list(mtproto_proxies)
+        socks5_proxies = list(socks5_proxies)
+
         # Verify MTProto proxies if requested
         if verify_mtproto and mtproto_proxies:
             # Convert to plain URLs for verification
@@ -274,9 +286,9 @@ class TelegramProxyProcessor:
         socks5_urls = [p[0] if isinstance(p, tuple) else p for p in socks5_proxies]
 
         # Combine all proxies and sort by ping (fastest first)
-        all_combined = mtproto_proxies + socks5_proxies
+        all_combined: list[ProxyEntry] = [*mtproto_proxies, *socks5_proxies]
         all_combined.sort(key=lambda x: x[1] if isinstance(x, tuple) else float("inf"))
-        all_urls = [p[0] for p in all_combined]
+        all_urls = [p[0] if isinstance(p, tuple) else p for p in all_combined]
 
         if all_urls:
             log(f"Sorted {len(all_urls)} total proxies by ping (fastest first)")

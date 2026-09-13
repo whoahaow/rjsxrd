@@ -222,7 +222,10 @@ def _run_pipeline_and_upload(
 
     if not dry_run and file_pairs:
         if use_git:
-            assert updater is not None
+            if updater is None:
+                # Assigned in the `not dry_run and use_git` branch above; a None
+                # here means that invariant broke.
+                raise RuntimeError("git upload requested without a GitUpdater")
             # Progressively staged files are already in the index.
             # commit_and_push_files handles commit + push with auto-cleanup.
             success = updater.commit_and_push_files(file_pairs)
@@ -236,8 +239,9 @@ def _run_pipeline_and_upload(
             # bypass-all.txt, URLS.txt, servers.txt, and any files that
             # were overwritten by the final verification step)
             # github_handler is assigned in the `elif not dry_run` branch above;
-            # restated so the Optional narrows.
-            assert github_handler is not None
+            # a None here means that invariant broke.
+            if github_handler is None:
+                raise RuntimeError("upload requested without a GitHubHandler")
             failures = github_handler.upload_multiple_files(file_pairs)
             if failures > 0:
                 log(f"ERROR: {failures} upload(s) failed")

@@ -322,6 +322,7 @@
 - `_make_request()` — HTTP-запрос с curl_cffi (fallback requests)
 - `IP_CHECK_URLS` — список URL для проверки IP
 - `_clear_proxy_env_vars()` — очистка HTTP_PROXY/HTTPS_PROXY/ALL_PROXY (зарегистрирована в ProcessRegistry)
+- `_json_payload()` / `_json_str_field()` / `_json_nested_str_field()` — чтение полей ответа с проверкой формы: ответ, который не является JSON-объектом (массив, скаляр), читается как отсутствие полей, а не падает с `AttributeError`
 
 ## resource_monitor.py — мониторинг ресурсов
 

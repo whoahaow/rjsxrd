@@ -322,6 +322,7 @@ Merged with `ip_checker.py` (deleted). Contains:
 - `_make_request()` — HTTP request with curl_cffi (requests fallback)
 - `IP_CHECK_URLS` — list of URLs for IP checking
 - `_clear_proxy_env_vars()` — clearing HTTP_PROXY/HTTPS_PROXY/ALL_PROXY (registered in ProcessRegistry)
+- `_json_payload()` / `_json_str_field()` / `_json_nested_str_field()` — validated reads of a provider response: a body that is not a JSON object (an array, a scalar) reads as no fields instead of raising `AttributeError`
 
 ## resource_monitor.py — resource monitoring
 

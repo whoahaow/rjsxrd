@@ -38,7 +38,10 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short --strict-markers"
 markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    # Every registered marker has to be carried by at least one test: an entry
+    # nothing uses is a claim about the suite that is not true, and
+    # `tests/test_docs_figures.py` fails the run when one appears. `slow` was
+    # registered and used by zero tests, so it is gone.
     "integration: marks tests as integration tests (require network/external services)",
     "unit: marks tests as unit tests (pure logic, no external dependencies)",
 ]

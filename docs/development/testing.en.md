@@ -23,14 +23,14 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 ```
 
 Every test module declares its marker (`pytestmark`), so `-m unit` and
-`-m integration` actually select something: 694 and 30 tests out of 724
+`-m integration` actually select something: 699 and 30 tests out of 729
 (measured with `pytest --collect-only -q` under each marker). The two
 modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) are marked `integration`.
 
 ## Test structure
 
-**724 tests** in 31 files. A full run takes around 70–80 seconds on the
+**729 tests** in 32 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
@@ -64,6 +64,7 @@ load, so measure with `pytest -q` on your own machine.
 | `test_url_stats.py` | 13 | `record_fetch`, `get_dead_urls`, persistence |
 | `test_scripts_import.py` | 12 | Import smoke tests for the `scripts/` entry points, benchmark loader |
 | `test_progress.py` | 6 | tqdm consolidation |
+| `test_docs_figures.py` | 5 | Docs figures match the collected suite |
 | `test_main.py` | 5 | Upload-path guards in the pipeline entry point |
 | `test_telegram_proxy_processor.py` | 3 | Writing MTProto/SOCKS5 proxies to files |
 | `test_purge_stale_urls.py` | 3 | Cache loading in `scripts/purge_stale_urls.py` |

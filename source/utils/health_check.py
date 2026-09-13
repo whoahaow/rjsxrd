@@ -1,5 +1,6 @@
 """Health check utilities for VPN config generator."""
 
+import contextlib
 import os
 import shutil
 import socket
@@ -36,8 +37,10 @@ def check_internet_connectivity() -> bool:
     last_error = None
     for host, port in DNS_SERVERS:
         try:
-            socket.create_connection((host, port), timeout=CHECK_INTERNET_TIMEOUT)
-            return True
+            with contextlib.closing(
+                socket.create_connection((host, port), timeout=CHECK_INTERNET_TIMEOUT)
+            ):
+                return True
         except OSError as e:
             log(f"    DNS probe {host}:{port} failed: {e}")
             last_error = e

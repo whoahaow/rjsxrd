@@ -7,6 +7,8 @@ import pytest
 
 from utils.file_utils import extract_host_port
 
+pytestmark = pytest.mark.unit
+
 
 class TestExtractHostPort:
     """Test extract_host_port for all protocol types."""

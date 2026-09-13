@@ -11,7 +11,11 @@ import subprocess
 import sys
 import tempfile
 
+import pytest
+
 from utils.managed_process import ManagedProcess
+
+pytestmark = pytest.mark.unit
 
 
 class TestManagedProcessConfigCleanup:

@@ -7,6 +7,8 @@ import pytest
 
 from fetchers.fetcher import _get_env_proxy, build_session, fetch_data
 
+pytestmark = pytest.mark.integration
+
 
 class TestGetEnvProxy:
     """Test _get_env_proxy function."""

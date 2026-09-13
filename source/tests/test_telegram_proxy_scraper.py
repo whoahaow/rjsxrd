@@ -1,6 +1,10 @@
 """Unit tests for Telegram proxy scraper."""
 
+import pytest
+
 from fetchers.telegram_proxy_scraper import TelegramProxyScraper
+
+pytestmark = pytest.mark.unit
 
 
 class TestExtractProxies:

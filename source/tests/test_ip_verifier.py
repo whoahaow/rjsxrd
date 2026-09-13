@@ -3,11 +3,15 @@
 import os
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from utils.ip_verifier import (
     _PROXY_ENV_VARS,
     _clear_proxy_env_vars,
     _wait_for_tcp_port,
 )
+
+pytestmark = pytest.mark.unit
 
 
 class TestProxyEnvVarsConstant:

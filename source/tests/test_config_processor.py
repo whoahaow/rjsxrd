@@ -3,6 +3,8 @@
 import os
 from unittest.mock import patch
 
+import pytest
+
 from processors.config_processor import (
     append_remark_suffix,
     create_all_configs_file,
@@ -13,6 +15,8 @@ from processors.config_processor import (
 from utils import bypass_builder
 from utils.config_helpers import resolve_flag, try_decode_base64_content
 from utils.file_utils import is_valid_vpn_config_url
+
+pytestmark = pytest.mark.unit
 
 
 def filter_valid_configs(configs):

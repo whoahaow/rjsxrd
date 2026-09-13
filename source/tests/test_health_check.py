@@ -2,6 +2,8 @@
 
 from unittest.mock import patch
 
+import pytest
+
 from utils.health_check import (
     CHECK_INTERNET_TIMEOUT,
     DNS_SERVERS,
@@ -12,6 +14,8 @@ from utils.health_check import (
     check_xray_binary,
     health_check,
 )
+
+pytestmark = pytest.mark.unit
 
 
 class TestDNSServers:

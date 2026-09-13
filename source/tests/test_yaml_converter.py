@@ -1,5 +1,7 @@
 """Tests for yaml_converter.py — YAML → VPN config URL conversion."""
 
+import pytest
+
 from fetchers.yaml_converter import (
     _build_hysteria_url,
     _build_shadowsocks_url,
@@ -12,6 +14,8 @@ from fetchers.yaml_converter import (
     _try_convert_to_url,
     convert_yaml_to_vpn_configs,
 )
+
+pytestmark = pytest.mark.unit
 
 
 class TestIsProxyConfig:

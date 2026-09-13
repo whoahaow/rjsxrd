@@ -6,7 +6,11 @@ tested without mocking sockets or network: parse_proxy_url and
 _create_handshake_packet.
 """
 
+import pytest
+
 from utils.telegram_proxy_verifier import TelegramProxyVerifier
+
+pytestmark = pytest.mark.unit
 
 
 class TestParseProxyUrl:

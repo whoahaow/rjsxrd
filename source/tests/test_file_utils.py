@@ -14,6 +14,8 @@ from utils.file_utils import (
 )
 from utils.security_filter import has_insecure_setting
 
+pytestmark = pytest.mark.unit
+
 
 class TestLoadCidrWhitelist:
     """Test CIDR whitelist loading with OOM protection."""

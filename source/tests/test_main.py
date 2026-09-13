@@ -9,6 +9,9 @@ import main
 FILE_PAIRS = [("local.txt", "remote/path.txt")]
 
 
+pytestmark = pytest.mark.unit
+
+
 def _run_pipeline(use_git: bool, dry_run: bool = False) -> bool:
     return main._run_pipeline_and_upload(
         output_dir="out",

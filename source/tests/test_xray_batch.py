@@ -5,6 +5,10 @@ import threading
 from unittest.mock import MagicMock
 from unittest.mock import patch as mock_patch
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
 
 class TestBatchModeSwitch:
     """Test that test_batch() dispatches correctly based on XRAY_BATCH_MODE."""

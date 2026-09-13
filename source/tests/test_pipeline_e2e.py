@@ -126,6 +126,9 @@ EXPECTED_REMOTE_PATHS = frozenset(
 _TG_PROXY_CALLS: list[tuple[list[Any], list[Any]]] = []
 
 
+pytestmark = pytest.mark.unit
+
+
 class _StubTelegramProxyProcessor(TelegramProxyProcessor):
     """TelegramProxyProcessor with the socket-opening verification replaced.
 

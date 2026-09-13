@@ -1,5 +1,7 @@
 """Tests for executor_cache.py — cached thread pool executors."""
 
+import pytest
+
 from utils.executor_cache import (
     ExecutorCache,
     _get_optimal_workers,
@@ -8,6 +10,8 @@ from utils.executor_cache import (
     get_network_io_executor,
     get_regex_executor,
 )
+
+pytestmark = pytest.mark.unit
 
 
 class TestGetOptimalWorkers:

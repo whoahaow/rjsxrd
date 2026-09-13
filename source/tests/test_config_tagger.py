@@ -7,8 +7,12 @@ encounter, so downstream stages don't need to re-parse URLs.
 import ast
 from pathlib import Path
 
+import pytest
+
 import utils
 from utils.config_tagger import ConfigTagger
+
+pytestmark = pytest.mark.unit
 
 
 class TestPackageImportCost:

@@ -23,14 +23,14 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 ```
 
 Every test module declares its marker (`pytestmark`), so `-m unit` and
-`-m integration` actually select something: 705 and 30 tests out of 735
+`-m integration` actually select something: 726 and 30 tests out of 756
 (measured with `pytest --collect-only -q` under each marker). The two
 modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) are marked `integration`.
 
 ## Test structure
 
-**735 tests** in 32 files. A full run takes around 70–80 seconds on the
+**756 tests** in 32 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
@@ -58,14 +58,14 @@ load, so measure with `pytest -q` on your own machine.
 | `test_fetcher.py` | 16 | Fetching, response parsing, error handling |
 | `test_executor_cache.py` | 17 | Thread pool, shutdown, WSL detection |
 | `test_managed_process.py` | 15 | ManagedProcess lifecycle |
-| `test_ip_verifier.py` | 15 | env vars, TCP port polling |
+| `test_ip_verifier.py` | 35 | env vars, TCP port polling, response validators, chain reads |
 | `test_telegram_proxy_verifier.py` | 14 | MTProto/SOCKS5 proxy verification |
 | `test_ip_checker.py` | 14 | IP check, `_make_request` |
 | `test_url_stats.py` | 13 | `record_fetch`, `get_dead_urls`, persistence |
 | `test_scripts_import.py` | 12 | Import smoke tests for the `scripts/` entry points, benchmark loader |
 | `test_progress.py` | 6 | tqdm consolidation |
 | `test_docs_figures.py` | 5 | Docs figures match the collected suite |
-| `test_main.py` | 5 | Upload-path guards in the pipeline entry point |
+| `test_main.py` | 6 | Upload-path guards and the deferred SDK import in the entry point |
 | `test_telegram_proxy_processor.py` | 3 | Writing MTProto/SOCKS5 proxies to files |
 | `test_purge_stale_urls.py` | 3 | Cache loading in `scripts/purge_stale_urls.py` |
 
@@ -77,18 +77,18 @@ this pipeline's crashes have lived.
 
 | Command | Scope | Coverage |
 |---------|-------|----------|
-| `pytest --cov=fetchers --cov=utils` | two packages | **55 %** (5587 statements, 2312 missed, 1880 branches) |
-| `pytest --cov=.` — the full run, as in CI | all of `source/` | **69 %** (12754 statements, 3320 missed, 2790 branches) |
-| `pytest -m "not integration" --cov=.` — the offline floor | all of `source/` | **67 %** (12754 statements, 3593 missed, 2790 branches) |
+| `pytest --cov=fetchers --cov=utils` | two packages | **58 %** (5596 statements, 2181 missed, 1884 branches) |
+| `pytest --cov=.` — the full run, as in CI | all of `source/` | **71 %** (12959 statements, 3187 missed, 2808 branches) |
+| `pytest -m "not integration" --cov=.` — the offline floor | all of `source/` | **69 %** (12959 statements, 3446 missed, 2808 branches) |
 
 `fail_under = 65` is stated for the CI scope — the whole `source/` tree. It is not
-a per-scope number: `pytest --cov=fetchers --cov=utils` reports 55 % and does not
+a per-scope number: `pytest --cov=fetchers --cov=utils` reports 58 % and does not
 pass the floor, because two packages and the tree have different denominators.
 That run illustrates that coverage depends on scope; it is not the gate.
 
-Below the floor, CI fails. The number comes from the offline floor (67.5 % — a run
+Below the floor, CI fails. The number comes from the offline floor (69 % — a run
 without the 30 network tests and without the coverage those tests alone provide)
-rounded down. The 2.5-point headroom is about 320 statements. The offline figure is
+minus a 4-point headroom, about 520 statements. The offline figure is
 a measurement from the development machine (Windows): the runner is Linux and
 executes the other side of the `sys.platform` branches in `utils/download_xray.py`,
 `utils/xray_batch.py` and `utils/xray_tester.py`, so the runner's own number has

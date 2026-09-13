@@ -42,7 +42,9 @@ class ManagedProcess:
         """True if process is still running."""
         return self._process.poll() is None
 
-    def stop(self, force: bool = False, kill_timeout: int = 3, force_kill_timeout: int = 2) -> None:
+    def stop(
+        self, force: bool = False, kill_timeout: float = 3, force_kill_timeout: float = 2
+    ) -> None:
         """Stop the process with guaranteed cleanup.
 
         Order:

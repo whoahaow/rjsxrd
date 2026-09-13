@@ -186,10 +186,10 @@ def _load_raw_configs_into_set(filepath: str, target: set) -> None:
 
 def verify_config_file(
     input_path: str,
-    configs: list[str] = None,
+    configs: list[str] | None = None,
     verbose: bool = False,
     tcp_ping: bool = False,
-    config_to_sources: dict = None,
+    config_to_sources: dict | None = None,
     stats: URLStats | None = None,
     progress_callback: Callable | None = None,
 ) -> list[str]:
@@ -256,14 +256,16 @@ def verify_config_file(
                             log(f"Cleanup warning: {cleanup_error}")
 
         if stats and config_to_sources and all_results:
-            source_counts = defaultdict(lambda: [0, 0])
+            source_counts: defaultdict[str, list[int]] = defaultdict(lambda: [0, 0])
             for cfg, is_working, _ in all_results:
                 for src in config_to_sources.get(cfg, []):
                     source_counts[src][0] += 1
                     if is_working:
                         source_counts[src][1] += 1
                     stats.record_config_verification(src, cfg, is_working)
-            stats.record_verified_yield(dict(source_counts))
+            # The accumulator has to be a list to be mutated in place, while
+            # record_verified_yield takes (tested, working) tuples.
+            stats.record_verified_yield({url: (c[0], c[1]) for url, c in source_counts.items()})
 
         working = [(cfg, s, lat) for cfg, s, lat in all_results if s]
         working.sort(key=lambda x: x[2])
@@ -562,7 +564,7 @@ def verify_and_write_bypass_unsecure(
         except (OSError, UnicodeDecodeError) as e:
             log(f"Warning: Could not read unsecure raw file {raw_file}: {e}")
 
-    all_bypass_configs = set()
+    all_bypass_configs: set[str] = set()
     bypass_raw_dir = path_in_output(output_dir, "bypass", "raw")
     if os.path.exists(bypass_all_raw_path):
         _load_raw_configs_into_set(bypass_all_raw_path, all_bypass_configs)

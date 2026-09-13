@@ -223,8 +223,9 @@ class TelegramProxyVerifier:
                     await writer.wait_closed()
                 return False, 0.0
 
-            # Auth if needed
-            if has_auth:
+            # Auth if needed. `has_auth` above is the same predicate — restated
+            # here so both credentials are narrowed to str for the encoding.
+            if username is not None and password is not None:
                 auth_data = (
                     b"\x01"
                     + bytes([len(username)])

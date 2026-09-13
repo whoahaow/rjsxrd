@@ -69,12 +69,35 @@ load, so measure with `pytest -q` on your own machine.
 | `test_telegram_proxy_processor.py` | 3 | Writing MTProto/SOCKS5 proxies to files |
 | `test_purge_stale_urls.py` | 3 | Cache loading in `scripts/purge_stale_urls.py` |
 
-The coverage number depends on what is measured, and the two are not comparable:
+The coverage number depends on what is measured and in which mode, and the
+figures are not comparable: the mode is branches (`branch = true` in
+`[tool.coverage]` in `pyproject.toml`), not statements alone. A statement
+executed once still hides the arm of an `if` that never ran, and that is where
+this pipeline's crashes have lived.
 
 | Command | Scope | Coverage |
 |---------|-------|----------|
-| `pytest --cov=fetchers --cov=utils` | two packages | **55 %** (5588 statements, 2313 missed, 1880 branches) |
-| `pytest --cov=.` (what CI runs) | all of `source/` | **69 %** (12609 statements, 3310 missed, 2738 branches) |
+| `pytest --cov=fetchers --cov=utils` | two packages | **55 %** (5587 statements, 2312 missed, 1880 branches) |
+| `pytest --cov=.` — the full run, as in CI | all of `source/` | **69 %** (12754 statements, 3320 missed, 2790 branches) |
+| `pytest -m "not integration" --cov=.` — the offline floor | all of `source/` | **67 %** (12754 statements, 3593 missed, 2790 branches) |
+
+`fail_under = 65` is stated for the CI scope — the whole `source/` tree. It is not
+a per-scope number: `pytest --cov=fetchers --cov=utils` reports 55 % and does not
+pass the floor, because two packages and the tree have different denominators.
+That run illustrates that coverage depends on scope; it is not the gate.
+
+Below the floor, CI fails. The number comes from the offline floor (67.5 % — a run
+without the 30 network tests and without the coverage those tests alone provide)
+rounded down. The 2.5-point headroom is about 320 statements, and it exists
+because the development machine (Windows) and the runner (Linux) execute opposite
+sides of the `sys.platform` branches in `utils/download_xray.py`,
+`utils/xray_batch.py` and `utils/xray_tester.py`.
+
+Every coverage command carries `--cov-config=../pyproject.toml`, the CI step
+included. pytest-cov looks for a `.coveragerc` in the invocation directory
+(`source/`) rather than the repository root, so without the flag
+`[tool.coverage]` is read by nothing: branch mode and the floor disappear
+silently and the report stays a report.
 
 ## Manual testing utilities
 

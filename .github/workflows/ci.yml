@@ -67,11 +67,16 @@ jobs:
           ../.venv/bin/python -m mypy .
 
       - name: Tests
-        # Coverage is folded into this run and reported, not gated: the
-        # threshold is a later card's ratchet.
+        # Coverage is folded into this run and gated. The mode, the floor and
+        # the exclusions live in [tool.coverage] in pyproject.toml — and
+        # --cov-config is what makes them count: pytest-cov defaults to a
+        # `.coveragerc` resolved in the invocation directory, which here is
+        # source/, so without the flag the section is read by nothing and the
+        # gate degrades to a report.
         run: |
           cd source
-          ../.venv/bin/python -m pytest --cov=. --cov-report=term-missing -q
+          ../.venv/bin/python -m pytest --cov=. --cov-report=term-missing -q \
+            --cov-config=../pyproject.toml
 
       - name: Dependency audit
         run: .venv/bin/pip-audit -r source/requirements-dev.txt

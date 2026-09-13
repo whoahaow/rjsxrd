@@ -31,6 +31,31 @@ show_error_codes = true
 # the code. Turning this on makes them visible so they get deleted.
 warn_unused_ignores = true
 
+[tool.coverage.run]
+# Branch coverage, not statements alone: a statement executed once still hides
+# the arm of an `if` that never ran, and that is where this pipeline's crashes
+# have lived (an unbound local, an upload arm that evaporated under `-O`).
+# The measured tree is the directory pytest runs in — `source/`, in both the
+# documented local command and the CI step, which pass `--cov=.`. A literal
+# `source = "source/"` would resolve to nothing from inside `source/`, and a
+# hand-written package list would be a list a new package can fall off.
+branch = true
+
+[tool.coverage.report]
+# The floor, not the measured value. The Tests step runs the full suite; the
+# number is the offline floor (`-m "not integration"` deselects the 30 network
+# tests, and the coverage they alone provide with them) rounded down, so a
+# runner without network still passes it. The headroom is deliberate: the
+# development machine and the Linux runner execute opposite sides of the
+# `sys.platform` branches in utils/download_xray.py, utils/xray_batch.py and
+# utils/xray_tester.py.
+fail_under = 65
+exclude_also = [
+    # An abstract method body cannot be reached by construction; the subclass
+    # that implements it is what the tests drive.
+    "raise NotImplementedError",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["source/tests"]
 python_files = ["test_*.py"]

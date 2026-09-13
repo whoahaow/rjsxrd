@@ -259,9 +259,12 @@ def load_cache() -> dict:
         return {}
     try:
         with open(CACHE_PATH) as f:
-            return json.load(f)
+            payload = json.load(f)
     except (json.JSONDecodeError, OSError):
         return {}
+    # `run()` uses the result as a mapping (`cache.get(...)`), so a truncated or
+    # foreign cache file holding a non-object has to read as "no cache".
+    return payload if isinstance(payload, dict) else {}
 
 
 def save_cache(cache: dict) -> None:

@@ -456,3 +456,61 @@ class TestBatchSingleSyncPath:
         reported_urls = [u for batch in reported for u in batch]
         assert reported_urls == [working_url]
         assert timed_out_url not in reported_urls
+
+
+class _Fatal(BaseException):
+    """A BaseException that is not an Exception.
+
+    `asyncio.gather(..., return_exceptions=True)` types its results as
+    `T | BaseException`, and `asyncio.CancelledError` has been BaseException —
+    not Exception — since 3.8. Narrowing those results against `Exception`
+    leaves the non-Exception ones in the list untouched.
+    """
+
+
+class TestBatchAsyncGatherResults:
+    """Every element of the returned list must be a (url, ok, latency) tuple.
+
+    A raw exception slipping through is not cosmetic: each consumer unpacks the
+    list as 3-tuples and would raise `cannot unpack non-sequence` on it.
+    """
+
+    def _make_runner(self):
+        from utils.xray_batch import BatchRunner
+
+        tester = MagicMock()
+        tester.xray_path = "/fake/xray"
+        tester._error_stats = {}
+        tester._error_samples = {}
+        tester._error_stats_lock = threading.Lock()
+        return BatchRunner(tester)
+
+    def test_non_exception_result_becomes_a_failure_entry(self):
+        import asyncio
+
+        import utils.xray_batch as xb
+
+        runner = self._make_runner()
+        fatal_url = "vless://fatal@host.com"
+        good_url = "vless://good@host.com"
+
+        async def fake_single(url, timeout, verbose=False, cleanup_futures=None):
+            if url == fatal_url:
+                raise _Fatal("boom")
+            return (url, True, 12.0)
+
+        with (
+            mock_patch.object(
+                runner, "_test_single_config_pipelined_async", side_effect=fake_single
+            ),
+            mock_patch.object(xb, "get_async_pbar", return_value=None),
+        ):
+            results = asyncio.run(
+                runner._test_batch_async([good_url, fatal_url], 1, 1.0, False)
+            )
+
+        assert all(isinstance(item, tuple) and len(item) == 3 for item in results), (
+            f"a non-result leaked into the batch output: {results}"
+        )
+        assert (good_url, True, 12.0) in results
+        assert (fatal_url, False, 0.0) in results

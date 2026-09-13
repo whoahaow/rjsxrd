@@ -564,7 +564,11 @@ class BatchRunner:
                 await asyncio.get_event_loop().run_in_executor(None, pbar.close)
 
         for i, result in enumerate(task_results):
-            if isinstance(result, Exception):
+            # `gather(return_exceptions=True)` can hand back a BaseException that
+            # is not an Exception — `asyncio.CancelledError` has been one since
+            # 3.8 — and every consumer unpacks these entries as
+            # (url, ok, latency) tuples.
+            if isinstance(result, BaseException):
                 results.append((urls[i], False, 0.0))
             else:
                 results.append(result)

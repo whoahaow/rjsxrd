@@ -341,7 +341,7 @@
 - Сравнение содержимого перед загрузкой — избегает пустых коммитов
 - `_check_rate_limit()` — предупреждает при < 100 запросов, ждёт reset если лимит исчерпан
 - Rate limit проверка при инициализации: `g.rate_limiting`
-- **22 теста** через `FakeGitHubClient` in-memory file tree
+- Тесты через `FakeGitHubClient` in-memory file tree — счётчик в [таблице тестов](testing.md)
 
 ## git_updater.py — Git-команды
 
@@ -366,7 +366,7 @@
 - Вызывается из `GitUpdater.commit_and_push_files()` автоматически, перед stage_files()
 - **Не трогает** коммиты других типов (fix:, feat:, chore:, merge: и старые форматы Update bypass-, update configs)
 - **Требует `fetch-depth: 0`** в GitHub Actions (полная история) — настроено в `frequent_update.yml`
-- 24 теста, все mock-based на `subprocess.run`
+- Тесты, все mock-based на `subprocess.run`; счётчик в [таблице тестов](testing.md)
 
 ## config_helpers.py — общие хэлперы пайплайна
 

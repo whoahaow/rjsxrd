@@ -341,7 +341,7 @@ At the end, prints a summary report.
 - Content comparison before upload — avoids empty commits
 - `_check_rate_limit()` — warns at < 100 requests, waits for reset if the limit is exhausted
 - Rate limit check at initialization: `g.rate_limiting`
-- **22 tests** via the `FakeGitHubClient` in-memory file tree
+- Tests via the `FakeGitHubClient` in-memory file tree — the count is in the [test table](testing.en.md)
 
 ## git_updater.py — Git commands
 
@@ -366,7 +366,7 @@ Automatically removes old `auto: update ...` commits before creating a new one, 
 - Called from `GitUpdater.commit_and_push_files()` automatically, before stage_files()
 - **Does not touch** other commit types (fix:, feat:, chore:, merge:, and the old formats Update bypass-, update configs)
 - **Requires `fetch-depth: 0`** in GitHub Actions (full history) — configured in `frequent_update.yml`
-- 24 tests, all mock-based on `subprocess.run`
+- Tests, all mock-based on `subprocess.run`; the count is in the [test table](testing.en.md)
 
 ## config_helpers.py — common pipeline helpers
 

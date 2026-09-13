@@ -830,6 +830,13 @@ class XrayTester:
 
     def _launch_xray_process(self, config_path: str) -> subprocess.Popen:
         """Launch Xray subprocess with config file."""
+        if self.xray_path is None:
+            # No binary was resolved: `_find_xray()` missed and no path was
+            # passed. ValueError is handled by start_xray_instance, which
+            # removes the config file and reports this reason; Popen would
+            # otherwise fail with "expected str, bytes or os.PathLike object,
+            # not NoneType".
+            raise ValueError("Xray binary not found — cannot launch a test instance")
         cmd = [self.xray_path, "run", "-config", config_path]
         if sys.platform == "win32":
             return subprocess.Popen(

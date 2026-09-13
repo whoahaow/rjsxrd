@@ -6,6 +6,7 @@ test gap (7 parsers, 84-153 lines each, zero direct tests before this file).
 
 import asyncio
 import base64
+import glob
 import json
 import os
 import signal
@@ -659,3 +660,40 @@ class TestXrayStartupTimeout:
                 os.unlink(fake_path)
             except OSError:
                 pass
+
+
+class TestMissingXrayBinary:
+    """A tester with no resolved binary must report the cause, not a TypeError.
+
+    `self.xray_path` is `str | None` — `_find_xray()` returns None when nothing
+    matches and no path was passed. Feeding that None straight into
+    `subprocess.Popen` raises `TypeError: expected str, bytes or os.PathLike
+    object, not NoneType`, which `start_xray_instance`'s own `except` clause
+    does not catch, so the caller sees a traceback instead of a failed result.
+    """
+
+    def _make_tester_without_binary(self):
+        from utils.xray_tester import XrayTester
+
+        tester = XrayTester()
+        # `_find_xray()` may well succeed on a dev machine (the pipeline
+        # downloads the binary into source/xray); force the state under test.
+        tester.xray_path = None
+        return tester
+
+    def test_start_xray_instance_reports_the_missing_binary(self):
+        tester = self._make_tester_without_binary()
+        config = {
+            "inbounds": [{"protocol": "socks", "port": 0}],
+            "outbounds": [{"protocol": "freedom", "tag": "direct"}],
+        }
+        pattern = os.path.join(tempfile.gettempdir(), "xray_*.json")
+        before = set(glob.glob(pattern))
+
+        success, process, error = tester.start_xray_instance(config, 45999)
+
+        after = set(glob.glob(pattern))
+        assert success is False
+        assert process is None
+        assert "binary" in error.lower(), f"unhelpful failure reason: {error!r}"
+        assert after <= before, "the temp config file leaked on the failure path"

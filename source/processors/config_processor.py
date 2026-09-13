@@ -37,6 +37,7 @@ from fetchers.daily_repo_fetcher import fetch_configs_from_daily_repo
 from fetchers.fetcher import build_session, fetch_data
 from fetchers.sstap_scraper import scrape_sstap_configs
 from fetchers.upstream_aggregator import fetch_upstream_dynamic_configs
+from processors.telegram_proxy_processor import TelegramProxyProcessor
 from utils.bypass_builder import create_working_config_files
 from utils.config_helpers import (
     add_unique,

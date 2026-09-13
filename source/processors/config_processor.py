@@ -420,10 +420,12 @@ def create_protocol_split_files(
 ) -> list[tuple[str, str]]:
     """Creates protocol-specific files in the split-by-protocols folder, both secure and unsecure versions.
 
-    Each written file contributes one ``(local_path, remote_path)`` pair to the
-    returned list — the remote side repo-relative under
-    ``githubmirror/split-by-protocols/``. A write that produced no file
-    (``None``) contributes no pair.
+    Each file the stage writes contributes one ``(local_path, remote_path)`` pair
+    to the returned list — the remote side repo-relative under
+    ``githubmirror/split-by-protocols/``. A bucket larger than ``max_size_mb``
+    is written as numbered parts (``vless-1.txt``, ``vless-2.txt``, ...) and
+    every part contributes a pair; a write that produced no file contributes
+    none.
     """
     from utils.file_utils import SUPPORTED_PROTOCOLS
 
@@ -450,19 +452,18 @@ def create_protocol_split_files(
         if configs:
             write_tasks.append((protocol, configs, output_dir, max_size_mb, True))
 
-    all_file_pairs: list[tuple[str, str]] = []
     executor = ExecutorCache.get("write_tasks", max_workers=min(8, len(write_tasks)))
     results = list(executor.map(_write_protocol_file, write_tasks))
-    # ``_write_protocol_file`` returns the path it wrote (or ``None`` when it
-    # wrote nothing), so the pair is assembled here — from the basename of the
-    # local file, exactly as every other stage builds its remote side.
-    for local_path in results:
-        if local_path is None:
-            continue
-        all_file_pairs.append(
-            (local_path, f"githubmirror/split-by-protocols/{os.path.basename(local_path)}")
-        )
-    return all_file_pairs
+    # ``_write_protocol_file`` returns every path its write left on disk (an
+    # empty list when it wrote nothing), so the pairs are assembled here — from
+    # the basename of each local file, exactly as every other stage builds its
+    # remote side. A bucket that had to be split contributes one pair per part.
+    return [
+        (local_path, f"githubmirror/split-by-protocols/{os.path.basename(local_path)}")
+        for written_paths in results
+        if written_paths
+        for local_path in written_paths
+    ]
 
 
 class ConfigPipeline:

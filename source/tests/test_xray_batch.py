@@ -505,9 +505,7 @@ class TestBatchAsyncGatherResults:
             ),
             mock_patch.object(xb, "get_async_pbar", return_value=None),
         ):
-            results = asyncio.run(
-                runner._test_batch_async([good_url, fatal_url], 1, 1.0, False)
-            )
+            results = asyncio.run(runner._test_batch_async([good_url, fatal_url], 1, 1.0, False))
 
         assert all(isinstance(item, tuple) and len(item) == 3 for item in results), (
             f"a non-result leaked into the batch output: {results}"

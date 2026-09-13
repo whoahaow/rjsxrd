@@ -1794,3 +1794,97 @@ class TestStageTelegramProxy:
 
         assert pipeline.stage_telegram_proxy() == 0.0
         assert pipeline.telegram_proxy_files == []
+
+
+class TestAnnotationResolution:
+    """Annotations in config_processor must point at names that exist.
+
+    The module imports `from __future__ import annotations`, so annotation
+    expressions are never evaluated at import time. An undefined name in one
+    stays invisible until something asks for the resolved hints — which is what
+    `_fetch_with_session`'s `-> FetchResult` was doing.
+    """
+
+    @staticmethod
+    def _capture_fetch_with_session():
+        """Return the real `_fetch_with_session` closure without running it."""
+        from unittest.mock import MagicMock
+
+        from processors import config_processor
+
+        fake_executor = MagicMock()
+        with (
+            patch.object(config_processor, "ExecutorCache") as mock_cache,
+            patch("concurrent.futures.as_completed", return_value=[]),
+            patch.object(config_processor, "log"),
+        ):
+            mock_cache.get.return_value = fake_executor
+            config_processor._fetch_and_process_urls(
+                urls=["https://example.com/config"],
+                target_all=[],
+                target_extra=[],
+                numbered_configs_with_urls=[],
+                all_mtproto=[],
+                all_socks5=[],
+                global_seen=set(),
+                global_seen_lock=__import__("threading").Lock(),
+                stats=None,
+                scraper=None,
+                label="test",
+            )
+            submitted = fake_executor.submit.call_args
+        assert submitted is not None, "no fetch was submitted"
+        return submitted[0][0]
+
+    def test_fetch_with_session_hints_resolve(self):
+        """get_type_hints on the nested fetch helper must not raise NameError."""
+        import typing
+
+        from fetchers.fetcher import FetchResult
+
+        fetch_with_session = self._capture_fetch_with_session()
+        assert fetch_with_session.__name__ == "_fetch_with_session"
+
+        hints = typing.get_type_hints(fetch_with_session)
+
+        assert hints["url"] is str
+        assert hints["return"] is FetchResult
+
+    def test_every_annotation_name_is_bound_in_the_module(self):
+        """No annotation in the module may name something it never imported."""
+        import ast
+        import builtins
+        import importlib
+        import inspect
+
+        module = importlib.import_module("processors.config_processor")
+        tree = ast.parse(inspect.getsource(module))
+
+        unresolved = []
+        for func in ast.walk(tree):
+            if not isinstance(func, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            args = func.args
+            annotated = [
+                *args.posonlyargs,
+                *args.args,
+                *args.kwonlyargs,
+                args.vararg,
+                args.kwarg,
+                func.returns,
+            ]
+            for node in annotated:
+                if node is None:
+                    continue
+                annotation = node.annotation if isinstance(node, ast.arg) else node
+                if annotation is None:
+                    continue
+                for sub in ast.walk(annotation):
+                    if (
+                        isinstance(sub, ast.Name)
+                        and not hasattr(builtins, sub.id)
+                        and sub.id not in vars(module)
+                    ):
+                        unresolved.append(f"{func.name}(): {sub.id} (line {sub.lineno})")
+
+        assert unresolved == [], f"annotations naming undefined objects: {unresolved}"

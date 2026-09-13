@@ -235,6 +235,9 @@ def _run_pipeline_and_upload(
             # progressive files were already uploaded — this catches
             # bypass-all.txt, URLS.txt, servers.txt, and any files that
             # were overwritten by the final verification step)
+            # github_handler is assigned in the `elif not dry_run` branch above;
+            # restated so the Optional narrows.
+            assert github_handler is not None
             failures = github_handler.upload_multiple_files(file_pairs)
             if failures > 0:
                 log(f"ERROR: {failures} upload(s) failed")

@@ -333,7 +333,7 @@ def download_all_configs(
         f"DOWNLOAD COMPLETE: {total_downloaded} configs from {len(numbered_configs_with_urls)} sources in {fetch_elapsed:.2f}s"
     )
 
-    if scan_for_telegram_proxies:
+    if scraper is not None:
         all_mtproto_proxies = scraper.deduplicate_proxies(all_mtproto_proxies)
         all_socks5_proxies = scraper.deduplicate_proxies(all_socks5_proxies)
         log(

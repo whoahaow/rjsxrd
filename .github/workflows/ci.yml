@@ -51,7 +51,7 @@ jobs:
           ../.venv/bin/python -m pytest -q
 
       - name: Dependency audit
-        run: .venv/bin/pip-audit -r source/requirements.txt
+        run: .venv/bin/pip-audit -r source/requirements-dev.txt
 
       - name: Lint
         # Non-blocking: 46 known findings — 41 in the test files (card K14) and

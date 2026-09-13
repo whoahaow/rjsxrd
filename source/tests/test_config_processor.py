@@ -1695,7 +1695,7 @@ class TestTelegramScrapeErrorHandling:
     """The telegram proxy scraper wraps extract_proxies in try/except so a
     single bad URL doesn't kill the whole fetch."""
 
-    def test_scrape_error_does_not_crash_fetch(self, tmp_path):
+    def test_scrape_error_does_not_crash_fetch(self, tmp_path) -> None:
         """If the telegram scraper raises, the fetch loop continues and
         the error is logged (not silently swallowed)."""
         from unittest.mock import MagicMock, patch
@@ -1713,7 +1713,7 @@ class TestTelegramScrapeErrorHandling:
         mock_result.text = "vless://u@h.com:443"
         mock_result.error = ""
 
-        test_seen = set()
+        test_seen: set[str] = set()
         test_lock = __import__("threading").Lock()
         test_target: list = []
         test_extra: list = []

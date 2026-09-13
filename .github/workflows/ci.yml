@@ -45,76 +45,26 @@ jobs:
       - name: Format check
         run: .venv/bin/ruff format --check .
 
-      - name: Type check (ratchet)
-        # Blocking, and deliberately narrow. Every module listed here is at zero
-        # type errors; the list may only grow. `--follow-imports=silent` keeps
-        # the check scoped to the listed files, so a module can join the list
-        # without inheriting the residual of everything it imports.
+      - name: Type check
+        # Whole-tree, not a ratchet. The path list this step used to carry
+        # existed to migrate a residual that is gone, and a list is the weaker
+        # gate by construction: it covers the files on it and cannot see a
+        # module that is not. The proof is reproducible — at the revision the
+        # burn-down started from (60a69368) the 27-module list exited 0
+        # ("Success: no issues found in 27 source files") while `mypy .`
+        # reported 87 errors in 22 files.
         #
-        # Residual measured after the last extension: 0 errors in 88 source
-        # files. The 87-error residual this list used to sit beside is fully
-        # burned down — 37 assignment, 19 arg-type, 17 var-annotated,
-        # 13 no-any-return, 1 return-value — and every module that carried it
-        # joined the list, as did the test module that carried the five
-        # annotation-unchecked notes. Appended below the original 27 entries,
-        # in the same order.
+        # `--follow-imports=silent` is gone with the list: it was there so a
+        # listed module was judged on its own code instead of inheriting the
+        # residual of everything it imports. With no residual left to inherit,
+        # the tree is judged as one program, which is what the gate is for.
         #
-        # The four `cast()`s in utils/ip_verifier.py, which used to launder
-        # untyped response fields into a declared `str | None`, are now real
-        # isinstance narrowing. No `# type: ignore` was added to reach zero.
+        # `strict`, `disallow_untyped_defs` and `check_untyped_defs` stay off —
+        # see [tool.mypy]: each multiplies the error count instead of revealing
+        # new defects, so they are tracked separately.
         run: |
           cd source
-          ../.venv/bin/python -m mypy --follow-imports=silent \
-            config/settings.py \
-            fetchers/daily_repo_fetcher.py \
-            fetchers/sstap_scraper.py \
-            fetchers/telegram_proxy_scraper.py \
-            fetchers/upstream_aggregator.py \
-            fetchers/yaml_converter.py \
-            scripts/benchmark_configs.py \
-            scripts/purge_dead_urls.py \
-            scripts/test_telegram_proxies.py \
-            utils/_sni_worker.py \
-            utils/config_helpers.py \
-            utils/config_tagger.py \
-            utils/curl_import.py \
-            utils/file_utils.py \
-            utils/git_updater.py \
-            utils/ip_verifier.py \
-            utils/managed_process.py \
-            utils/process_registry.py \
-            utils/progress.py \
-            utils/proxy_monitor.py \
-            utils/psutil_available.py \
-            utils/resource_monitor.py \
-            utils/security_filter.py \
-            utils/smart_eta.py \
-            utils/system_specs.py \
-            utils/telegram_notifier.py \
-            utils/vpn_config.py \
-            main.py \
-            fetchers/fetcher.py \
-            processors/config_processor.py \
-            processors/telegram_proxy_processor.py \
-            scripts/analyze_url_stats.py \
-            scripts/purge_stale_urls.py \
-            tests/test_config_processor.py \
-            utils/bypass_builder.py \
-            utils/download_xray.py \
-            utils/executor_cache.py \
-            utils/file_writer.py \
-            utils/git_auto_cleaner.py \
-            utils/github_handler.py \
-            utils/health_check.py \
-            utils/logger.py \
-            utils/protocol_parsers.py \
-            utils/proxy_detector.py \
-            utils/simple_tester.py \
-            utils/telegram_proxy_verifier.py \
-            utils/url_stats.py \
-            utils/xray_batch.py \
-            utils/xray_helpers.py \
-            utils/xray_tester.py
+          ../.venv/bin/python -m mypy .
 
       - name: Tests
         # Coverage is folded into this run and reported, not gated: the

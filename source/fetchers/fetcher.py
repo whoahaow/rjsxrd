@@ -27,11 +27,18 @@ class FetchResult:
 
 
 def _extract_status(exc: Exception) -> int:
-    """Extract HTTP status code from various exception types."""
-    if hasattr(exc, "response") and hasattr(exc.response, "status_code"):
-        return exc.response.status_code
-    if hasattr(exc, "status_code"):
-        return exc.status_code
+    """Extract HTTP status code from various exception types.
+
+    Both clients are untyped here, so the attribute is read and validated
+    rather than assumed; `0` is this module's "unknown status" sentinel.
+    """
+    response = getattr(exc, "response", None)
+    status = getattr(response, "status_code", None)
+    if isinstance(status, int):
+        return status
+    status = getattr(exc, "status_code", None)
+    if isinstance(status, int):
+        return status
     return 0
 
 
@@ -165,7 +172,8 @@ def _fetch_via_api(
 
             raw_resp = sess.get(api_url, timeout=timeout * 3, headers=raw_headers)
             raw_resp.raise_for_status()
-            return raw_resp.text
+            body = raw_resp.text
+            return body if isinstance(body, str) else None
 
         return None
     except Exception as e:
@@ -189,7 +197,7 @@ def build_session(max_pool_size: int = 4, proxy_url: str | None = None) -> Sessi
     effective_proxy = proxy_url or _get_env_proxy()
 
     # Create curl_cffi session with Chrome impersonation
-    session = Session(impersonate="chrome124")
+    session: Session = Session(impersonate="chrome124")
 
     # Configure proxy if present
     if effective_proxy:

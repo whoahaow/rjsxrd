@@ -1743,3 +1743,54 @@ class TestTelegramScrapeErrorHandling:
         assert scrape_log_calls, (
             f"expected scrape error to be logged, got: {mock_log.call_args_list}"
         )
+
+
+class TestStageTelegramProxy:
+    """stage_telegram_proxy must actually have TelegramProxyProcessor in scope.
+
+    The stage constructs the processor by name, and its error handler only
+    catches OSError/ValueError/RuntimeError — so an unimported name escaped as
+    a NameError and killed the whole pipeline whenever the tg-proxy flag was on.
+    """
+
+    def test_stage_runs_and_writes_its_files(self, tmp_path):
+        """With the flag on, the stage completes instead of raising NameError."""
+        from unittest.mock import MagicMock
+
+        from processors import config_processor
+        from processors.config_processor import ConfigPipeline
+
+        pipeline = ConfigPipeline(
+            output_dir=str(tmp_path), flag_overrides={"ENABLE_TG_PROXY": True}
+        )
+        assert pipeline.enable_tg_proxy is True
+
+        # Keep the stage offline: no scraper, no telegram URL list.
+        scraper = MagicMock()
+        scraper.extract_proxies.return_value = ([], [])
+        scraper.deduplicate_proxies.side_effect = lambda proxies: proxies
+
+        with (
+            patch(
+                "processors.telegram_proxy_processor.TelegramProxyScraper",
+                MagicMock(return_value=scraper),
+            ),
+            patch.object(config_processor, "TELEGRAM_PROXY_URLS", []),
+            patch.object(config_processor, "log"),
+        ):
+            elapsed = pipeline.stage_telegram_proxy()
+
+        assert elapsed >= 0.0
+        assert pipeline.telegram_proxy_files
+        assert all(os.path.isfile(path) for path in pipeline.telegram_proxy_files)
+
+    def test_stage_is_disabled_without_the_flag(self, tmp_path):
+        """The flag still short-circuits the stage before it touches anything."""
+        from processors.config_processor import ConfigPipeline
+
+        pipeline = ConfigPipeline(
+            output_dir=str(tmp_path), flag_overrides={"ENABLE_TG_PROXY": False}
+        )
+
+        assert pipeline.stage_telegram_proxy() == 0.0
+        assert pipeline.telegram_proxy_files == []

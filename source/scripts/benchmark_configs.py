@@ -30,8 +30,8 @@ def load_configs(path: str, count: int | None = None) -> list[str]:
 
 
 def run_xray(path: str, count: int | None) -> None:
+    from utils.bypass_builder import verify_config_file
     from utils.download_xray import ensure_xray_installed
-    from processors.config_processor import _verify_config_file
 
     xray_path = ensure_xray_installed()
     if not xray_path:
@@ -43,7 +43,7 @@ def run_xray(path: str, count: int | None) -> None:
     log(f"testing {len(configs)} configs with xray...")
 
     start = time.time()
-    working = _verify_config_file(path)  # reads from file
+    working = verify_config_file(path)  # reads from file
     elapsed = time.time() - start
 
     log(f"\n{'=' * 60}")

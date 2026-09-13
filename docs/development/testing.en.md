@@ -73,8 +73,8 @@ The coverage number depends on what is measured, and the two are not comparable:
 
 | Command | Scope | Coverage |
 |---------|-------|----------|
-| `pytest --cov=fetchers --cov=utils` | two packages | **56 %** (5567 statements, 2433 missed) |
-| `pytest --cov=.` (what CI runs) | all of `source/` | **72 %** (12452 statements, 3436 missed) |
+| `pytest --cov=fetchers --cov=utils` | two packages | **55 %** (5588 statements, 2313 missed, 1880 branches) |
+| `pytest --cov=.` (what CI runs) | all of `source/` | **69 %** (12609 statements, 3310 missed, 2738 branches) |
 
 ## Manual testing utilities
 
@@ -125,20 +125,23 @@ cd source
 ../.venv/Scripts/python.exe -m mypy .   # full report for the current tree
 ```
 
-CI runs `mypy` as a blocking gate over an explicit list of modules that report
-**zero** errors (`Type check (ratchet)` in `.github/workflows/ci.yml`). The list
-is a ratchet: it may only grow. A module joins it once it is clean, and CI then
-fails if a new error appears in a module already on it. The gate passes
-`--follow-imports=silent` so a listed module is judged on its own code instead of
-inheriting the residual of everything it imports.
+CI runs `mypy` as a blocking gate over the **whole tree** (`Type check` in
+`.github/workflows/ci.yml`): an error in any module fails the step. The path list
+that used to sit here is the weaker gate by construction — a list covers the
+files on it and cannot see a module that is not on it.
+
+The list existed to migrate a residual that is gone (0 errors across the tree),
+which is why the check now runs over the tree. The proof is reproducible: at the
+revision the burn-down started from (`60a69368`), the 27-module list exited 0
+(`Success: no issues found in 27 source files`) while `mypy .` reported **87
+errors in 22 files**.
 
 `strict`, `disallow_untyped_defs` and `check_untyped_defs` are deliberately not
 enabled: each multiplies the error count rather than surfacing new defects, so
-strictness is staged. The residual across the tree is the hygiene families
-(`assignment`, `arg-type`, `var-annotated`, `no-any-return`, `return-value`); the
-`name-defined` findings that used to sit alongside them were defects and are
-resolved. The error and file counts move from card to card — measure them with
-the command above instead of carrying a number over from a document.
+strictness is staged. The `name-defined` findings that used to sit in the
+residual were defects and are resolved. The error and file counts move from card
+to card — measure them with the command above instead of carrying a number over
+from a document.
 
 ## Warnings
 

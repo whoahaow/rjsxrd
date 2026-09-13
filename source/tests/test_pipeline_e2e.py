@@ -107,6 +107,12 @@ OUTPUT_FLAGS: dict[str, bool] = {
 # ``OUTPUT_FLAGS`` with the split stage live, for the run that asserts it.
 SPLIT_FLAGS: dict[str, bool] = {**OUTPUT_FLAGS, "ENABLE_PROTOCOL_SPLIT": True}
 
+# A ``max_size_mb`` small enough that no bucket fits, injected into the split
+# stage by the run that asserts its cap bites. The production cap
+# (``MAX_FILE_SIZE_MB``, 49.0) is not something a test fixture can reach — and
+# the parameter exists so that it does not have to.
+SPLIT_CAP_MB = 0.00005
+
 # What a full run publishes, as remote paths. Derived files (the numbered
 # default/ shards) are matched by prefix instead of being pinned by name.
 EXPECTED_REMOTE_PATHS = frozenset(
@@ -573,6 +579,53 @@ class TestProtocolSplitUploadPairs:
         assert not [
             pair for pair in file_pairs if pair[1].startswith("githubmirror/split-by-protocols/")
         ]
+
+    def test_an_over_cap_bucket_splits_and_every_pair_points_at_a_file(
+        self, pipeline_seams: dict[str, Any], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The cap the stage was handed and dropped, on a run that really splits.
+
+        ``max_size_mb`` is injected small through the real callable, so a bucket
+        genuinely splits. What is asserted is the uploader's contract — every
+        pair's local side exists on disk — plus the split itself: with the cap
+        ignored the bucket stays whole and there is nothing to check.
+        """
+        split_with_cap = config_processor.create_protocol_split_files
+
+        def _with_split_cap(
+            configs: list[str], output_dir: str, max_size_mb: float = SPLIT_CAP_MB
+        ) -> list[tuple[str, str]]:
+            return split_with_cap(configs, output_dir, max_size_mb=max_size_mb)
+
+        monkeypatch.setattr(config_processor, "create_protocol_split_files", _with_split_cap)
+
+        uploads: list[tuple[str, str]] = []
+        out, file_pairs = run_pipeline(
+            tmp_path,
+            flag_overrides=SPLIT_FLAGS,
+            upload_fn=lambda local, remote: uploads.append((local, remote)),
+        )
+
+        bucket = sorted(
+            path.name
+            for path in (out / "split-by-protocols").glob("vless-*.txt")
+            if "secure" not in path.name
+        )
+        assert len(bucket) > 1, f"the injected cap did not split the vless bucket: {bucket}"
+
+        split_pairs = [
+            pair for pair in file_pairs if pair[1].startswith("githubmirror/split-by-protocols/")
+        ]
+        local_by_name = {Path(remote).name: local for local, remote in split_pairs}
+        for name in bucket:
+            assert name in local_by_name, f"the split file {name} contributes no pair"
+            assert Path(local_by_name[name]).is_file(), name
+        for local, _remote in file_pairs:
+            assert Path(local).is_file(), f"no file at the local side of {local!r}"
+        uploaded = {remote for _, remote in uploads}
+        assert {remote for _, remote in split_pairs} <= uploaded, (
+            "the pre-verify upload loop never saw the split pairs"
+        )
 
 
 class TestUploadPairs:

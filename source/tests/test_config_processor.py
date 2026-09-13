@@ -1,6 +1,7 @@
 """Unit tests for config processor."""
 
 import os
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -1687,9 +1688,7 @@ class TestProtocolSplitEmptyInput:
         [[], ["https://example.invalid/subscription"], ["not a config at all"]],
         ids=["no-configs", "no-vpn-configs", "garbage"],
     )
-    def test_the_stage_writes_nothing_and_does_not_raise(
-        self, tmp_path, monkeypatch, configs
-    ):
+    def test_the_stage_writes_nothing_and_does_not_raise(self, tmp_path, monkeypatch, configs):
         """The split flag on, zero mappable configs: no files, no exception."""
         monkeypatch.setattr(
             "processors.config_processor.URLStats",
@@ -1704,6 +1703,44 @@ class TestProtocolSplitEmptyInput:
         assert pipeline.stage_protocol_split() == 0.0
         assert pipeline.protocol_files == []
         assert not (tmp_path / "split-by-protocols").exists()
+
+
+class TestProtocolSplitSizeCap:
+    """The stage's size cap, which its worker was handed and never consulted.
+
+    ``max_size_mb`` is a parameter so a test can inject one small enough to
+    split a bucket without a fixture anywhere near ``MAX_FILE_SIZE_MB`` (49.0).
+    The subscription-file path already honours the same cap; a protocol bucket
+    is the same kind of output, and it is the only one that ignored it.
+    """
+
+    def test_an_over_cap_bucket_splits_and_every_pair_is_on_disk(self, tmp_path):
+        configs = [f"vless://u{i}@h.example.invalid:443?security=tls#c{i}" for i in range(12)]
+
+        pairs = create_protocol_split_files(configs, str(tmp_path), max_size_mb=0.0002)
+
+        # A protocol has two buckets — all configs and secure-only — and both are
+        # over the injected cap here, so both are written as numbered parts.
+        names = [os.path.basename(local) for local, _ in pairs]
+        unsecure = [name for name in names if "secure" not in name]
+        secure = [name for name in names if "secure" in name]
+        assert unsecure == [f"vless-{n}.txt" for n in range(1, len(unsecure) + 1)], names
+        assert secure == [f"vless-secure-{n}.txt" for n in range(1, len(secure) + 1)], names
+        assert len(unsecure) > 1 and len(secure) > 1, (
+            f"the injected cap did not split the buckets: {names}"
+        )
+
+        for local, remote in pairs:
+            assert os.path.isfile(local), f"no file at the local side of {local!r}"
+            assert remote == f"githubmirror/split-by-protocols/{os.path.basename(local)}"
+
+        # Nothing may be lost on the way through the splitter.
+        written = "".join(Path(local).read_text(encoding="utf-8") for local, _ in pairs)
+        for config in configs:
+            assert config in written
+        # The split replaced the files: neither unsplit name is left behind.
+        assert not (tmp_path / "split-by-protocols" / "vless.txt").exists()
+        assert not (tmp_path / "split-by-protocols" / "vless-secure.txt").exists()
 
 
 class TestPathInOutput:

@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 
 from config.settings import GITHUBMIRROR_DIR
 from utils.config_helpers import path_in_output
-from utils.file_utils import is_valid_vpn_config_url
+from utils.file_utils import is_valid_vpn_config_url, split_and_replace_file
 from utils.logger import log
 
 
@@ -165,12 +165,18 @@ def create_numbered_default_files(
     return [p for p in results if p]
 
 
-def _write_protocol_file(args) -> str | None:
-    """Worker: write one protocol split file. Module-level for pickling."""
+def _write_protocol_file(args) -> list[str]:
+    """Worker: write one protocol split file, splitting it at ``max_size_mb``.
+
+    Returns every path the write left on disk — one when the bucket fits,
+    several (``vless-1.txt``, ``vless-2.txt``, ...) when it had to be split, and
+    an empty list when nothing was written. The split deletes the unsplit file,
+    so the returned paths replace it rather than joining it.
+    """
     protocol, configs, output_dir, max_size_mb, is_secure = args
     valid = [cfg for cfg in configs if is_valid_vpn_config_url(cfg)]
     suffix = "-secure" if is_secure else ""
     filepath = path_in_output(output_dir, "split-by-protocols", f"{protocol}{suffix}.txt")
     header = get_subscription_header(f"{protocol}{suffix}", config_count=len(valid))
     write_configs_file(filepath, valid, header)
-    return filepath
+    return split_and_replace_file(filepath, max_size_mb)

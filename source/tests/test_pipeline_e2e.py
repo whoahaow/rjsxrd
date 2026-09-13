@@ -34,9 +34,11 @@ documented output tree — ``default/``, ``bypass/raw/``, ``bypass/``,
 
 from __future__ import annotations
 
+import inspect
+import os
 import socket
 import subprocess
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
@@ -48,6 +50,8 @@ import main as main_module
 from fetchers.fetcher import FetchResult
 from processors import config_processor
 from processors.telegram_proxy_processor import ProxyEntry, TelegramProxyProcessor
+from utils import bypass_builder, file_writer
+from utils.file_utils import load_cidr_whitelist
 from utils.url_stats import URLStats
 
 # --- Canned sources -----------------------------------------------------------
@@ -317,6 +321,51 @@ def run_pipeline(
     return out, file_pairs
 
 
+@pytest.fixture
+def foreign_cwd(tmp_path: Path) -> Iterator[Path]:
+    """Run a test inside a directory that has nothing to do with the checkout.
+
+    Restored in teardown rather than at the end of the test body: a leaked
+    ``chdir`` poisons every test that follows it, nondeterministically.
+    """
+    foreign = tmp_path / "foreign"
+    foreign.mkdir()
+    original = os.getcwd()
+    os.chdir(foreign)
+    try:
+        yield foreign
+    finally:
+        os.chdir(original)
+
+
+def _normalized(path: str | Path) -> str:
+    """Comparison key for paths: case- and separator-insensitive on Windows."""
+    return os.path.normcase(os.path.abspath(str(path)))
+
+
+def _output_dir_defaults() -> dict[str, Any]:
+    """Every production callable that carries a default output directory.
+
+    Nine sites spell the literal out in the audit's list; a second pass found
+    two more (the Telegram proxy processor and the numbered default writer).
+    Each is inspected rather than trusted to a grep, because a default binds at
+    import time and only the callable knows what it holds.
+    """
+    return {
+        "main.main": main_module.main,
+        "process_all_configs": config_processor.process_all_configs,
+        "ConfigPipeline.__init__": config_processor.ConfigPipeline.__init__,
+        "download_all_configs": config_processor.download_all_configs,
+        "_write_subscription_file": config_processor._write_subscription_file,
+        "create_all_configs_file": config_processor.create_all_configs_file,
+        "create_secure_configs_file": config_processor.create_secure_configs_file,
+        "create_protocol_split_files": config_processor.create_protocol_split_files,
+        "create_working_config_files": bypass_builder.create_working_config_files,
+        "create_numbered_default_files": file_writer.create_numbered_default_files,
+        "TelegramProxyProcessor.__init__": TelegramProxyProcessor.__init__,
+    }
+
+
 # --- Tests --------------------------------------------------------------------
 
 
@@ -467,6 +516,108 @@ class TestUploadPairs:
         assert (out / "default" / "all.txt").is_file()
         announced = main_seams["notify_success"].call_args.args[0]
         assert announced.endswith("configs working")
+
+
+class TestPathResolution:
+    """Output and source paths must not depend on the process directory.
+
+    The tool runs from a cron entry, a service wrapper, an IDE runner and the
+    repository root, and the working directory of those launches has nothing to
+    do with the checkout. The output directory defaults and the two
+    ``source/config/*.txt`` upload sources used to be relative literals, so a
+    different cwd silently published nothing, or wrote the generated tree
+    outside the repository.
+    """
+
+    def test_every_production_default_points_into_the_repository(self) -> None:
+        """One definition, and every default derives from it."""
+        expected_output = _normalized(Path(settings.REPO_ROOT, "githubmirror"))
+
+        for name, callable_ in _output_dir_defaults().items():
+            default = inspect.signature(callable_).parameters["output_dir"].default
+            assert isinstance(default, str), f"{name} default is not a path: {default!r}"
+            assert Path(default).is_absolute(), f"{name} default is relative: {default!r}"
+            assert _normalized(default) == expected_output, name
+
+        assert _normalized(settings.GITHUBMIRROR_DIR) == expected_output
+        assert _normalized(settings.QR_CODES_DIR) == _normalized(
+            Path(settings.REPO_ROOT, "qr-codes")
+        )
+        assert _normalized(settings.SOURCE_CONFIG_DIR) == _normalized(
+            Path(settings.REPO_ROOT, "source", "config")
+        )
+
+    def test_defaults_match_the_documented_invocation(self) -> None:
+        """Run from ``source/``, every path must land where it lands today.
+
+        ``../githubmirror`` and ``../qr-codes`` resolved from ``<repo>/source``
+        are ``<repo>/githubmirror`` and ``<repo>/qr-codes``; the derived
+        constants must produce exactly those, so this fix cannot move a single
+        published file for the documented invocation.
+        """
+        source_dir = settings.SOURCE_DIR
+
+        assert _normalized(settings.GITHUBMIRROR_DIR) == _normalized(
+            os.path.join(source_dir, "..", "githubmirror")
+        )
+        assert _normalized(settings.QR_CODES_DIR) == _normalized(
+            os.path.join(source_dir, "..", "qr-codes")
+        )
+        # The CIDR whitelist default was "../source/config/cidrwhitelist.txt".
+        assert _normalized(settings.SOURCE_CONFIG_DIR) == _normalized(
+            os.path.join(source_dir, "..", "source", "config")
+        )
+
+    def test_the_two_config_upload_sources_are_absolute_repo_files(
+        self, pipeline_seams: dict[str, Any], foreign_cwd: Path, tmp_path: Path
+    ) -> None:
+        """The URLS.txt / servers.txt pairs resolve from any directory."""
+        _, file_pairs = run_pipeline(tmp_path)
+
+        pairs = {
+            remote: local for local, remote in file_pairs if remote.startswith("source/config/")
+        }
+        assert set(pairs) == {"source/config/URLS.txt", "source/config/servers.txt"}
+        assert _normalized(pairs["source/config/URLS.txt"]) == _normalized(
+            Path(settings.SOURCE_CONFIG_DIR, "URLS.txt")
+        )
+        assert _normalized(pairs["source/config/servers.txt"]) == _normalized(
+            Path(settings.SOURCE_CONFIG_DIR, "servers.txt")
+        )
+        for local in pairs.values():
+            assert Path(local).is_file()
+
+    def test_a_run_from_a_foreign_cwd_writes_nothing_outside_the_output_dir(
+        self, pipeline_seams: dict[str, Any], foreign_cwd: Path, tmp_path: Path
+    ) -> None:
+        """The inverse assertion: a chdir must not steer a single side effect.
+
+        Both entries the run is allowed to add under ``tmp_path`` are its own
+        sandbox: ``out/`` is the output directory the test passed, and
+        ``url_stats.json`` is where the fixture redirected the stats file. A
+        ``qr-codes/`` or ``githubmirror/`` entry here is the defect — the old
+        literals put them next to whatever directory the process was launched
+        from.
+        """
+        before = {path.name for path in tmp_path.iterdir()}
+
+        out, _ = run_pipeline(tmp_path)
+
+        after = {path.name for path in tmp_path.iterdir()}
+        assert after - before == {"out", "url_stats.json"}
+        assert out.is_dir()
+        assert not (tmp_path / "qr-codes").exists()
+        assert not (tmp_path / "githubmirror").exists()
+
+    def test_the_cidr_whitelist_default_resolves_from_any_cwd(self, foreign_cwd: Path) -> None:
+        """The third relative literal: the CIDR whitelist path.
+
+        ``load_cidr_whitelist()`` defaulted to ``"../source/config/..."``, which
+        is only correct from ``source/``. From any other directory the default
+        must still find the repository's whitelist — a non-empty result proves
+        it, because a missing file is logged and turned into an empty set.
+        """
+        assert load_cidr_whitelist()
 
 
 class TestGuardsAndSideEffects:

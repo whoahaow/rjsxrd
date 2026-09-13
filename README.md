@@ -435,11 +435,12 @@ source/               - исходный код генератора
  │   ├─ purge_stale_urls.py - очистка по git timestamp
  │   ├─ setup-vps.sh   - скрипт развёртывания на VPS
  │   └─ test_telegram_proxies.py - тестирование Telegram прокси
- ├─ tests/            - unit-тесты (724 теста, 31 файл)
+ ├─ tests/            - unit-тесты (729 тестов, 32 файла)
  │   ├─ __init__.py
  │   ├─ conftest.py   - фикстуры и конфигурация pytest
  │   ├─ test_config_processor.py
  │   ├─ test_config_tagger.py
+ │   ├─ test_docs_figures.py
  │   ├─ test_executor_cache.py
  │   ├─ test_fetcher.py
  │   ├─ test_file_utils.py
@@ -535,7 +536,7 @@ cd source && ../.venv/Scripts/python.exe main.py   # конфиги появят
 
 #### Запуск тестов
 
-Проект включает набор unit-тестов для проверки корректности работы основных модулей (724 теста, 31 файл; замер — `pytest -q`):
+Проект включает набор unit-тестов для проверки корректности работы основных модулей (729 тестов, 32 файла; замер — `pytest -q`):
 
 ```bash
 # тестовый тулчейн — из корня репозитория

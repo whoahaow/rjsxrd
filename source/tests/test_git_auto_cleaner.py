@@ -3,20 +3,12 @@
 Covers: is_auto_message (only ^auto: update ), squash_auto_commits edge cases.
 """
 
-import subprocess
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
+from tests.support import make_result
 from utils.git_auto_cleaner import is_auto_message, squash_auto_commits
 
 # ── Helpers ───────────────────────────────────────────────────────────
-
-
-def _make_result(returncode=0, stdout="", stderr=""):
-    r = MagicMock(spec=subprocess.CompletedProcess)
-    r.stdout = stdout
-    r.stderr = stderr
-    r.returncode = returncode
-    return r
 
 
 def _build_git_log_side_effect(messages: list):
@@ -37,13 +29,13 @@ def _build_git_log_side_effect(messages: list):
             i = log_index[0]
             log_index[0] += 1
             if i < len(messages):
-                return _make_result(0, stdout=messages[i] + "\n")
-            return _make_result(128, stderr="fatal: ambiguous argument")
+                return make_result(0, stdout=messages[i] + "\n")
+            return make_result(128, stderr="fatal: ambiguous argument")
         if isinstance(cmd, list) and cmd[:3] == ["git", "rev-parse", "--verify"]:
-            return _make_result(0, stdout="deadbeef1234567890\n")
+            return make_result(0, stdout="deadbeef1234567890\n")
         if isinstance(cmd, list) and cmd[:3] == ["git", "reset", "--soft"]:
-            return _make_result(0)
-        return _make_result(0)
+            return make_result(0)
+        return make_result(0)
 
     return side_effect
 
@@ -201,11 +193,11 @@ class TestSquashAutoCommits:
                 if isinstance(cmd, list) and cmd[:4] == ["git", "log", "-1", "--format=%s"]:
                     depth = cmd[4].count("~")
                     if depth < len(messages):
-                        return _make_result(0, stdout=messages[depth] + "\n")
-                    return _make_result(128, stderr="fatal: ambiguous argument")
+                        return make_result(0, stdout=messages[depth] + "\n")
+                    return make_result(128, stderr="fatal: ambiguous argument")
                 if isinstance(cmd, list) and cmd[:3] == ["git", "rev-parse", "--verify"]:
-                    return _make_result(128, stderr="fatal: Needed a single revision")
-                return _make_result(0)
+                    return make_result(128, stderr="fatal: Needed a single revision")
+                return make_result(0)
 
             mock_run.side_effect = side_effect
             result = squash_auto_commits(repo_dir="/fake/path")
@@ -224,15 +216,15 @@ class TestSquashAutoCommits:
                 if isinstance(cmd, list) and cmd[:4] == ["git", "log", "-1", "--format=%s"]:
                     depth = cmd[4].count("~")
                     if depth < len(messages):
-                        return _make_result(0, stdout=messages[depth] + "\n")
-                    return _make_result(128, stderr="fatal: ambiguous argument")
+                        return make_result(0, stdout=messages[depth] + "\n")
+                    return make_result(128, stderr="fatal: ambiguous argument")
                 if isinstance(cmd, list) and cmd[:3] == ["git", "rev-parse", "--verify"]:
                     assert cmd[3] == "HEAD~1~1~1"  # 3 auto commits back
-                    return _make_result(0, stdout="abc123def\n")
+                    return make_result(0, stdout="abc123def\n")
                 if isinstance(cmd, list) and cmd[:3] == ["git", "reset", "--soft"]:
                     assert cmd[3] == "abc123def"
-                    return _make_result(0)
-                return _make_result(0)
+                    return make_result(0)
+                return make_result(0)
 
             mock_run.side_effect = side_effect
             result = squash_auto_commits(repo_dir="/fake/path")

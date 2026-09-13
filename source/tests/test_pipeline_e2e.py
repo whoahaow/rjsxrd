@@ -29,7 +29,8 @@ the ``MAX_CONFIGS_PER_FILE`` (300) working configs that seal ``bypass-{N}.txt``
 split files, so the progressive-seal path stays unexercised here (it has its
 own unit tests in ``test_config_processor.py``). Everything else on the
 documented output tree — ``default/``, ``bypass/raw/``, ``bypass/``,
-``bypass-unsecure/``, ``tg-proxy/`` — is written and asserted.
+``bypass-unsecure/``, ``split-by-protocols/``, ``tg-proxy/`` — is written and
+asserted.
 """
 
 from __future__ import annotations
@@ -38,7 +39,7 @@ import inspect
 import os
 import socket
 import subprocess
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
@@ -92,8 +93,9 @@ MANUAL_CONFIGS = (
     "trojan://manual-secret@m.example.invalid:443?security=tls&sni=m.example.invalid#manual",
 )
 
-# All output folders on except the protocol split — see the class docstring of
-# TestPipelineOutputTree for why that one flag cannot be exercised yet.
+# Every flag-gated folder on except the protocol split. That one is switched on
+# for a single run by TestProtocolSplitUploadPairs, which is the test that
+# exercises the stage and its upload pairs.
 OUTPUT_FLAGS: dict[str, bool] = {
     "ENABLE_DEFAULT_FILES": True,
     "ENABLE_BYPASS_UNSECURE": True,
@@ -101,6 +103,9 @@ OUTPUT_FLAGS: dict[str, bool] = {
     "ENABLE_TG_PROXY": True,
     "PUBLISH_RAW_FILES": True,
 }
+
+# ``OUTPUT_FLAGS`` with the split stage live, for the run that asserts it.
+SPLIT_FLAGS: dict[str, bool] = {**OUTPUT_FLAGS, "ENABLE_PROTOCOL_SPLIT": True}
 
 # What a full run publishes, as remote paths. Derived files (the numbered
 # default/ shards) are matched by prefix instead of being pinned by name.
@@ -308,8 +313,15 @@ def run_pipeline(
     *,
     output_dir: str | None = None,
     flag_overrides: dict[str, bool] | None = None,
+    upload_fn: Callable[[str, str], None] | None = None,
 ) -> tuple[Path, list[tuple[str, str]]]:
-    """Run the pipeline offline against a temporary output directory."""
+    """Run the pipeline offline against a temporary output directory.
+
+    ``upload_fn`` is the production pre-verify upload callback (``main`` hands
+    one to every non-dry run). Passing it makes the pipeline iterate
+    ``file_pairs`` itself, so a malformed entry fails the run instead of only
+    the assertion that reads the returned list.
+    """
     out = Path(output_dir) if output_dir else tmp_path / "out"
     file_pairs = config_processor.process_all_configs(
         output_dir=str(out),
@@ -317,6 +329,7 @@ def run_pipeline(
         tcp_ping=True,
         verbose=True,
         flag_overrides=dict(flag_overrides or OUTPUT_FLAGS),
+        upload_fn=upload_fn,
     )
     return out, file_pairs
 
@@ -377,13 +390,9 @@ class TestPipelineOutputTree:
     ) -> None:
         """Every documented output folder is written from the stubbed sources.
 
-        ``ENABLE_PROTOCOL_SPLIT`` stays off. ``create_protocol_split_files``
-        accumulates its upload list with ``all_file_pairs.extend(file_path)``,
-        where the worker returns a path *string* — so switching the flag on
-        contributes one entry per character to ``file_pairs`` instead of
-        ``(local, remote)`` pairs, and the pair assertions below (rightly) fail.
-        That defect belongs to the split-file writer, not to this card; it is
-        reported instead of worked around by weakening the assertion.
+        ``ENABLE_PROTOCOL_SPLIT`` is off in ``OUTPUT_FLAGS``: the split stage
+        has its own run in ``TestProtocolSplitUploadPairs``, which switches the
+        flag on and asserts the upload pairs it contributes.
         """
         out, file_pairs = run_pipeline(tmp_path)
 
@@ -468,6 +477,82 @@ class TestPipelineOutputTree:
         out, _ = run_pipeline(tmp_path)
         shards = sorted(path.name for path in (out / "bypass").glob("bypass-*.txt"))
         assert shards == ["bypass-all.txt"]
+
+
+class TestProtocolSplitUploadPairs:
+    """The split stage switched on for one run: what it publishes must be pairs.
+
+    ``ENABLE_PROTOCOL_SPLIT`` is off in ``OUTPUT_FLAGS``, so on every other run
+    in this module the stage returns early and its contribution to the upload
+    list is an empty list. Running it is what exposes the seam between
+    ``_write_protocol_file`` (which returns the path *string* it wrote, or
+    ``None``) and ``create_protocol_split_files`` (which accumulated that
+    return value): extending a list with a string contributes one entry per
+    character, so the pre-verify upload loop in ``ConfigPipeline.run`` — the
+    loop a non-dry run drives with ``upload_fn`` — dies unpacking a single
+    character, and a dry run hands the same characters to the uploaders.
+    """
+
+    def test_the_split_stage_publishes_well_formed_pairs(
+        self, pipeline_seams: dict[str, Any], tmp_path: Path
+    ) -> None:
+        """The run completes, and every entry anywhere in the list is a pair.
+
+        The shape assertion is the point of this test: a list of characters is
+        exactly what the defect produced, and it would satisfy any count-based
+        check. ``upload_fn`` makes the pipeline walk the list itself, so the
+        malformed entry fails the run and not only the assertions below.
+        """
+        uploads: list[tuple[str, str]] = []
+        out, file_pairs = run_pipeline(
+            tmp_path,
+            flag_overrides=SPLIT_FLAGS,
+            upload_fn=lambda local, remote: uploads.append((local, remote)),
+        )
+
+        assert (out / "split-by-protocols" / "vless.txt").is_file()
+        assert (out / "split-by-protocols" / "vless-secure.txt").is_file()
+
+        for entry in file_pairs:
+            assert not isinstance(entry, str), f"a bare string reached file_pairs: {entry!r}"
+            assert isinstance(entry, tuple) and len(entry) == 2, (
+                f"{entry!r} is not a (local, remote) pair"
+            )
+            local, remote = entry
+            assert isinstance(local, str) and isinstance(remote, str), f"non-string pair {entry!r}"
+            assert Path(local).is_file(), f"no file at the local side of {entry!r}"
+
+        split = [
+            pair for pair in file_pairs if pair[1].startswith("githubmirror/split-by-protocols/")
+        ]
+        assert split, "the split stage contributed no pair to the upload list"
+        for local, remote in split:
+            assert remote == f"githubmirror/split-by-protocols/{Path(local).name}", remote
+            assert not os.path.isabs(remote) and ".." not in remote, remote
+
+        uploaded = {remote for _, remote in uploads}
+        assert {remote for _, remote in split} <= uploaded, (
+            "the pre-verify upload loop never saw the split pairs"
+        )
+
+    def test_a_failed_write_contributes_no_pair(
+        self, pipeline_seams: dict[str, Any], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The ``None`` arm: a worker that wrote nothing adds nothing.
+
+        ``_write_protocol_file`` is annotated ``str | None`` and returns
+        ``None`` when there is nothing to write (``_write_numbered_file`` has
+        the same contract). The old accumulation raised ``TypeError`` on that
+        value; the pair list must simply skip it.
+        """
+        monkeypatch.setattr(config_processor, "_write_protocol_file", lambda args: None)
+
+        out, file_pairs = run_pipeline(tmp_path, flag_overrides=SPLIT_FLAGS)
+
+        assert not (out / "split-by-protocols" / "vless.txt").exists()
+        assert not [
+            pair for pair in file_pairs if pair[1].startswith("githubmirror/split-by-protocols/")
+        ]
 
 
 class TestUploadPairs:

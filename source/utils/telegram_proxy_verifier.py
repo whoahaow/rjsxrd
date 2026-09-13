@@ -257,7 +257,7 @@ class TelegramProxyVerifier:
         self,
         server: str,
         port: int,
-        hex_secret: str = None,
+        hex_secret: str | None = None,
         timeout: float = 3.0,
         proxy_type: str = "mtproto",
         username: str | None = None,
@@ -266,6 +266,11 @@ class TelegramProxyVerifier:
         """Verify single proxy asynchronously."""
         try:
             if proxy_type == "mtproto":
+                if hex_secret is None:
+                    # The MTProto handshake needs the secret: without it
+                    # _create_handshake_packet falls through to None.encode()
+                    # and the AttributeError escapes this method's except clause.
+                    return False, "ERROR: missing MTProto secret"
                 is_connected, latency = await self.async_verify_mtproto(
                     server, port, hex_secret, timeout
                 )
@@ -290,7 +295,7 @@ class TelegramProxyVerifier:
         self,
         server: str,
         port: int,
-        hex_secret: str = None,
+        hex_secret: str | None = None,
         timeout: float = 3.0,
         proxy_type: str = "mtproto",
         username: str | None = None,

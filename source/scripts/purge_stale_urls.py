@@ -84,7 +84,14 @@ def make_cache_key(parsed: tuple[str, str, str, str]) -> str:
     return f"{parsed[0]}/{parsed[1]}/{parsed[2]}/{parsed[3]}"
 
 
-def build_session() -> requests.Session:
+def build_github_session() -> requests.Session:
+    """Build the GitHub API session: token auth over verified TLS.
+
+    Deliberately the `requests` stack rather than the curl_cffi client of
+    fetchers/fetcher.py. The impersonated TLS fingerprint that client carries
+    buys nothing when talking to the GitHub API, and this script's request
+    logic has no offline test to catch a behaviour change.
+    """
     session = requests.Session()
     session.headers.update({"Accept": "application/vnd.github.v3+json"})
     if GITHUB_TOKEN:
@@ -267,7 +274,7 @@ def save_cache(cache: dict) -> None:
 
 
 def run(dry_run: bool, stale_days: int) -> None:
-    session = build_session()
+    session = build_github_session()
     cache = load_cache()
     entries = collect_github_urls()
     threshold = timedelta(days=stale_days)

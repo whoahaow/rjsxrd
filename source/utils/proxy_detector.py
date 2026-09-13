@@ -24,7 +24,7 @@ def check_port_open(host: str = "127.0.0.1", port: int = 10808, timeout: float =
         return False
 
 
-def find_active_proxy_port(host: str = "127.0.0.1", ports: list[int] = None) -> int | None:
+def find_active_proxy_port(host: str = "127.0.0.1", ports: list[int] | None = None) -> int | None:
     """Scan common proxy ports to find active one.
 
     Returns:

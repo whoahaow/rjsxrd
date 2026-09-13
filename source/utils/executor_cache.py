@@ -61,7 +61,7 @@ class ExecutorCache:
         return cls._lock
 
     @classmethod
-    def get(cls, name: str, max_workers: int = None) -> ThreadPoolExecutor:
+    def get(cls, name: str, max_workers: int | None = None) -> ThreadPoolExecutor:
         """Get cached executor by name.
 
         Args:

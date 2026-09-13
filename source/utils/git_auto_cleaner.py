@@ -65,7 +65,7 @@ def _run_git(repo_dir: str, *args: str, check: bool = False) -> subprocess.Compl
         )
 
 
-def _walk_auto_commits(repo_dir: str) -> tuple:
+def _walk_auto_commits(repo_dir: str) -> tuple[int, str]:
     """Walk back from HEAD counting contiguous auto commits.
 
     Stops at the first non-auto commit, at root (no parent), or after

@@ -84,7 +84,7 @@ def run(top_n: int, dead_only: bool) -> None:
 
 def _build_section_map(urls_txt_path: str) -> dict:
     """Map each URL in URLS.txt to its section label."""
-    section_map = {}
+    section_map: dict[str, str] = {}
     if not os.path.exists(urls_txt_path):
         return section_map
 
@@ -147,7 +147,7 @@ def _print_totals(
 
 
 def _print_by_section(by_yield: list) -> None:
-    sections = {}
+    sections: dict[str, dict[str, int]] = {}
     for raw, sec, ver, section, _ in by_yield:
         s = sections.setdefault(section, {"urls": 0, "raw": 0, "sec": 0, "ver": 0})
         s["urls"] += 1

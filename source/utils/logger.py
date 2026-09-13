@@ -37,14 +37,14 @@ _LEVEL_NAMES_INT: dict[int, str] = {int(k): v for k, v in _LEVEL_NAMES.items()}
 
 
 # In-memory log storage for backward compatibility (tests read from this)
-LOGS_BY_FILE = defaultdict(list)
+LOGS_BY_FILE: defaultdict[int, list[str]] = defaultdict(list)
 
 # Current log level (can be adjusted via environment or config)
 CURRENT_LOG_LEVEL = LogLevel.INFO
 
 # Regular expression to extract file index from message
 _GITHUBMIRROR_INDEX_RE = re.compile(r"githubmirror/(\d+)\.txt")
-updated_files = set()
+updated_files: set[str] = set()
 
 # --- Stdlib logging setup (thin backend) ---
 _logger = logging.getLogger("rjsxrd")

@@ -117,7 +117,7 @@ class _PyGithubClient(_GitHubClient):
 
 
 class GitHubHandler:
-    def __init__(self, client: _GitHubClient = None) -> None:
+    def __init__(self, client: _GitHubClient | None = None) -> None:
         """Initialize GitHub handler.
 
         Args:

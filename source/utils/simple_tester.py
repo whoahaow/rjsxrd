@@ -30,7 +30,7 @@ class SimpleTester:
     interface as XrayTester.test_batch().
     """
 
-    def __init__(self, concurrency: int = None, timeout: float = 3.0) -> None:
+    def __init__(self, concurrency: int | None = None, timeout: float = 3.0) -> None:
         self.concurrency = concurrency or get_concurrency_limit()
         self.timeout = timeout
 
@@ -48,7 +48,7 @@ class SimpleTester:
             return False
 
     async def _tcp_ping_one(
-        self, host: str, port: int, sem: asyncio.Semaphore, timeout: float = None
+        self, host: str, port: int, sem: asyncio.Semaphore, timeout: float | None = None
     ) -> tuple[bool, float]:
         """TCP connect to a single host:port, return (reachable, rtt_ms)."""
         _timeout = timeout or self.timeout
@@ -73,7 +73,7 @@ class SimpleTester:
                 return False, 0.0
 
     async def run_batch_async(
-        self, targets: list[tuple[str, int, str]], timeout: float = None
+        self, targets: list[tuple[str, int, str]], timeout: float | None = None
     ) -> list[tuple[str, bool, float]]:
         """Run TCP ping on all targets concurrently with semaphore and progress bar.
 
@@ -148,7 +148,7 @@ class SimpleTester:
     def test_batch(
         self,
         configs: list[str],
-        timeout: float = None,
+        timeout: float | None = None,
         verbose: bool = False,
         progress_callback=None,
     ) -> list[tuple[str, bool, float]]:

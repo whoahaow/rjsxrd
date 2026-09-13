@@ -121,7 +121,7 @@ def check_github_token(token: str) -> bool:
     return len(token) >= 10
 
 
-def health_check(xray_path: str = None, github_token: str = None) -> dict[str, bool]:
+def health_check(xray_path: str | None = None, github_token: str | None = None) -> dict[str, bool]:
     """Perform comprehensive health check.
 
     Args:

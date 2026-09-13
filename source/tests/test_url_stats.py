@@ -89,6 +89,20 @@ class TestURLStats:
         stats = URLStats(path=str(temp_file))
         assert stats.data == {}
 
+    def test_non_object_payload_loads_as_empty_state(self, tmp_path):
+        """A stats file holding a JSON array must not become `self.data`.
+
+        `_load` is declared to return a dict and every write goes through
+        `self.data[...]`, so a list payload raises TypeError on the first
+        record instead of starting from empty state.
+        """
+        path = tmp_path / "url_stats.json"
+        path.write_text('["not", "an", "object"]', encoding="utf-8")
+
+        stats = URLStats(path=str(path))
+
+        assert stats.data == {}
+
     def test_get_low_yield_urls(self):
         stats = URLStats(path=tempfile.mktemp(suffix=".json"))
         stats.record_config_yield("https://good.com", raw=10, secure=8)

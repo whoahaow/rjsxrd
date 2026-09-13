@@ -136,9 +136,14 @@ class URLStats:
         if os.path.exists(self.path):
             try:
                 with open(self.path) as f:
-                    return json.load(f)
+                    payload = json.load(f)
             except (json.JSONDecodeError, OSError):
                 return {}
+            # The file is written by _save(), but a truncated or foreign file
+            # can hold any JSON value. Only an object is usable stats state;
+            # returning a list here would raise TypeError on the first record.
+            if isinstance(payload, dict):
+                return payload
         return {}
 
     def _save(self) -> None:

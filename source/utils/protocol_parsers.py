@@ -20,6 +20,7 @@ Note: TUIC is not natively supported by Xray-core. TUIC configs will fail testin
 """
 
 import base64
+import binascii
 import json
 from urllib.parse import parse_qs, unquote, urlparse
 
@@ -194,7 +195,7 @@ def parse_vless_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         KeyError,
         TypeError,
         json.JSONDecodeError,
-        base64.binascii.Error,
+        binascii.Error,
     ):
         return None
 
@@ -218,7 +219,7 @@ def parse_vmess_to_outbound(url: str, tag: str = "proxy") -> dict | None:
             KeyError,
             TypeError,
             json.JSONDecodeError,
-            base64.binascii.Error,
+            binascii.Error,
         ):
             return None
 
@@ -231,7 +232,7 @@ def parse_vmess_to_outbound(url: str, tag: str = "proxy") -> dict | None:
             KeyError,
             TypeError,
             json.JSONDecodeError,
-            base64.binascii.Error,
+            binascii.Error,
         ):
             return None
 
@@ -304,7 +305,7 @@ def parse_vmess_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         KeyError,
         TypeError,
         json.JSONDecodeError,
-        base64.binascii.Error,
+        binascii.Error,
     ):
         return None
 
@@ -339,7 +340,7 @@ def parse_trojan_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         KeyError,
         TypeError,
         json.JSONDecodeError,
-        base64.binascii.Error,
+        binascii.Error,
     ):
         return None
 
@@ -536,7 +537,7 @@ def parse_shadowsocks_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         KeyError,
         TypeError,
         json.JSONDecodeError,
-        base64.binascii.Error,
+        binascii.Error,
     ):
         return None
 
@@ -582,7 +583,7 @@ def parse_hysteria2_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         KeyError,
         TypeError,
         json.JSONDecodeError,
-        base64.binascii.Error,
+        binascii.Error,
     ):
         return None
 
@@ -636,7 +637,7 @@ def parse_hysteria_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         KeyError,
         TypeError,
         json.JSONDecodeError,
-        base64.binascii.Error,
+        binascii.Error,
     ):
         return None
 
@@ -664,7 +665,7 @@ def parse_ssr_to_outbound(url: str, tag: str = "proxy") -> dict | None:
             KeyError,
             TypeError,
             json.JSONDecodeError,
-            base64.binascii.Error,
+            binascii.Error,
         ):
             return None
 
@@ -709,7 +710,7 @@ def parse_ssr_to_outbound(url: str, tag: str = "proxy") -> dict | None:
             KeyError,
             TypeError,
             json.JSONDecodeError,
-            base64.binascii.Error,
+            binascii.Error,
         ):
             return None
 
@@ -739,7 +740,7 @@ def parse_ssr_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         KeyError,
         TypeError,
         json.JSONDecodeError,
-        base64.binascii.Error,
+        binascii.Error,
     ):
         return None
 

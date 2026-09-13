@@ -90,7 +90,7 @@ def fetch_latest_xray_version() -> str | None:
         with urllib.request.urlopen(req, timeout=10) as resp:
             data = json.loads(resp.read().decode())
             tag = data.get("tag_name", "")
-            if tag:
+            if isinstance(tag, str) and tag:
                 return tag
     except (urllib.error.URLError, json.JSONDecodeError, OSError, ValueError):
         pass
@@ -232,7 +232,10 @@ def _clean_xray_dir(xray_dir: Path, xray_exe: str) -> None:
 
 
 def ensure_xray_installed(
-    version=None, xray_dir=None, force=False, auto_update=True
+    version: str | None = None,
+    xray_dir: str | Path | None = None,
+    force: bool = False,
+    auto_update: bool = True,
 ) -> Path | None:
     """Ensure Xray-core is installed and up-to-date.
 
@@ -255,16 +258,20 @@ def ensure_xray_installed(
         Path: Path to xray binary if successful, None otherwise.
     """
     # Determine xray directory - always install to source/xray (sibling to utils/)
-    xray_dir = Path(__file__).parent.parent / "xray" if xray_dir is None else Path(xray_dir)
+    install_dir = Path(__file__).parent.parent / "xray" if xray_dir is None else Path(xray_dir)
 
     # Get platform info
     platform_name, filename, xray_exe = get_platform_info()
 
-    if not platform_name:
+    # get_platform_info() returns either a complete triple or (None, None, None),
+    # but only platform_name used to be checked. Validating all three keeps a
+    # partially populated entry from reaching Path() and argv as None, where the
+    # failure would surface far from the cause.
+    if not platform_name or not filename or not xray_exe:
         log(f"Error: Unsupported platform: {sys.platform} ({platform.machine()})")
         return None
 
-    xray_path = xray_dir / xray_exe
+    xray_path = install_dir / xray_exe
     target_version = version
 
     # ── Auto-update: check current vs latest ──────────────────────────
@@ -277,7 +284,7 @@ def ensure_xray_installed(
                 if cmp < 0:
                     log(f"Xray update: {current_ver} -> {latest_ver}")
                     target_version = latest_ver
-                    _clean_xray_dir(xray_dir, xray_exe)
+                    _clean_xray_dir(install_dir, xray_exe)
                 elif cmp == 0:
                     log(f"Xray {current_ver} is current")
                     return xray_path
@@ -289,11 +296,11 @@ def ensure_xray_installed(
                 return xray_path
             else:
                 log("Xray found but version unknown - re-downloading")
-                _clean_xray_dir(xray_dir, xray_exe)
+                _clean_xray_dir(install_dir, xray_exe)
         else:
             return xray_path
     elif xray_path.exists() and force:
-        _clean_xray_dir(xray_dir, xray_exe)
+        _clean_xray_dir(install_dir, xray_exe)
 
     # ── Resolve target version ───────────────────────────────────────
     if not target_version:
@@ -305,7 +312,7 @@ def ensure_xray_installed(
         log(f"Latest xray version: {target_version}")
 
     # ── Download ─────────────────────────────────────────────────────
-    xray_dir.mkdir(parents=True, exist_ok=True)
+    install_dir.mkdir(parents=True, exist_ok=True)
 
     url = f"{GITHUB_RELEASES_URL}/{target_version}/{filename}"
     log(f"Downloading Xray-core {target_version} for {platform_name}...")
@@ -315,8 +322,8 @@ def ensure_xray_installed(
     if not download_file(url, download_path):
         return None
 
-    log(f"Extracting {filename} to {xray_dir}/...")
-    if not extract_archive(download_path, xray_dir):
+    log(f"Extracting {filename} to {install_dir}/...")
+    if not extract_archive(download_path, install_dir):
         return None
 
     # Cleanup

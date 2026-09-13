@@ -133,3 +133,45 @@ class TestCreateHandshakePacket:
         packet = TelegramProxyVerifier()._create_handshake_packet("short")
         # 8 + min(16, 5) + 32 = 8 + 5 + 32 = 45
         assert len(packet) == 45
+
+
+class _Fatal(BaseException):
+    """A BaseException that is not an Exception.
+
+    `asyncio.gather(..., return_exceptions=True)` types its results as
+    `T | BaseException`, and `asyncio.CancelledError` has been BaseException —
+    not Exception — since 3.8. Narrowing those results against `Exception`
+    leaves the non-Exception ones in the list untouched.
+    """
+
+
+class TestVerifyProxyListGatherResults:
+    """The verifier returns (url, ok, message) triples — always."""
+
+    def test_non_exception_result_becomes_a_failure_entry(self):
+        import asyncio
+
+        url = "socks5://host.example.com:1080"
+        verifier = TelegramProxyVerifier()
+        verifier.parse_proxy_url = lambda _url: {
+            "server": "host.example.com",
+            "port": 1080,
+            "secret": "",
+            "type": "socks5",
+            "username": None,
+            "password": None,
+        }
+
+        async def fatal(**_kwargs):
+            raise _Fatal("boom")
+
+        verifier.verify_proxy_async = fatal
+
+        results = asyncio.run(verifier.verify_proxy_list_async([url]))
+
+        assert all(isinstance(item, tuple) and len(item) == 3 for item in results), (
+            f"a non-result leaked into the verification output: {results}"
+        )
+        assert results[0][0] == url
+        assert results[0][1] is False
+        assert results[0][2].startswith("EXCEPTION")

@@ -377,7 +377,10 @@ class TelegramProxyVerifier:
         # Process results
         processed = []
         for i, result in enumerate(results):
-            if isinstance(result, Exception):
+            # `gather(return_exceptions=True)` can hand back a BaseException that
+            # is not an Exception — `asyncio.CancelledError` has been one since
+            # 3.8 — and callers unpack these entries as (url, ok, message).
+            if isinstance(result, BaseException):
                 processed.append((proxy_urls[i], False, f"EXCEPTION: {str(result)[:100]}"))
             else:
                 processed.append(result)

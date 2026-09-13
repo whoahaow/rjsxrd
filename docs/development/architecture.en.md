@@ -73,7 +73,7 @@ main.py                          # Entry point, CLI, orchestration
   │   ├── benchmark_configs.py
   │   ├── test_telegram_proxies.py
   │   └── setup-vps.sh
-  └── tests/                     # 658 tests in 26 files
+  └── tests/                     # 682 tests in 28 files
 ```
 
 ## Processing pipeline

@@ -51,10 +51,10 @@ jobs:
         # the check scoped to the listed files, so a module can join the list
         # without inheriting the residual of everything it imports.
         #
-        # Residual when this step landed: 97 errors in 23 files. The hygiene
+        # Residual at the last re-measure: 95 errors in 22 files, all hygiene
         # families (assignment, arg-type, var-annotated, no-any-return,
-        # return-value) are owned by the K05 follow-up card; the four
-        # name-defined findings are owned by K06.
+        # return-value). The undefined-name findings this list used to count
+        # were defects and are resolved; the K05 follow-up card owns the rest.
         run: |
           cd source
           ../.venv/bin/python -m mypy --follow-imports=silent \
@@ -64,6 +64,7 @@ jobs:
             fetchers/telegram_proxy_scraper.py \
             fetchers/upstream_aggregator.py \
             fetchers/yaml_converter.py \
+            scripts/benchmark_configs.py \
             scripts/purge_dead_urls.py \
             scripts/test_telegram_proxies.py \
             utils/_sni_worker.py \
@@ -96,7 +97,7 @@ jobs:
         run: .venv/bin/pip-audit -r source/requirements-dev.txt
 
       - name: Lint
-        # Non-blocking: 46 known findings — 41 in the test files (card K14) and
-        # 5 F821 defects (card K06). Visible now, gating once those cards land.
+        # Non-blocking: 41 known findings, all in the test files (card K14).
+        # Visible now, gating once that card lands.
         continue-on-error: true
         run: .venv/bin/ruff check .

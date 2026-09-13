@@ -23,11 +23,11 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 
 ## Test structure
 
-Total **658 tests** in 26 files (full run ~40 s):
+Total **682 tests** in 28 files (full run ~40 s):
 
 | File | Tests | Scope |
 |------|--------|---------|
-| `test_config_processor.py` | 78 | Processing pipeline, `prepare_config_content`, `_add_unique`, `write_configs_file` |
+| `test_config_processor.py` | 81 | Processing pipeline, `prepare_config_content`, `_add_unique`, `write_configs_file` |
 | `test_file_utils.py` | 70 | `extract_host_port`, `deduplicate_configs`, `is_valid_vpn_config_url`, `filter_secure_configs` |
 | `test_xray_tester.py` | 44 | Parsers, signals, startup-timeout, security edge cases |
 | `test_security_filter.py` | 35 | `has_insecure_setting`, all protocols and edge cases, 2022 key length validation |
@@ -43,18 +43,20 @@ Total **658 tests** in 26 files (full run ~40 s):
 | `test_health_check.py` | 21 | Health check: DNS fallback, disk, memory, token |
 | `test_telegram_proxy_scraper.py` | 21 | Extracting MTProto and SOCKS5 from content |
 | `test_proxy_monitor.py` | 19 | Chain monitoring, stop event |
-| `test_xray_batch.py` | 18 | BatchRunner, shared xray, port allocation |
+| `test_xray_batch.py` | 20 | BatchRunner, shared xray, port allocation |
 | `test_config_tagger.py` | 17 | ConfigTagger: source+protocol tagging |
 | `test_fetcher.py` | 15 | Fetching, response parsing, error handling |
-| `test_executor_cache.py` | 15 | Thread pool, shutdown, WSL detection |
+| `test_executor_cache.py` | 16 | Thread pool, shutdown, WSL detection |
 | `test_managed_process.py` | 15 | ManagedProcess lifecycle |
 | `test_ip_checker.py` | 14 | IP check, `_make_request` |
+| `test_scripts_import.py` | 12 | Import smoke tests for the `scripts/` entry points, benchmark loader |
 | `test_telegram_proxy_verifier.py` | 12 | MTProto/SOCKS5 proxy verification |
 | `test_url_stats.py` | 11 | `record_fetch`, `get_dead_urls`, persistence |
 | `test_ip_verifier.py` | 6 | env vars, TCP port polling |
 | `test_progress.py` | 6 | tqdm consolidation |
+| `test_main.py` | 5 | Upload-path guards in the pipeline entry point |
 
-Coverage: ~46% (measured via `pytest --cov=fetchers --cov=utils`).
+Coverage: ~56% (measured via `pytest --cov=fetchers --cov=utils`).
 
 ## Manual testing utilities
 
@@ -102,7 +104,7 @@ Runs all phases except the GitHub upload. Useful for checking changes before com
 
 ```bash
 cd source
-../.venv/bin/python -m mypy .        # full report: 97 errors in 23 files
+../.venv/bin/python -m mypy .        # full report: 95 errors in 22 files
 ```
 
 CI runs `mypy` as a blocking gate over an explicit list of modules that report
@@ -114,6 +116,7 @@ inheriting the residual of everything it imports.
 
 `strict`, `disallow_untyped_defs` and `check_untyped_defs` are deliberately not
 enabled: each multiplies the error count rather than surfacing new defects, so
-strictness is staged. The 97 remaining errors are the hygiene families
-(`assignment`, `arg-type`, `var-annotated`, `no-any-return`, `return-value`) plus
-four `name-defined` findings.
+strictness is staged. The 95 remaining errors are the hygiene families
+(`assignment`, `arg-type`, `var-annotated`, `no-any-return`, `return-value`);
+the `name-defined` findings that used to sit alongside them were defects and are
+resolved.

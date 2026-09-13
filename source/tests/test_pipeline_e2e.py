@@ -564,13 +564,18 @@ class TestUploadPairs:
     def test_the_expected_files_are_published(
         self, pipeline_seams: dict[str, Any], tmp_path: Path
     ) -> None:
-        """Every documented output has a remote path in the upload list."""
+        """Every documented output has a remote path, and a file behind it."""
         _, file_pairs = run_pipeline(tmp_path)
 
         for entry in file_pairs:
             assert isinstance(entry, tuple), f"{entry!r} is not a (local, remote) pair"
             local, remote = entry
             assert local and remote
+            # A pair is uploadable only if the file it names exists: the upload
+            # reads the local side, so a pair whose local file was never written
+            # fails there instead of here — a well-formed remote with nothing
+            # behind it.
+            assert os.path.exists(local), f"the local side of {entry!r} is not on disk"
 
         remotes = {remote for _, remote in file_pairs}
         missing = EXPECTED_REMOTE_PATHS - remotes

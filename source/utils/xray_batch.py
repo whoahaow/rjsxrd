@@ -12,6 +12,7 @@ import sys
 import threading
 import time
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 import requests
 
@@ -27,6 +28,9 @@ from utils.logger import log
 from utils.progress import get_async_pbar
 from utils.progress import get_sync_pbar as _tqdm_sync
 from utils.smart_eta import SmartETA
+
+if TYPE_CHECKING:  # runtime import would be circular: xray_tester imports BatchRunner
+    from utils.xray_tester import XrayTester
 
 
 class BatchRunner:

@@ -6,23 +6,12 @@ retry on push conflict, and error handling.
 
 import os
 import subprocess
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
+from tests.support import make_result
 from utils.git_updater import GitUpdater
-
-# ── Helpers ───────────────────────────────────────────────────────────
-
-
-def _make_result(returncode=0, stdout="", stderr=""):
-    """Build a subprocess.CompletedProcess-like mock with real-ish attrs."""
-    r = MagicMock(spec=subprocess.CompletedProcess)
-    r.stdout = stdout
-    r.stderr = stderr
-    r.returncode = returncode
-    return r
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────
 
@@ -31,7 +20,7 @@ def _make_result(returncode=0, stdout="", stderr=""):
 def mock_subprocess_run():
     """Mock subprocess.run to return success by default."""
     with patch("subprocess.run") as mock_run:
-        mock_run.return_value = _make_result(0)
+        mock_run.return_value = make_result(0)
         yield mock_run
 
 
@@ -108,7 +97,7 @@ class TestConfigureGit:
 
 class TestPull:
     def test_pull_detects_branch(self, mock_subprocess_run, updater):
-        mock_subprocess_run.return_value = _make_result(0, stdout="main\n")
+        mock_subprocess_run.return_value = make_result(0, stdout="main\n")
 
         updater.pull()
 
@@ -127,16 +116,16 @@ class TestPull:
     def test_pull_resets_on_unstaged_changes(self, mock_subprocess_run, updater):
         """When pull fails with unstaged changes, falls back to reset+clean."""
         mock_subprocess_run.side_effect = [
-            _make_result(0, stdout="main\n"),  # rev-parse
-            _make_result(0),  # stash push
+            make_result(0, stdout="main\n"),  # rev-parse
+            make_result(0),  # stash push
             subprocess.CalledProcessError(  # pull --rebase (fails)
                 1,
                 ["git", "pull", "--rebase", "origin", "main"],
                 stderr="Cannot pull with rebase: You have unstaged changes.",
             ),
-            _make_result(0),  # reset --hard
-            _make_result(0),  # clean -fd
-            _make_result(0),  # pull --rebase (retry)
+            make_result(0),  # reset --hard
+            make_result(0),  # clean -fd
+            make_result(0),  # pull --rebase (retry)
         ]
 
         updater.pull()
@@ -165,11 +154,11 @@ class TestStageFiles:
 
 class TestHasChanges:
     def test_returns_true_when_diff_cached_nonzero(self, mock_subprocess_run, updater):
-        mock_subprocess_run.return_value = _make_result(1)
+        mock_subprocess_run.return_value = make_result(1)
         assert updater.has_changes() is True
 
     def test_returns_false_when_clean(self, mock_subprocess_run, updater):
-        mock_subprocess_run.return_value = _make_result(0)
+        mock_subprocess_run.return_value = make_result(0)
         assert updater.has_changes() is False
 
     def test_returns_false_on_error(self, mock_subprocess_run, updater):
@@ -183,7 +172,7 @@ class TestHasChanges:
 class TestCommit:
     def test_commits_with_message(self, mock_subprocess_run, updater):
         # First has_changes call returns True (non-zero)
-        mock_subprocess_run.return_value = _make_result(1)
+        mock_subprocess_run.return_value = make_result(1)
 
         result = updater.commit("auto: update configs")
         assert result is True
@@ -192,7 +181,7 @@ class TestCommit:
         assert calls[1].args[0] == ["git", "commit", "-m", "auto: update configs"]
 
     def test_returns_false_when_no_changes(self, mock_subprocess_run, updater):
-        mock_subprocess_run.return_value = _make_result(0)
+        mock_subprocess_run.return_value = make_result(0)
 
         result = updater.commit("auto: update configs")
         assert result is False
@@ -201,7 +190,7 @@ class TestCommit:
 
     def test_uses_default_message(self, mock_subprocess_run, updater):
         # has_changes returns True
-        mock_subprocess_run.return_value = _make_result(1)
+        mock_subprocess_run.return_value = make_result(1)
 
         updater.commit()
         assert mock_subprocess_run.call_args_list[1].args[0][3] == "auto: update configs"
@@ -212,7 +201,7 @@ class TestCommit:
 
 class TestPush:
     def test_push_detects_branch(self, mock_subprocess_run, updater):
-        mock_subprocess_run.return_value = _make_result(0, stdout="main\n")
+        mock_subprocess_run.return_value = make_result(0, stdout="main\n")
 
         updater.push()
 
@@ -225,7 +214,7 @@ class TestPush:
         assert mock_subprocess_run.call_args_list[0].args[0] == ["git", "push", "origin", "staging"]
 
     def test_force_push(self, mock_subprocess_run, updater):
-        mock_subprocess_run.return_value = _make_result(0, stdout="main\n")
+        mock_subprocess_run.return_value = make_result(0, stdout="main\n")
         updater.push(force=True)
         assert mock_subprocess_run.call_args_list[1].args[0] == [
             "git",
@@ -245,10 +234,10 @@ class TestCommitAndPushFiles:
 
         def side_effect(cmd, *args, **kwargs):
             if cmd == ["git", "diff", "--cached", "--quiet"]:
-                return _make_result(1)  # has changes
+                return make_result(1)  # has changes
             if cmd == ["git", "rev-parse", "--abbrev-ref", "HEAD"]:
-                return _make_result(0, stdout="main\n")
-            return _make_result(0)
+                return make_result(0, stdout="main\n")
+            return make_result(0)
 
         mock_subprocess_run.side_effect = side_effect
 
@@ -257,7 +246,7 @@ class TestCommitAndPushFiles:
 
     def test_skips_commit_when_no_changes(self, mock_subprocess_run, updater):
         """No changes detected — return True without committing."""
-        mock_subprocess_run.return_value = _make_result(0)
+        mock_subprocess_run.return_value = make_result(0)
 
         result = updater.commit_and_push_files([("local.txt", "githubmirror/remote.txt")])
         assert result is True
@@ -273,17 +262,17 @@ class TestCommitAndPushFiles:
 
         def side_effect(cmd, *args, **kwargs):
             if cmd == ["git", "diff", "--cached", "--quiet"]:
-                return _make_result(1)  # has changes
+                return make_result(1)  # has changes
             if cmd == ["git", "rev-parse", "--abbrev-ref", "HEAD"]:
-                return _make_result(0, stdout="main\n")
+                return make_result(0, stdout="main\n")
             if len(cmd) > 1 and cmd[0] == "git" and cmd[1] == "push":
                 push_count[0] += 1
                 if push_count[0] == 1:
                     raise subprocess.CalledProcessError(
                         1, cmd, stderr="! [rejected] non-fast-forward"
                     )
-                return _make_result(0)
-            return _make_result(0)
+                return make_result(0)
+            return make_result(0)
 
         mock_subprocess_run.side_effect = side_effect
 
@@ -302,12 +291,12 @@ class TestCommitAndPushFiles:
 
         def side_effect(cmd, *args, **kwargs):
             if cmd == ["git", "diff", "--cached", "--quiet"]:
-                return _make_result(1)
+                return make_result(1)
             if cmd == ["git", "rev-parse", "--abbrev-ref", "HEAD"]:
-                return _make_result(0, stdout="main\n")
+                return make_result(0, stdout="main\n")
             if len(cmd) > 1 and cmd[0] == "git" and cmd[1] == "push":
                 raise subprocess.CalledProcessError(1, cmd, stderr="! [rejected] non-fast-forward")
-            return _make_result(0)
+            return make_result(0)
 
         mock_subprocess_run.side_effect = side_effect
 

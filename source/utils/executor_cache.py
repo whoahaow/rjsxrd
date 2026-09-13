@@ -8,6 +8,7 @@ Worker counts are auto-sized using SystemSpecs (RAM-aware, CPU-aware).
 
 import atexit
 import contextlib
+import threading
 from concurrent.futures import ThreadPoolExecutor
 
 from utils.system_specs import get_specs
@@ -51,16 +52,12 @@ class ExecutorCache:
     """
 
     _executors: dict[str, ThreadPoolExecutor] = {}
-    _lock = None  # Initialized lazily to avoid import-order issues
+    _lock = threading.Lock()
     _registered: bool = False  # Idempotency guard for atexit.register
 
     @classmethod
-    def _get_lock(cls) -> "threading.Lock":
-        """Get or create lock lazily."""
-        if cls._lock is None:
-            import threading
-
-            cls._lock = threading.Lock()
+    def _get_lock(cls) -> threading.Lock:
+        """Return the lock guarding the executor cache."""
         return cls._lock
 
     @classmethod

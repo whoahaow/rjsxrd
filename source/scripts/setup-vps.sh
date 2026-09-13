@@ -484,15 +484,27 @@ SYSCTL
     # Step 8: Create Virtual Environment
     #---------------------------------------------------------------------------
     log_info "Step 8: Creating Python Virtual Environment"
+
+    # uv is the only installer in this script — bare pip is not used. The
+    # standalone installer is preferred over `pip install uv`, which would
+    # reintroduce the pip dependency this replaces.
+    export PATH="$HOME/.local/bin:$PATH"
+
+    if ! command -v uv >/dev/null 2>&1; then
+        log_info "  Installing uv..."
+        curl -LsSf https://astral.sh/uv/install.sh | sh || {
+            log_error "Failed to install uv"
+            exit 1
+        }
+    fi
     
     cd "$APP_DIR/source"
     python3 -m venv "$VENV_DIR"
     
     source "$VENV_DIR/bin/activate"
-    pip install --upgrade pip -q
-    
+
     if [ -f "requirements.txt" ]; then
-        pip install -r requirements.txt -q
+        uv pip install --python "$VENV_DIR/bin/python" -r requirements.txt
         log_success "Python dependencies installed"
     else
         log_error "requirements.txt not found"

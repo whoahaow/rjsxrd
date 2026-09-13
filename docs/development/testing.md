@@ -23,13 +23,14 @@ pytest --cov=fetchers --cov=utils  # С отчётом о покрытии
 ```
 
 Маркеры проставлены на каждом тестовом модуле (`pytestmark`), поэтому `-m unit`
-и `-m integration` действительно что-то выбирают: 677 и 29 тестов из 706. Два
+и `-m integration` действительно что-то выбирают: 694 и 30 тестов из 724
+(замер — `pytest --collect-only -q` с тем и другим маркером). Два
 модуля, которые обращаются к сети и сами пропускаются при её отсутствии
 (`test_fetcher.py`, `test_ip_checker.py`), помечены `integration`.
 
 ## Структура тестов
 
-Всего **706 тестов** в 30 файлах. Полный прогон на машине разработки (Windows,
+Всего **724 теста** в 31 файле. Полный прогон на машине разработки (Windows,
 Python 3.12) занимает около 70–80 секунд; время зависит от диска и загрузки
 машины, поэтому ориентируйтесь на `pytest -q` у себя.
 
@@ -37,7 +38,7 @@ Python 3.12) занимает около 70–80 секунд; время зав
 |------|--------|---------|
 | `test_config_processor.py` | 81 | Пайплайн обработки, `prepare_config_content`, `_add_unique`, `write_configs_file` |
 | `test_file_utils.py` | 70 | `extract_host_port`, `deduplicate_configs`, `is_valid_vpn_config_url`, `filter_secure_configs` |
-| `test_xray_tester.py` | 44 | Парсеры, сигналы, startup-timeout, security edge-кейсы |
+| `test_xray_tester.py` | 45 | Парсеры, сигналы, startup-timeout, security edge-кейсы |
 | `test_vpn_config.py` | 35 | VPNConfig typed dataclass'ы |
 | `test_security_filter.py` | 35 | `has_insecure_setting`, все протоколы и edge-кейсы, 2022 key length validation |
 | `test_logger.py` | 30 | Логирование, уровни, формат |
@@ -47,24 +48,25 @@ Python 3.12) занимает около 70–80 секунд; время зав
 | `test_simple_tester.py` | 25 | `extract_host_port` + `SimpleTester` (TCP-пинг) |
 | `test_process_registry.py` | 25 | ProcessRegistry, cleanup, callbacks |
 | `test_git_auto_cleaner.py` | 24 | Авто-очистка auto-коммитов |
-| `test_github_handler.py` | 22 | GitHub API, rate limits, 409 conflicts, batch |
-| `test_telegram_proxy_scraper.py` | 21 | Извлечение MTProto и SOCKS5 из контента |
 | `test_health_check.py` | 22 | Health check: DNS fallback, диск, память, токен |
-| `test_xray_batch.py` | 20 | BatchRunner, shared xray, port allocation |
+| `test_github_handler.py` | 22 | GitHub API, rate limits, 409 conflicts, batch |
+| `test_xray_batch.py` | 21 | BatchRunner, shared xray, port allocation |
+| `test_telegram_proxy_scraper.py` | 21 | Извлечение MTProto и SOCKS5 из контента |
 | `test_proxy_monitor.py` | 19 | Мониторинг цепочек, stop-событие |
 | `test_pipeline_e2e.py` | 18 | Прогон всего пайплайна офлайн, с заглушёнными швами |
 | `test_config_tagger.py` | 18 | ConfigTagger: source+protocol tagging; `utils/__init__.py` не импортирует ничего |
+| `test_fetcher.py` | 16 | Загрузка, парсинг ответов, обработка ошибок |
 | `test_executor_cache.py` | 16 | Пул тредов, shutdown, WSL-детекция |
 | `test_managed_process.py` | 15 | ManagedProcess lifecycle |
-| `test_fetcher.py` | 15 | Загрузка, парсинг ответов, обработка ошибок |
+| `test_ip_verifier.py` | 15 | env vars, TCP port polling |
+| `test_telegram_proxy_verifier.py` | 14 | Верификация MTProto/SOCKS5 прокси |
 | `test_ip_checker.py` | 14 | Проверка IP, `_make_request` |
-| `test_url_stats.py` | 12 | `record_fetch`, `get_dead_urls`, персистентность |
-| `test_telegram_proxy_verifier.py` | 12 | Верификация MTProto/SOCKS5 прокси |
+| `test_url_stats.py` | 13 | `record_fetch`, `get_dead_urls`, персистентность |
 | `test_scripts_import.py` | 12 | Импорт-смоук тесты точек входа в `scripts/`, загрузчик бенчмарка |
 | `test_progress.py` | 6 | tqdm-консолидация |
-| `test_ip_verifier.py` | 6 | env vars, TCP port polling |
 | `test_main.py` | 5 | Гварды путей загрузки в точке входа пайплайна |
 | `test_telegram_proxy_processor.py` | 3 | Запись MTProto/SOCKS5 прокси в файлы |
+| `test_purge_stale_urls.py` | 3 | Загрузка кэша в `scripts/purge_stale_urls.py` |
 
 Покрытие зависит от того, что считать, и эти два числа нельзя сравнивать
 напрямую:

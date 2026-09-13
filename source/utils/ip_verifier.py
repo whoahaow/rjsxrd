@@ -40,6 +40,50 @@ def _make_request(url: str, proxies: dict | None = None, timeout: float = 5.0) -
         return requests.get(url, proxies=proxies, timeout=timeout)
 
 
+def _json_payload(response: Any) -> dict:
+    """Read a JSON response body as an object, or as no fields at all.
+
+    Both HTTP clients are untyped, so the payload shape is validated instead of
+    asserted: a provider answering 200 with an array, a scalar, or a body that
+    is not an object has not answered usefully, and its fields read as absent
+    rather than escaping as an ``AttributeError`` from the caller's first
+    ``.get``. Every read of a JSON body goes through this or the readers below.
+    """
+    payload = response.json()
+    if not isinstance(payload, dict):
+        return {}
+    return payload
+
+
+def _json_str_field(response: Any, field: str) -> str | None:
+    """Read a string field out of a JSON object response."""
+    value = _json_payload(response).get(field)
+    return value if isinstance(value, str) else None
+
+
+def _json_nested_str_field(response: Any, field: str, subfield: str) -> str | None:
+    """Read a string field inside a nested object (e.g. ``asn.org``).
+
+    A provider that sends ``"asn": "AS64500"`` instead of an object has not
+    answered usefully either, so the nested read reads as absent.
+    """
+    nested = _json_payload(response).get(field)
+    if not isinstance(nested, dict):
+        return None
+    value = nested.get(subfield)
+    return value if isinstance(value, str) else None
+
+
+def _json_org_field(response: Any) -> str:
+    """The ``asn.org`` of a JSON IP-check response, empty when there is none.
+
+    Both call sites have always reported the empty string when the provider
+    carries no ASN, so the nested read keeps that default instead of turning a
+    well-formed payload's absent field into a different value.
+    """
+    return _json_nested_str_field(response, "asn", "org") or ""
+
+
 def _json_ip_field(response: Any) -> str | None:
     """Read the ``ip`` field from a JSON IP-check response.
 
@@ -48,11 +92,7 @@ def _json_ip_field(response: Any) -> str | None:
     did not answer usefully", which is what the callers' return type promises.
     A non-object payload would otherwise escape as an ``AttributeError``.
     """
-    payload = response.json()
-    if not isinstance(payload, dict):
-        return None
-    ip = payload.get("ip")
-    return ip if isinstance(ip, str) else None
+    return _json_str_field(response, "ip")
 
 
 def _plain_text_body(response: Any) -> str | None:
@@ -111,7 +151,7 @@ def verify_protection(
         try:
             proxies = {"http": proxy_url, "https": proxy_url}
             response = _make_request("https://ipwho.is/", proxies=proxies, timeout=timeout)
-            result["country"] = response.json().get("country")
+            result["country"] = _json_str_field(response, "country")
         except (OSError, requests.Timeout, requests.ConnectionError, ValueError, KeyError):
             pass
 
@@ -210,7 +250,7 @@ def setup_global_proxy(proxy_url: str, timeout: float = 8.0) -> dict:
             try:
                 proxies = {"http": proxy_url, "https": proxy_url}
                 response = _make_request("https://ipwho.is/", proxies=proxies, timeout=timeout)
-                result["country"] = response.json().get("country")
+                result["country"] = _json_str_field(response, "country")
             except (OSError, requests.Timeout, requests.ConnectionError, ValueError, KeyError):
                 pass
             for var in _PROXY_ENV_VARS:
@@ -251,7 +291,7 @@ def setup_global_proxy(proxy_url: str, timeout: float = 8.0) -> dict:
             try:
                 proxies = {"http": socks_url, "https": socks_url}
                 response = _make_request("https://ipwho.is/", proxies=proxies, timeout=timeout)
-                result["country"] = response.json().get("country")
+                result["country"] = _json_str_field(response, "country")
             except (OSError, requests.Timeout, requests.ConnectionError, ValueError, KeyError):
                 pass
 
@@ -393,20 +433,27 @@ def setup_proxy_chain(proxy_urls: list, timeout: float = 8.0) -> dict:
             try:
                 proxies = {"http": socks_url, "https": socks_url}
                 response = _make_request(url, proxies=proxies, timeout=timeout)
+                # Both JSON providers name the address in `ip`; ifconfig.me
+                # answers with the bare body.
+                if "ipwho.is" in url or "ipify" in url:
+                    provider_ip = _json_str_field(response, "ip")
+                else:
+                    provider_ip = _plain_text_body(response)
+
+                # A provider that names no IP — a body that is not an object, no
+                # `ip` field, an empty body — failed the same way a provider
+                # that answered nothing did. Moving on to the next one keeps a
+                # chain from being reported as up with no exit address behind it,
+                # and keeps a non-answer out of the reported result.
+                if not provider_ip:
+                    continue
+                result["proxy_ip"] = provider_ip
+
                 if "ipwho.is" in url:
-                    data = response.json()
-                    result["proxy_ip"] = data.get("ip")
-                    result["country"] = data.get("country")
-                    result["asn"] = data.get("asn", {}).get("org", "")
+                    result["country"] = _json_str_field(response, "country")
+                    result["asn"] = _json_org_field(response)
                     log("  * Chain IP: {}".format(_mask_ip(result["proxy_ip"])))
                     log("     Country: {}, ASN: {}".format(result["country"], result["asn"]))
-                    chain_success = True
-                    break
-                if "ipify" in url:
-                    result["proxy_ip"] = response.json().get("ip")
-                    chain_success = True
-                    break
-                result["proxy_ip"] = response.text.strip()
                 chain_success = True
                 break
             except (OSError, requests.RequestException, ValueError, TypeError) as e:
@@ -435,11 +482,10 @@ def setup_proxy_chain(proxy_urls: list, timeout: float = 8.0) -> dict:
                             resp = requests.get(
                                 "https://ipwho.is/", proxies=proxies, timeout=timeout
                             )
-                            hop1_details = resp.json()
                             log(
                                 "  Hop 1 details: {}, ASN: {}".format(
-                                    hop1_details.get("country"),
-                                    hop1_details.get("asn", {}).get("org", ""),
+                                    _json_str_field(resp, "country"),
+                                    _json_org_field(resp),
                                 )
                             )
                         tester_temp2.stop_xray_process(process_temp2)

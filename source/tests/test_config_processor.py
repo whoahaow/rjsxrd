@@ -1879,12 +1879,12 @@ class TestAnnotationResolution:
                 annotation = node.annotation if isinstance(node, ast.arg) else node
                 if annotation is None:
                     continue
-                for sub in ast.walk(annotation):
-                    if (
-                        isinstance(sub, ast.Name)
-                        and not hasattr(builtins, sub.id)
-                        and sub.id not in vars(module)
-                    ):
-                        unresolved.append(f"{func.name}(): {sub.id} (line {sub.lineno})")
+                unresolved.extend(
+                    f"{func.name}(): {sub.id} (line {sub.lineno})"
+                    for sub in ast.walk(annotation)
+                    if isinstance(sub, ast.Name)
+                    and not hasattr(builtins, sub.id)
+                    and sub.id not in vars(module)
+                )
 
         assert unresolved == [], f"annotations naming undefined objects: {unresolved}"

@@ -12,7 +12,6 @@ import requests
 from config.settings import GITHUBMIRROR_DIR
 from processors.config_processor import process_all_configs
 from utils.download_xray import ensure_xray_installed
-from utils.github_handler import GitHubHandler
 from utils.ip_verifier import verify_protection
 from utils.logger import log, print_logs
 from utils.process_registry import default_registry, install_signal_handler
@@ -207,6 +206,13 @@ def _run_pipeline_and_upload(
             except Exception as e:
                 log(f"Warning: progressive push failed for {local_path}: {e}")
     elif not dry_run:
+        # Imported here rather than at module level: the entry point is imported
+        # by tests and tooling that have no reason to need PyGithub installed,
+        # and the handler is only reached on the run that actually uploads.
+        # A missing SDK then fails at the upload with the same ImportError the
+        # module-level import raised, one step later.
+        from utils.github_handler import GitHubHandler
+
         github_handler = GitHubHandler()
 
         def upload_fn(local_path: str, remote_path: str) -> None:

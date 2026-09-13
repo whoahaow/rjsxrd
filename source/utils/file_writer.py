@@ -8,6 +8,7 @@ import math
 import os
 from datetime import datetime, timedelta, timezone
 
+from config.settings import GITHUBMIRROR_DIR
 from utils.config_helpers import path_in_output
 from utils.file_utils import is_valid_vpn_config_url
 from utils.logger import log
@@ -143,7 +144,7 @@ def _write_numbered_file(args) -> str | None:
 
 
 def create_numbered_default_files(
-    numbered_configs_with_urls: list[tuple], output_dir: str = "../githubmirror"
+    numbered_configs_with_urls: list[tuple], output_dir: str = GITHUBMIRROR_DIR
 ) -> list[str]:
     """Create numbered default files (1.txt, 2.txt, ...) from sources."""
     from config.settings import MAX_NUMBERED_DEFAULT_FILES

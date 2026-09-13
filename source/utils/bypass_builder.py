@@ -12,6 +12,7 @@ from collections import defaultdict
 from collections.abc import Callable
 
 from config.settings import (
+    GITHUBMIRROR_DIR,
     MAX_CONFIGS_PER_FILE,
     VALIDATION_HTTP_TIMEOUT,
     VALIDATION_TCP_TIMEOUT,
@@ -82,7 +83,7 @@ def seal_bypass_files(
     Args:
         accumulator: list of (latency, url) tuples in arrival order. May contain
             duplicates and configs already in seen_keys — both are filtered.
-        output_dir: root output directory (e.g. "../githubmirror").
+        output_dir: root output directory (e.g. "<repo>/githubmirror").
         prefix: "bypass" or "bypass-unsecure" — controls filename and remote path.
         seen_keys: set of dedup_keys already sealed. Mutated in place.
         last_sealed_idx: number of files already sealed (0 = none). The next file
@@ -685,7 +686,7 @@ def verify_and_write_bypass_unsecure(
 
 
 def create_working_config_files(
-    output_dir: str = "../githubmirror",
+    output_dir: str = GITHUBMIRROR_DIR,
     tcp_ping: bool = False,
     config_to_sources: dict | None = None,
     stats: URLStats | None = None,

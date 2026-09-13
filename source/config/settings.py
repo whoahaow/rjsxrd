@@ -2,6 +2,7 @@
 
 import os
 import re
+from pathlib import Path
 
 from dotenv import find_dotenv, load_dotenv
 
@@ -10,6 +11,28 @@ from dotenv import find_dotenv, load_dotenv
 load_dotenv(find_dotenv(usecwd=True))
 
 from utils.logger import log  # noqa: E402 - dotenv load must come first
+
+# === Repository paths ===
+# Everything that points at a file the pipeline reads or writes derives its
+# path from this module's own location, never from the process working
+# directory. The tool is launched from a cron entry, a systemd timer, a service
+# wrapper, an IDE runner and the repository root, and the working directory of
+# those launches has nothing to do with the checkout: the relative literals
+# ("../githubmirror", "../source/config/...") wrote the generated tree next to
+# whatever directory the process happened to start in, or pointed the uploader
+# at a file that does not exist.
+#
+# This is the single definition of the repository root. utils/download_xray.py
+# (the core binary) and utils/url_stats.py (the stats file) already derive their
+# own paths this way; these constants generalise that to the rest of the tool.
+_CONFIG_DIR = Path(__file__).resolve().parent
+SOURCE_DIR = str(_CONFIG_DIR.parent)
+REPO_ROOT = str(_CONFIG_DIR.parent.parent)
+SOURCE_CONFIG_DIR = str(_CONFIG_DIR)
+# Default output directory for the generated config tree.
+GITHUBMIRROR_DIR = os.path.join(REPO_ROOT, "githubmirror")
+# QR codes for the mobile import guide.
+QR_CODES_DIR = os.path.join(REPO_ROOT, "qr-codes")
 
 # Lazy-load caches for file-based configuration
 _SNI_DOMAINS_CACHE = None

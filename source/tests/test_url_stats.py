@@ -79,6 +79,16 @@ class TestURLStats:
         assert stats2.data["https://example.com"]["fetch"]["consecutive_failures"] == 0
         os.unlink(path)
 
+    def test_existing_empty_file_loads_as_empty_state(self, temp_file):
+        """An existing but empty file loads as empty state, not a crash.
+
+        `tempfile.mktemp()` (used by the tests above) never creates the file,
+        so they only exercise the "no file yet" branch; a truncated or
+        zero-byte stats file is the other real-world state.
+        """
+        stats = URLStats(path=str(temp_file))
+        assert stats.data == {}
+
     def test_get_low_yield_urls(self):
         stats = URLStats(path=tempfile.mktemp(suffix=".json"))
         stats.record_config_yield("https://good.com", raw=10, secure=8)

@@ -837,7 +837,7 @@ class BatchRunner:
                 with results_lock:
                     results.append(result)
                     if result[1]:
-                        working_results_sync.append((result[2], url))
+                        working_results_sync.append((result[2], futures[future]))
                     wc = len(working_results_sync)
                     if result[1] and progress_callback:
                         cf = wc // MAX_CONFIGS_PER_FILE

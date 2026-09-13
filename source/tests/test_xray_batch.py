@@ -369,3 +369,86 @@ class TestBatchSettings:
         from config.settings import XRAY_BATCH_MODE
 
         assert XRAY_BATCH_MODE == "single"
+
+
+class TestBatchSingleSyncPath:
+    """The sync fallback path must attribute each working result to its own url.
+
+    `_test_batch_single` builds `futures` as a future -> url mapping, so the url
+    belonging to a completed future is `futures[future]`. Reading a bare `url`
+    there is an unbound local: it raises on the first working config, and once
+    any future has timed out the same name holds that other future's url, so
+    the working entry is silently misattributed.
+    """
+
+    def _make_runner(self):
+        from utils.xray_batch import BatchRunner
+
+        tester = MagicMock()
+        return BatchRunner(tester)
+
+    def test_working_entry_carries_its_own_url(self):
+        """Every working entry pairs a latency with the url that produced it."""
+        import utils.xray_batch as xb
+
+        runner = self._make_runner()
+        urls = ["vless://one@host.com", "vless://two@host.com", "vless://three@host.com"]
+        latency = {url: 10.0 * (i + 1) for i, url in enumerate(urls)}
+
+        def fake_run(url, timeout, eta_tracker, completed, failed_count, pbar, total_urls):
+            return (url, True, latency[url])
+
+        reported = []
+
+        with (
+            mock_patch.object(runner, "_run_single_config_test", side_effect=fake_run),
+            mock_patch.object(xb, "MAX_CONFIGS_PER_FILE", 1),
+            mock_patch.object(xb, "_tqdm_sync", MagicMock()),
+        ):
+            working = runner._test_batch_single(
+                urls,
+                concurrency=3,
+                timeout=1.0,
+                verbose=False,
+                progress_callback=lambda batch, count: reported.append(list(batch)),
+            )
+
+        assert sorted(url for url, _, _ in working) == sorted(urls)
+        # The progressive-upload callback must see each config with its own url.
+        # Each call reports the cumulative working list, so compare as a set.
+        assert {u for batch in reported for u in batch} == set(urls)
+
+    def test_timeout_does_not_misattribute_the_next_working_config(self):
+        """A timed-out future must not lend its url to the next success."""
+        import concurrent.futures
+
+        import utils.xray_batch as xb
+
+        runner = self._make_runner()
+        timed_out_url = "vless://boom@host.com"
+        working_url = "vless://good@host.com"
+
+        def fake_run(url, timeout, eta_tracker, completed, failed_count, pbar, total_urls):
+            if url == timed_out_url:
+                raise concurrent.futures.TimeoutError()
+            return (url, True, 25.0)
+
+        reported = []
+
+        with (
+            mock_patch.object(runner, "_run_single_config_test", side_effect=fake_run),
+            mock_patch.object(xb, "MAX_CONFIGS_PER_FILE", 1),
+            mock_patch.object(xb, "_tqdm_sync", MagicMock()),
+        ):
+            working = runner._test_batch_single(
+                [timed_out_url, working_url],
+                concurrency=1,
+                timeout=1.0,
+                verbose=False,
+                progress_callback=lambda batch, count: reported.append(list(batch)),
+            )
+
+        assert [url for url, _, _ in working] == [working_url]
+        reported_urls = [u for batch in reported for u in batch]
+        assert reported_urls == [working_url]
+        assert timed_out_url not in reported_urls

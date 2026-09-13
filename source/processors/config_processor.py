@@ -418,7 +418,13 @@ def create_secure_configs_file(
 def create_protocol_split_files(
     all_configs: list[str], output_dir: str = GITHUBMIRROR_DIR, max_size_mb: float = 49.0
 ) -> list[tuple[str, str]]:
-    """Creates protocol-specific files in the split-by-protocols folder, both secure and unsecure versions."""
+    """Creates protocol-specific files in the split-by-protocols folder, both secure and unsecure versions.
+
+    Each written file contributes one ``(local_path, remote_path)`` pair to the
+    returned list — the remote side repo-relative under
+    ``githubmirror/split-by-protocols/``. A write that produced no file
+    (``None``) contributes no pair.
+    """
     from utils.file_utils import SUPPORTED_PROTOCOLS
 
     protocols = list(SUPPORTED_PROTOCOLS)
@@ -444,11 +450,18 @@ def create_protocol_split_files(
         if configs:
             write_tasks.append((protocol, configs, output_dir, max_size_mb, True))
 
-    all_file_pairs = []
+    all_file_pairs: list[tuple[str, str]] = []
     executor = ExecutorCache.get("write_tasks", max_workers=min(8, len(write_tasks)))
     results = list(executor.map(_write_protocol_file, write_tasks))
-    for file_pairs in results:
-        all_file_pairs.extend(file_pairs)
+    # ``_write_protocol_file`` returns the path it wrote (or ``None`` when it
+    # wrote nothing), so the pair is assembled here — from the basename of the
+    # local file, exactly as every other stage builds its remote side.
+    for local_path in results:
+        if local_path is None:
+            continue
+        all_file_pairs.append(
+            (local_path, f"githubmirror/split-by-protocols/{os.path.basename(local_path)}")
+        )
     return all_file_pairs
 
 

@@ -27,13 +27,18 @@ jobs:
         uses: actions/setup-python@0b93645e92151f777d924e8c48dc00eee2ebc3ea  # v5.3.0
         with:
           python-version: '3.12'
-          cache: 'pip'
 
-      - name: Upgrade pip
-        run: python -m pip install --upgrade pip
+      - name: Set up uv
+        # Provides the installer and replaces the pip cache setup-python used to
+        # persist: setup-uv caches uv's own download cache.
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4  # v10.1.0
+        with:
+          enable-cache: true
 
       - name: Install dependencies
-        run: cd source && pip install --no-cache-dir -r requirements.txt
+        # --system installs into the setup-python interpreter, which is the one
+        # the pipeline step below invokes as `python main.py`.
+        run: cd source && uv pip install --system -r requirements.txt
 
       - name: Run script with git mode
         id: run_script

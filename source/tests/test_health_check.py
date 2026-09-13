@@ -1,6 +1,6 @@
 """Tests for health_check.py — internet connectivity and system health checks."""
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -156,6 +156,16 @@ class TestCheckGithubToken:
 
 class TestHealthCheck:
     """Combined health_check function."""
+
+    @pytest.fixture(autouse=True)
+    def _stub_dns_probe(self, monkeypatch):
+        """Keep this class offline — health_check() probes a DNS server.
+
+        These tests assert the shape of the returned dict, not the probe, so
+        the probe is stubbed. Without the stub the module's `unit` marker
+        would be false: `pytest -m unit` would open a real TCP connection.
+        """
+        monkeypatch.setattr("utils.health_check.socket.create_connection", MagicMock())
 
     def test_returns_dict_with_expected_keys(self):
         results = health_check()

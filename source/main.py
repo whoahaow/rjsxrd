@@ -257,11 +257,11 @@ def main(
     skip_xray: bool = False,
     use_git: bool = False,
     no_proxy_check: bool = False,
-    proxy_url: str = None,
-    proxy_chain: str = None,
+    proxy_url: str | None = None,
+    proxy_chain: str | None = None,
     tcp_ping: bool = False,
     verbose: bool = False,
-    flag_overrides: dict = None,
+    flag_overrides: dict | None = None,
 ) -> None:
     """Main execution function.
 

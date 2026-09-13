@@ -385,7 +385,7 @@ XRAY_BATCH_PORT_RANGE_SIZE = _validate_int_env("XRAY_BATCH_PORT_RANGE_SIZE", 200
 # None = use XRAY_BATCH_MODE as-is. "single" or "batch" = force this mode.
 # This must be mutable (not a module constant) because main.py needs to
 # override it after settings.py has already been imported.
-BATCH_MODE_OVERRIDE = None
+BATCH_MODE_OVERRIDE: str | None = None
 
 # === Validation concurrency ===
 V2RAYN_MAX_CONCURRENCY = 1000  # Reference: v2rayN SpeedTestPageSize

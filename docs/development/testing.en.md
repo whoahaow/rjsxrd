@@ -97,3 +97,23 @@ Runs all phases except the GitHub upload. Useful for checking changes before com
 - Flags: `--use-git --no-proxy-check`
 - Concurrency group to prevent overlapping
 - Manual run via `workflow_dispatch`
+
+## Type checking
+
+```bash
+cd source
+../.venv/bin/python -m mypy .        # full report: 97 errors in 23 files
+```
+
+CI runs `mypy` as a blocking gate over an explicit list of modules that report
+**zero** errors (`Type check (ratchet)` in `.github/workflows/ci.yml`). The list
+is a ratchet: it may only grow. A module joins it once it is clean, and CI then
+fails if a new error appears in a module already on it. The gate passes
+`--follow-imports=silent` so a listed module is judged on its own code instead of
+inheriting the residual of everything it imports.
+
+`strict`, `disallow_untyped_defs` and `check_untyped_defs` are deliberately not
+enabled: each multiplies the error count rather than surfacing new defects, so
+strictness is staged. The 97 remaining errors are the hygiene families
+(`assignment`, `arg-type`, `var-annotated`, `no-any-return`, `return-value`) plus
+four `name-defined` findings.

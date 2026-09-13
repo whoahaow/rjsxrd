@@ -22,7 +22,10 @@ def append_remark_suffix(config: str, suffix: str = "%20t.me%2Frjsxrd") -> str:
 
 
 def get_subscription_header(
-    filename: str, current_file: int = None, total_files: int = None, config_count: int = 0
+    filename: str,
+    current_file: int | None = None,
+    total_files: int | None = None,
+    config_count: int = 0,
 ) -> str:
     """Generate subscription header for a file."""
     if current_file and total_files:

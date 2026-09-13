@@ -22,7 +22,7 @@ class TelegramProxyProcessor:
         self.output_dir = output_dir
         self.scraper = TelegramProxyScraper()
 
-    def load_manual_proxies(self, filepath: str = None) -> tuple[list[str], list[str]]:
+    def load_manual_proxies(self, filepath: str | None = None) -> tuple[list[str], list[str]]:
         """
         Load manual proxies from a text file.
 

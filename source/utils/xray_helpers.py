@@ -61,7 +61,7 @@ def wait_for_port(host: str, port: int, timeout: float = 3.0) -> bool:
     return False
 
 
-def wait_for_ports(ports: list[int], timeout: float = None) -> bool:
+def wait_for_ports(ports: list[int], timeout: float | None = None) -> bool:
     """Wait for multiple ports to be listening with dynamic timeout.
 
     Dynamic timeout: 50ms per port, min 3s, max 30s.

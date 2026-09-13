@@ -126,7 +126,7 @@ def wait_if_needed(headers: Any) -> bool:
 
     # Secondary rate limit — backoff with Retry-After
     if retry_after is not None:
-        wait = int(retry_after) + 2
+        wait: float = int(retry_after) + 2
         print(f"  secondary rate limit hit, sleeping {wait}s...", flush=True)
         time.sleep(wait)
         return True
@@ -159,7 +159,7 @@ def get_last_commit_date(
         - (None, True): API error (timeout, rate limit, server error) — keep URL
     """
     api_url = f"https://api.github.com/repos/{owner}/{repo}/commits"
-    params = {"path": path, "per_page": 1, "sha": branch}
+    params: dict[str, str | int] = {"path": path, "per_page": 1, "sha": branch}
 
     for attempt in range(_MAX_RETRIES):
         try:

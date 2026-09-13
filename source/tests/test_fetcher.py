@@ -1,4 +1,11 @@
-"""Unit tests for fetcher module."""
+"""Tests for the fetcher module.
+
+Marked `integration` (see `pytestmark` below) because `fetch_data` reaches the
+network and skips itself when it is unavailable — `pytest -m unit` must not
+select this module. Most of the tests here are in fact pure logic (environment
+proxy resolution, session headers, error mapping) and could be split into a
+unit module without the marker.
+"""
 
 import os
 from unittest.mock import MagicMock, patch

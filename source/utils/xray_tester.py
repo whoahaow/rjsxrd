@@ -28,6 +28,7 @@ import sys
 import tempfile
 import threading
 import time
+from typing import Any
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -320,6 +321,9 @@ class XrayTester:
         self._process_lock = threading.Lock()
         self._port_counter = [self.BASE_PORT]
         self._port_lock = threading.Lock()
+        # Created lazily on first use by _get_session(); declared here so the
+        # lazy-init guard has a type to narrow against.
+        self._thread_local: threading.local | None = None
         self._batch_runner = BatchRunner(self)
 
         # Error tracking for debugging
@@ -613,7 +617,7 @@ class XrayTester:
                 f"WARNING: Batch size {len(urls)} exceeds maximum {self.MAX_BATCH_SIZE}. Split into smaller batches."
             )
 
-        config = {
+        config: dict[str, Any] = {
             "log": {"loglevel": "error", "access": "", "error": ""},
             "inbounds": [],
             "outbounds": [

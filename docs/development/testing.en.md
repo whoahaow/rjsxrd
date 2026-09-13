@@ -23,20 +23,20 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 ```
 
 Every test module declares its marker (`pytestmark`), so `-m unit` and
-`-m integration` actually select something: 699 and 30 tests out of 729
+`-m integration` actually select something: 705 and 30 tests out of 735
 (measured with `pytest --collect-only -q` under each marker). The two
 modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) are marked `integration`.
 
 ## Test structure
 
-**729 tests** in 32 files. A full run takes around 70–80 seconds on the
+**735 tests** in 32 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
 | File | Tests | Scope |
 |------|--------|---------|
-| `test_config_processor.py` | 81 | Processing pipeline, `prepare_config_content`, `_add_unique`, `write_configs_file` |
+| `test_config_processor.py` | 85 | Processing pipeline, `prepare_config_content`, `_add_unique`, `write_configs_file` |
 | `test_file_utils.py` | 70 | `extract_host_port`, `deduplicate_configs`, `is_valid_vpn_config_url`, `filter_secure_configs` |
 | `test_xray_tester.py` | 45 | Parsers, signals, startup-timeout, security edge cases |
 | `test_vpn_config.py` | 35 | VPNConfig typed dataclasses |
@@ -53,10 +53,10 @@ load, so measure with `pytest -q` on your own machine.
 | `test_xray_batch.py` | 21 | BatchRunner, shared xray, port allocation |
 | `test_telegram_proxy_scraper.py` | 21 | Extracting MTProto and SOCKS5 from content |
 | `test_proxy_monitor.py` | 19 | Chain monitoring, stop event |
-| `test_pipeline_e2e.py` | 18 | Full offline pipeline run with every seam stubbed |
+| `test_pipeline_e2e.py` | 19 | Full offline pipeline run with every seam stubbed |
 | `test_config_tagger.py` | 18 | ConfigTagger: source+protocol tagging; `utils/__init__.py` declares no imports |
 | `test_fetcher.py` | 16 | Fetching, response parsing, error handling |
-| `test_executor_cache.py` | 16 | Thread pool, shutdown, WSL detection |
+| `test_executor_cache.py` | 17 | Thread pool, shutdown, WSL detection |
 | `test_managed_process.py` | 15 | ManagedProcess lifecycle |
 | `test_ip_verifier.py` | 15 | env vars, TCP port polling |
 | `test_telegram_proxy_verifier.py` | 14 | MTProto/SOCKS5 proxy verification |

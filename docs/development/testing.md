@@ -23,20 +23,20 @@ pytest --cov=fetchers --cov=utils  # С отчётом о покрытии
 ```
 
 Маркеры проставлены на каждом тестовом модуле (`pytestmark`), поэтому `-m unit`
-и `-m integration` действительно что-то выбирают: 699 и 30 тестов из 729
+и `-m integration` действительно что-то выбирают: 705 и 30 тестов из 735
 (замер — `pytest --collect-only -q` с тем и другим маркером). Два
 модуля, которые обращаются к сети и сами пропускаются при её отсутствии
 (`test_fetcher.py`, `test_ip_checker.py`), помечены `integration`.
 
 ## Структура тестов
 
-Всего **729 тестов** в 32 файлах. Полный прогон на машине разработки (Windows,
+Всего **735 тестов** в 32 файлах. Полный прогон на машине разработки (Windows,
 Python 3.12) занимает около 70–80 секунд; время зависит от диска и загрузки
 машины, поэтому ориентируйтесь на `pytest -q` у себя.
 
 | Файл | Тестов | Область |
 |------|--------|---------|
-| `test_config_processor.py` | 81 | Пайплайн обработки, `prepare_config_content`, `_add_unique`, `write_configs_file` |
+| `test_config_processor.py` | 85 | Пайплайн обработки, `prepare_config_content`, `_add_unique`, `write_configs_file` |
 | `test_file_utils.py` | 70 | `extract_host_port`, `deduplicate_configs`, `is_valid_vpn_config_url`, `filter_secure_configs` |
 | `test_xray_tester.py` | 45 | Парсеры, сигналы, startup-timeout, security edge-кейсы |
 | `test_vpn_config.py` | 35 | VPNConfig typed dataclass'ы |
@@ -53,10 +53,10 @@ Python 3.12) занимает около 70–80 секунд; время зав
 | `test_xray_batch.py` | 21 | BatchRunner, shared xray, port allocation |
 | `test_telegram_proxy_scraper.py` | 21 | Извлечение MTProto и SOCKS5 из контента |
 | `test_proxy_monitor.py` | 19 | Мониторинг цепочек, stop-событие |
-| `test_pipeline_e2e.py` | 18 | Прогон всего пайплайна офлайн, с заглушёнными швами |
+| `test_pipeline_e2e.py` | 19 | Прогон всего пайплайна офлайн, с заглушёнными швами |
 | `test_config_tagger.py` | 18 | ConfigTagger: source+protocol tagging; `utils/__init__.py` не импортирует ничего |
 | `test_fetcher.py` | 16 | Загрузка, парсинг ответов, обработка ошибок |
-| `test_executor_cache.py` | 16 | Пул тредов, shutdown, WSL-детекция |
+| `test_executor_cache.py` | 17 | Пул тредов, shutdown, WSL-детекция |
 | `test_managed_process.py` | 15 | ManagedProcess lifecycle |
 | `test_ip_verifier.py` | 15 | env vars, TCP port polling |
 | `test_telegram_proxy_verifier.py` | 14 | Верификация MTProto/SOCKS5 прокси |

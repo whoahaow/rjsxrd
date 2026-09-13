@@ -141,7 +141,9 @@ def run(output_dir: str | None = None) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Test Telegram proxies")
     parser.add_argument(
-        "--output-dir", default=None, help="output directory (default: ../githubmirror)"
+        "--output-dir",
+        default=None,
+        help="output directory (default: <repository>/githubmirror)",
     )
     args = parser.parse_args()
     run(output_dir=args.output_dir)

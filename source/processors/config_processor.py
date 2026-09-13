@@ -25,9 +25,12 @@ from config.settings import (
     ENABLE_PROTOCOL_SPLIT,
     ENABLE_TG_PROXY,
     GITHUB_TOKEN,
+    GITHUBMIRROR_DIR,
     MANUAL_SERVERS,
     MAX_FILE_SIZE_MB,
     PUBLISH_RAW_FILES,
+    QR_CODES_DIR,
+    SOURCE_CONFIG_DIR,
     TELEGRAM_PROXY_URLS,
     URLS,
     URLS_EXTRA_BYPASS,
@@ -175,7 +178,7 @@ def _fetch_and_process_urls(
 
 
 def download_all_configs(
-    output_dir: str = "../githubmirror",
+    output_dir: str = GITHUBMIRROR_DIR,
     scan_for_telegram_proxies: bool = False,
     stats: URLStats | None = None,
     flag_overrides: dict | None = None,
@@ -193,7 +196,7 @@ def download_all_configs(
     global_seen_lock = threading.Lock()
 
     os.makedirs(path_in_output(output_dir, "bypass"), exist_ok=True)
-    os.makedirs("../qr-codes", exist_ok=True)
+    os.makedirs(QR_CODES_DIR, exist_ok=True)
     if resolve_flag("ENABLE_DEFAULT_FILES", flag_overrides, ENABLE_DEFAULT_FILES):
         os.makedirs(path_in_output(output_dir, "default"), exist_ok=True)
     if resolve_flag("ENABLE_BYPASS_UNSECURE", flag_overrides, ENABLE_BYPASS_UNSECURE):
@@ -359,7 +362,7 @@ def download_all_configs(
 
 
 def _write_subscription_file(
-    configs: list[str], label: str, output_dir: str = "../githubmirror", max_size_mb: float = 49.0
+    configs: list[str], label: str, output_dir: str = GITHUBMIRROR_DIR, max_size_mb: float = 49.0
 ) -> list[str]:
     """Write a subscription file (all.txt / all-secure.txt), splitting if oversized.
 
@@ -398,14 +401,14 @@ def _write_subscription_file(
 
 
 def create_all_configs_file(
-    all_configs: list[str], output_dir: str = "../githubmirror", max_size_mb: float = 49.0
+    all_configs: list[str], output_dir: str = GITHUBMIRROR_DIR, max_size_mb: float = 49.0
 ) -> list[str]:
     """Creates the all.txt file with all unique configs. Splits if file exceeds size limit."""
     return _write_subscription_file(all_configs, "all", output_dir, max_size_mb)
 
 
 def create_secure_configs_file(
-    all_configs: list[str], output_dir: str = "../githubmirror", max_size_mb: float = 49.0
+    all_configs: list[str], output_dir: str = GITHUBMIRROR_DIR, max_size_mb: float = 49.0
 ) -> list[str]:
     """Creates the all-secure.txt file with only secure configs. Splits if file exceeds size limit."""
     secure_configs = filter_secure_configs(all_configs)
@@ -413,7 +416,7 @@ def create_secure_configs_file(
 
 
 def create_protocol_split_files(
-    all_configs: list[str], output_dir: str = "../githubmirror", max_size_mb: float = 49.0
+    all_configs: list[str], output_dir: str = GITHUBMIRROR_DIR, max_size_mb: float = 49.0
 ) -> list[tuple[str, str]]:
     """Creates protocol-specific files in the split-by-protocols folder, both secure and unsecure versions."""
     from utils.file_utils import SUPPORTED_PROTOCOLS
@@ -454,7 +457,7 @@ class ConfigPipeline:
 
     def __init__(
         self,
-        output_dir: str = "../githubmirror",
+        output_dir: str = GITHUBMIRROR_DIR,
         skip_xray: bool = False,
         tcp_ping: bool = False,
         verbose: bool = False,
@@ -821,13 +824,17 @@ class ConfigPipeline:
         self.stage_report()
         # Source config files may have been cleaned (dead URLs removed).
         # Upload them so the cleanup persists and doesn't repeat every run.
-        self.file_pairs.append(("source/config/URLS.txt", "source/config/URLS.txt"))
-        self.file_pairs.append(("source/config/servers.txt", "source/config/servers.txt"))
+        self.file_pairs.append(
+            (os.path.join(SOURCE_CONFIG_DIR, "URLS.txt"), "source/config/URLS.txt")
+        )
+        self.file_pairs.append(
+            (os.path.join(SOURCE_CONFIG_DIR, "servers.txt"), "source/config/servers.txt")
+        )
         return self.file_pairs
 
 
 def process_all_configs(
-    output_dir: str = "../githubmirror",
+    output_dir: str = GITHUBMIRROR_DIR,
     skip_xray: bool = False,
     tcp_ping: bool = False,
     verbose: bool = False,

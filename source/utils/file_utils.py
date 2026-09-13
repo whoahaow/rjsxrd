@@ -14,7 +14,7 @@ from functools import lru_cache
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-from config.settings import SNI_DOMAINS
+from config.settings import SNI_DOMAINS, SOURCE_CONFIG_DIR
 from utils.executor_cache import get_file_io_executor, get_regex_executor
 from utils.logger import log
 
@@ -233,7 +233,8 @@ def extract_host_port(line: str) -> tuple[str, int] | None:
 
 
 def load_cidr_whitelist(
-    cidr_file_path: str = "../source/config/cidrwhitelist.txt", max_cidr_size: int = 65536
+    cidr_file_path: str = os.path.join(SOURCE_CONFIG_DIR, "cidrwhitelist.txt"),
+    max_cidr_size: int = 65536,
 ) -> set:
     """Load CIDR ranges from a file and expand them to a set of individual IPs.
 

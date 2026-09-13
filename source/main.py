@@ -9,6 +9,7 @@ from typing import Any
 
 import requests
 
+from config.settings import GITHUBMIRROR_DIR
 from processors.config_processor import process_all_configs
 from utils.download_xray import ensure_xray_installed
 from utils.github_handler import GitHubHandler
@@ -252,7 +253,7 @@ def _run_pipeline_and_upload(
 
 def main(
     dry_run: bool = False,
-    output_dir: str = "../githubmirror",
+    output_dir: str = GITHUBMIRROR_DIR,
     skip_xray: bool = False,
     use_git: bool = False,
     no_proxy_check: bool = False,

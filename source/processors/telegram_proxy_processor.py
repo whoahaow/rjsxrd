@@ -4,7 +4,7 @@ import contextlib
 import os
 from collections.abc import Sequence
 
-from config.settings import DEFAULT_MAX_WORKERS, TELEGRAM_PROXY_URLS
+from config.settings import DEFAULT_MAX_WORKERS, GITHUBMIRROR_DIR, TELEGRAM_PROXY_URLS
 from fetchers.fetcher import fetch_data
 from fetchers.telegram_proxy_scraper import TelegramProxyScraper
 from utils.executor_cache import ExecutorCache
@@ -18,7 +18,7 @@ ProxyEntry = str | tuple[str, float]
 class TelegramProxyProcessor:
     """Processes Telegram proxies from various sources."""
 
-    def __init__(self, output_dir: str = "../githubmirror") -> None:
+    def __init__(self, output_dir: str = GITHUBMIRROR_DIR) -> None:
         self.output_dir = output_dir
         self.scraper = TelegramProxyScraper()
 

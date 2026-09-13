@@ -16,16 +16,12 @@ import os
 
 import pytest
 
-SCRIPTS_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts"
-)
+SCRIPTS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts")
 
 
 def _script_paths():
     return sorted(
-        os.path.join(SCRIPTS_DIR, name)
-        for name in os.listdir(SCRIPTS_DIR)
-        if name.endswith(".py")
+        os.path.join(SCRIPTS_DIR, name) for name in os.listdir(SCRIPTS_DIR) if name.endswith(".py")
     )
 
 
@@ -100,9 +96,7 @@ def test_benchmark_configs_run_xray_imports_resolve():
     with open(path, encoding="utf-8") as handle:
         tree = ast.parse(handle.read())
 
-    run_xray = next(
-        (node for node in _function_defs(tree) if node.name == "run_xray"), None
-    )
+    run_xray = next((node for node in _function_defs(tree) if node.name == "run_xray"), None)
     assert run_xray is not None, "run_xray is missing from benchmark_configs.py"
 
     function_imports = list(_import_from_nodes(run_xray))

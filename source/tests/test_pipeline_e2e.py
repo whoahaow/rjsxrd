@@ -124,6 +124,7 @@ EXPECTED_REMOTE_PATHS = frozenset(
 )
 
 _TG_PROXY_CALLS: list[tuple[list[Any], list[Any]]] = []
+_YAML_CONVERTER_CALLS: list[str] = []
 
 
 pytestmark = pytest.mark.unit
@@ -242,7 +243,13 @@ def read_config_lines(path: str | Path) -> list[str]:
 
 
 def _fake_convert_yaml(content: str) -> list[str]:
-    """The YAML converter seam: fixed configs instead of parsing Clash."""
+    """The YAML converter seam: fixed configs instead of parsing Clash.
+
+    ``content`` is recorded so a test can tell "the seam ran and yielded
+    nothing" apart from "the seam never ran" — both leave the same output files
+    behind, and only one of them is a pipeline defect.
+    """
+    _YAML_CONVERTER_CALLS.append(content)
     return list(YAML_CONFIGS)
 
 
@@ -251,6 +258,7 @@ def pipeline_seams(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> dict[str,
     """Replace every network and binary seam. Returns the recorded calls."""
     calls: dict[str, Any] = {}
     _TG_PROXY_CALLS.clear()
+    _YAML_CONVERTER_CALLS.clear()
 
     monkeypatch.setattr(config_processor, "URLS", list(URLS_SECTION))
     monkeypatch.setattr(config_processor, "URLS_EXTRA_BYPASS", list(URLS_EXTRA_BYPASS))
@@ -283,6 +291,7 @@ def pipeline_seams(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> dict[str,
     monkeypatch.setattr(config_processor, "TelegramProxyProcessor", _StubTelegramProxyProcessor)
     monkeypatch.setattr("utils.bypass_builder.verify_config_file", _fake_verify_config_file)
     calls["tg_proxy"] = _TG_PROXY_CALLS
+    calls["yaml_converter"] = _YAML_CONVERTER_CALLS
     return calls
 
 
@@ -436,6 +445,14 @@ class TestPipelineOutputTree:
             assert config in everything, f"{config} missing from all.txt"
         for config in EXTRA_BYPASS_CONFIGS:
             assert config not in everything, "extra-bypass configs are not default/ material"
+
+        # The `yaml` section of URLS.txt is materialised through the converter
+        # seam, and its contribution to the outputs is invisible unless it is
+        # asserted: an empty yield and a seam that never ran leave exactly the
+        # same files behind.
+        assert pipeline_seams["yaml_converter"], "the YAML converter seam never ran"
+        for config in YAML_CONFIGS:
+            assert config in everything, f"{config} (yaml section) missing from all.txt"
 
         assert pipeline_seams["daily_repo"]["patterns"] is settings.DAILY_DATE_PATTERNS
         assert len(pipeline_seams["tg_proxy"]) == 1, "the tg-proxy stage never ran"

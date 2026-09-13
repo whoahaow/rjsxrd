@@ -761,7 +761,7 @@ class TestExtractHostPortEdgeCases:
         from utils.file_utils import extract_host_port
 
         assert extract_host_port("") is None
-        assert extract_host_port(None) is None  # type: ignore
+        assert extract_host_port(None) is None
 
     def test_non_vmess_handlers_pass_through(self):
         """A vless URL should NOT trigger the vmess/ssr handlers."""

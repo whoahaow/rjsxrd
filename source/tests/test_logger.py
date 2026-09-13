@@ -172,7 +172,7 @@ class TestExtractSourceName:
 
     def test_returns_unknown_on_error(self):
         # Pass an object that breaks urlparse
-        result = extract_source_name(None)  # type: ignore
+        result = extract_source_name(None)
         assert result == "Unknown source"
 
 

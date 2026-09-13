@@ -311,10 +311,13 @@ class BatchRunner:
 
         pbar.close()
 
-        # Sort final results: working first (by latency), failed last
-        working = [(url, s, lat) for url, s, lat in all_results if s]
+        # Sort final results: working first (by latency), failed last.
+        # Element type spelled out so `working + failed` stays a concatenation.
+        working: list[tuple[str, bool, float]] = [(url, s, lat) for url, s, lat in all_results if s]
         working.sort(key=lambda x: x[2])
-        failed = [(url, s, lat) for url, s, lat in all_results if not s]
+        failed: list[tuple[str, bool, float]] = [
+            (url, s, lat) for url, s, lat in all_results if not s
+        ]
         sorted_results = working + failed
 
         success_rate = len(working) / len(urls) * 100 if urls else 0
@@ -426,7 +429,7 @@ class BatchRunner:
 
             time.sleep(0.5)
 
-            working = [(url, s, lat) for url, s, lat in results if s]
+            working: list[tuple[str, bool, float]] = [(url, s, lat) for url, s, lat in results if s]
             working.sort(key=lambda x: x[2])
 
             success_rate = len(working) / len(urls) * 100 if urls else 0
@@ -866,7 +869,7 @@ class BatchRunner:
 
         t.cleanup()
 
-        working = [(url, s, lat) for url, s, lat in results if s]
+        working: list[tuple[str, bool, float]] = [(url, s, lat) for url, s, lat in results if s]
         working.sort(key=lambda x: x[2])
 
         elapsed = time.time() - start_time

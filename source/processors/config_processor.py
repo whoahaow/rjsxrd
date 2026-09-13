@@ -186,11 +186,11 @@ def download_all_configs(
 ) -> tuple[list[str], list[str], list[tuple[list[str], str]], list[str], list[str], float]:
     """Downloads all configs from all sources into in-memory lists."""
     fetch_start_time = time.time()
-    all_configs = []
-    extra_bypass_configs = []
-    numbered_configs_with_urls = []
-    all_mtproto_proxies = []
-    all_socks5_proxies = []
+    all_configs: list[str] = []
+    extra_bypass_configs: list[str] = []
+    numbered_configs_with_urls: list[tuple[list[str], str]] = []
+    all_mtproto_proxies: list[str] = []
+    all_socks5_proxies: list[str] = []
 
     global_seen: set = set()
     global_seen_lock = threading.Lock()
@@ -295,7 +295,7 @@ def download_all_configs(
     try:
         sstap_configs = scrape_sstap_configs()
         if sstap_configs:
-            unique_configs = []
+            unique_configs: list[str] = []
             add_unique(sstap_configs, unique_configs, global_seen, global_seen_lock)
             if unique_configs:
                 all_configs.extend(unique_configs)
@@ -510,7 +510,7 @@ class ConfigPipeline:
         self.mtproto_proxies: list[str] = []
         self.socks5_proxies: list[str] = []
         self._sni_cidr_filtered: list[str] = []
-        self._tagger = ConfigTagger()
+        self._tagger: ConfigTagger | None = ConfigTagger()
 
     def stage_download(self) -> float:
         """Download configs from all sources + scan for Telegram proxies."""

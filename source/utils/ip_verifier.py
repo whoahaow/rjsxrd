@@ -8,7 +8,7 @@ import os
 import socket
 import subprocess
 import time
-from typing import Any, cast
+from typing import Any
 from urllib.parse import urlparse
 
 import requests
@@ -40,14 +40,35 @@ def _make_request(url: str, proxies: dict | None = None, timeout: float = 5.0) -
         return requests.get(url, proxies=proxies, timeout=timeout)
 
 
+def _json_ip_field(response: Any) -> str | None:
+    """Read the ``ip`` field from a JSON IP-check response.
+
+    Both HTTP clients are untyped, so the payload shape is validated instead
+    of asserted: anything other than a string ``ip`` reads as "this provider
+    did not answer usefully", which is what the callers' return type promises.
+    A non-object payload would otherwise escape as an ``AttributeError``.
+    """
+    payload = response.json()
+    if not isinstance(payload, dict):
+        return None
+    ip = payload.get("ip")
+    return ip if isinstance(ip, str) else None
+
+
+def _plain_text_body(response: Any) -> str | None:
+    """Read a bare-text IP-check response (e.g. ``ifconfig.me/ip``)."""
+    body = response.text
+    return body.strip() if isinstance(body, str) else None
+
+
 def get_real_ip(timeout: float = 5.0) -> str | None:
     """Get external IP without proxy."""
     for url in IP_CHECK_URLS:
         try:
             response = _make_request(url, timeout=timeout)
             if "ipwho.is" in url or "ipify" in url:
-                return cast(str | None, response.json().get("ip"))
-            return cast(str, response.text.strip())
+                return _json_ip_field(response)
+            return _plain_text_body(response)
         except (OSError, requests.Timeout, requests.ConnectionError, ValueError):
             continue
     return None
@@ -60,8 +81,8 @@ def get_proxy_ip(proxy_url: str, timeout: float = 5.0) -> str | None:
         try:
             response = _make_request(url, proxies=proxies, timeout=timeout)
             if "ipwho.is" in url or "ipify" in url:
-                return cast(str | None, response.json().get("ip"))
-            return cast(str, response.text.strip())
+                return _json_ip_field(response)
+            return _plain_text_body(response)
         except (OSError, requests.Timeout, requests.ConnectionError, ValueError):
             continue
     return None

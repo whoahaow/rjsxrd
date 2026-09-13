@@ -4,7 +4,7 @@
 
 ## Требования
 
-- Python 3.8+
+- Python 3.10+ (проверено на 3.12 — версия CI и окружения разработки)
 - Git (для `--use-git`)
 - (Опционально) Xray-core — скачивается автоматически
 
@@ -12,9 +12,12 @@
 
 ```bash
 git clone https://github.com/whoahaow/rjsxrd
-cd rjsxrd/source
-python -m pip install -r requirements.txt
+cd rjsxrd
+uv venv --python 3.12 .venv
+uv pip install --python .venv/Scripts/python.exe -r source/requirements.txt
 ```
+
+Путь к интерпретатору зависит от ОС: `.venv/Scripts/python.exe` — Windows, `.venv/bin/python` — Linux и macOS. Тестовый тулчейн ставится отдельно (`-r source/requirements-dev.txt`), см. [Окружение для разработки](../development/development-environment.md).
 
 ## Настройка
 

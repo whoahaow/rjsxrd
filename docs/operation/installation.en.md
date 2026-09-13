@@ -4,7 +4,7 @@
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.10+ (verified on 3.12 — the version used by CI and the development environment)
 - Git (for `--use-git`)
 - (Optional) Xray-core — downloaded automatically
 
@@ -12,9 +12,12 @@
 
 ```bash
 git clone https://github.com/whoahaow/rjsxrd
-cd rjsxrd/source
-python -m pip install -r requirements.txt
+cd rjsxrd
+uv venv --python 3.12 .venv
+uv pip install --python .venv/Scripts/python.exe -r source/requirements.txt
 ```
+
+The interpreter path depends on the OS: `.venv/Scripts/python.exe` on Windows, `.venv/bin/python` on Linux and macOS. The test toolchain is installed separately (`-r source/requirements-dev.txt`), see [Development environment](../development/development-environment.en.md).
 
 ## Configuration
 

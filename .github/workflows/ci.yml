@@ -51,10 +51,11 @@ jobs:
         # the check scoped to the listed files, so a module can join the list
         # without inheriting the residual of everything it imports.
         #
-        # Residual at the last re-measure: 95 errors in 22 files, all hygiene
-        # families (assignment, arg-type, var-annotated, no-any-return,
-        # return-value). The undefined-name findings this list used to count
-        # were defects and are resolved; the K05 follow-up card owns the rest.
+        # Residual re-measured whenever this list is extended — 87 errors in 22
+        # files at the last measurement, all hygiene families (assignment,
+        # arg-type, var-annotated, no-any-return, return-value). The
+        # undefined-name findings this list used to count were defects and are
+        # resolved; the K05 follow-up card owns the rest.
         run: |
           cd source
           ../.venv/bin/python -m mypy --follow-imports=silent \
@@ -97,7 +98,7 @@ jobs:
         run: .venv/bin/pip-audit -r source/requirements-dev.txt
 
       - name: Lint
-        # Non-blocking: 41 known findings, all in the test files (card K14).
+        # Non-blocking: 40 known findings, all in the test files (card K14).
         # Visible now, gating once that card lands.
         continue-on-error: true
         run: .venv/bin/ruff check .

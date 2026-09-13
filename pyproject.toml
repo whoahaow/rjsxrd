@@ -43,7 +43,10 @@ markers = [
     "unit: marks tests as unit tests (pure logic, no external dependencies)",
 ]
 filterwarnings = [
-    "ignore::DeprecationWarning",
-    "ignore::PendingDeprecationWarning",
-    "ignore::ResourceWarning",
+    # No category-wide ignores. A first-party DeprecationWarning is the early
+    # signal for the next dependency bump, and `ignore::ResourceWarning` hid
+    # unclosed files in these tests. If a third-party library ever needs a
+    # filter, scope it to that module ("ignore::DeprecationWarning:<module>.*")
+    # instead of silencing the category.
+    "default::ResourceWarning",
 ]

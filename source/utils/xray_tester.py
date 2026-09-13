@@ -327,8 +327,8 @@ class XrayTester:
         self._batch_runner = BatchRunner(self)
 
         # Error tracking for debugging
-        self._error_stats = {}
-        self._error_samples = {}
+        self._error_stats: dict[str, int] = {}
+        self._error_samples: dict[str, list[str]] = {}
         self._error_stats_lock = threading.Lock()
 
         # No global tester registry needed: spawned processes are tracked
@@ -628,7 +628,7 @@ class XrayTester:
         }
         port_map = {}
         used_ports = set()
-        skipped_urls = []
+        skipped_urls: list[tuple[str, str]] = []
 
         # Pre-filter URLs that would crash xray
         urls, xray_rejected = filter_xray_compatible(urls)
@@ -757,7 +757,7 @@ class XrayTester:
             )
             if _batch_mode != "batch":
                 sample = skipped_urls[:5]
-                reasons = {}
+                reasons: dict[str, int] = {}
                 for _, reason in sample:
                     reasons[reason] = reasons.get(reason, 0) + 1
                 log(
@@ -999,14 +999,17 @@ class XrayTester:
         if not hasattr(self, "_thread_local") or self._thread_local is None:
             self._thread_local = threading.local()
 
-        if not hasattr(self._thread_local, "session"):
+        # `threading.local` attribute reads are untyped, so the cached session
+        # is validated before it is handed out; the only writer is this method.
+        session = getattr(self._thread_local, "session", None)
+        if not isinstance(session, requests.Session):
             session = requests.Session()
             adapter = HTTPAdapter(max_retries=0, pool_connections=1, pool_maxsize=1)
             session.mount("http://", adapter)
             session.mount("https://", adapter)
             self._thread_local.session = session
 
-        return self._thread_local.session
+        return session
 
     def _quick_validate_url(self, url: str) -> tuple[bool, str]:
         """Minimal validation - let Xray decide if config is valid."""
@@ -1017,7 +1020,7 @@ class XrayTester:
         # Let Xray validate the rest
         return True, ""
 
-    def _track_error(self, error_msg: str, category: str = None) -> None:
+    def _track_error(self, error_msg: str, category: str | None = None) -> None:
         """Track error for summary statistics with deduplication."""
         # Auto-categorize if not provided
         if not category:

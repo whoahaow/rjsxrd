@@ -17,6 +17,9 @@ What it guards, and where each expectation comes from:
   row per collected module, and the count in it;
 * the ``test_*.py`` listing in both README trees — the same module set in both
   languages, so a new module cannot land in one and be forgotten in the other;
+* how many lines state each figure — a README states the totals twice (the file
+  tree and the prose sentence) and must keep stating them twice, so one site
+  cannot be reworded while the other keeps the file looking guarded;
 * the marker registry in ``pyproject.toml`` — a registered marker no test
   carries is a claim the suite does not make (``slow`` was one).
 
@@ -82,22 +85,27 @@ TREE_ENTRY = re.compile(r"^[^\S\n]*[│][^\S\n]*[├└]─\s*(test_[a-z0-9_]+\.
 TREE_TESTS_DIR = re.compile(r"^[^\S\n]*(?:[│][^\S\n]*)?[├└]─\s*tests/")
 TREE_DIRECTORY_ENTRY = re.compile(r"^[^\S\n]*(?:[│][^\S\n]*)?[├└]─\s*[\w.-]+/")
 
-# Every site that states "N tests in M files" (or the bare test count).
-COUNT_SITES: tuple[tuple[str, re.Pattern[str]], ...] = (
-    ("README.md", RU_TOTALS),
-    ("README.en.md", EN_TOTALS),
-    ("docs/development/architecture.md", RU_FILES),
-    ("docs/development/architecture.en.md", EN_FILES),
-    ("docs/development/development-environment.md", RU_BARE),
-    ("docs/development/development-environment.en.md", EN_BARE),
-    ("docs/development/testing.md", RU_FILES),
-    ("docs/development/testing.en.md", EN_FILES),
+# Every site that states "N tests in M files" (or the bare test count), with the
+# number of lines it must match. The count is part of the contract: both READMEs
+# state the totals twice — the file-tree annotation and the prose sentence — so a
+# check that only asked "did anything match?" would let one of the two be reworded
+# while the file still looked guarded.
+COUNT_SITES: tuple[tuple[str, re.Pattern[str], int], ...] = (
+    ("README.md", RU_TOTALS, 2),
+    ("README.en.md", EN_TOTALS, 2),
+    ("docs/development/architecture.md", RU_FILES, 1),
+    ("docs/development/architecture.en.md", EN_FILES, 1),
+    ("docs/development/development-environment.md", RU_BARE, 1),
+    ("docs/development/development-environment.en.md", EN_BARE, 1),
+    ("docs/development/testing.md", RU_FILES, 1),
+    ("docs/development/testing.en.md", EN_FILES, 1),
 )
 
-# Every site that states the `-m unit` / `-m integration` split.
-SPLIT_SITES: tuple[tuple[str, re.Pattern[str]], ...] = (
-    ("docs/development/testing.md", RU_SPLIT),
-    ("docs/development/testing.en.md", EN_SPLIT),
+# Every site that states the `-m unit` / `-m integration` split, with how many
+# lines it must match — the same contract, for the same reason.
+SPLIT_SITES: tuple[tuple[str, re.Pattern[str], int], ...] = (
+    ("docs/development/testing.md", RU_SPLIT, 1),
+    ("docs/development/testing.en.md", EN_SPLIT, 1),
 )
 
 # Every per-file table, in both languages.
@@ -185,12 +193,13 @@ class TestDocumentedSuiteSize:
         files = len(module_counts(items))
         problems: list[str] = []
 
-        for path, pattern in COUNT_SITES:
+        for path, pattern, expected in COUNT_SITES:
             found = find(path, pattern)
-            if not found:
+            if len(found) != expected:
                 problems.append(
-                    f"{path}: no figure matches {pattern.pattern!r} — the sentence was "
-                    "reworded, so extend the guard instead of leaving the site unchecked"
+                    f"{path}: expected {expected} sites for {pattern.pattern!r}, found "
+                    f"{len(found)} — the sentence was reworded or a site was lost, so "
+                    "extend the guard instead of leaving the site unchecked"
                 )
             for number, match in found:
                 documented = int(match.group("tests"))
@@ -222,11 +231,12 @@ class TestDocumentedMarkers:
         total = len(items)
         problems: list[str] = []
 
-        for path, pattern in SPLIT_SITES:
+        for path, pattern, expected in SPLIT_SITES:
             found = find(path, pattern)
-            if not found:
+            if len(found) != expected:
                 problems.append(
-                    f"{path}: no figure matches {pattern.pattern!r}, see the note above"
+                    f"{path}: expected {expected} sites for {pattern.pattern!r}, found "
+                    f"{len(found)} — the sentence was reworded or a site was lost"
                 )
             for number, match in found:
                 documented = (

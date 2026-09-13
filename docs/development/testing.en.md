@@ -88,10 +88,13 @@ That run illustrates that coverage depends on scope; it is not the gate.
 
 Below the floor, CI fails. The number comes from the offline floor (67.5 % — a run
 without the 30 network tests and without the coverage those tests alone provide)
-rounded down. The 2.5-point headroom is about 320 statements, and it exists
-because the development machine (Windows) and the runner (Linux) execute opposite
-sides of the `sys.platform` branches in `utils/download_xray.py`,
-`utils/xray_batch.py` and `utils/xray_tester.py`.
+rounded down. The 2.5-point headroom is about 320 statements. The offline figure is
+a measurement from the development machine (Windows): the runner is Linux and
+executes the other side of the `sys.platform` branches in `utils/download_xray.py`,
+`utils/xray_batch.py` and `utils/xray_tester.py`, so the runner's own number has
+never been observed. It will be recorded here the first time CI runs green; until
+then the floor rests on a Windows measurement and does not move — changing it now
+would be calibrating against something unmeasured.
 
 Every coverage command carries `--cov-config=../pyproject.toml`, the CI step
 included. pytest-cov looks for a `.coveragerc` in the invocation directory

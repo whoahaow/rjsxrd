@@ -566,9 +566,9 @@ def verify_and_write_bypass_unsecure(
     if os.path.exists(bypass_all_raw_path):
         _load_raw_configs_into_set(bypass_all_raw_path, all_bypass_configs)
     if os.path.isdir(bypass_raw_dir):
-        for f in glob.glob(f"{bypass_raw_dir}/bypass-all-raw-*.txt"):
-            if re.match(r".*-\d+\.txt$", f) and os.path.exists(f):
-                _load_raw_configs_into_set(f, all_bypass_configs)
+        for raw_path in glob.glob(f"{bypass_raw_dir}/bypass-all-raw-*.txt"):
+            if re.match(r".*-\d+\.txt$", raw_path) and os.path.exists(raw_path):
+                _load_raw_configs_into_set(raw_path, all_bypass_configs)
 
     unsecure_only = [cfg for cfg in unsecure_configs if cfg not in all_bypass_configs]
     log(

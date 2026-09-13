@@ -39,7 +39,7 @@ class ProxyMonitor:
         self.check_interval = check_interval
         self.timeout = timeout
         self.running = False
-        self.thread = None
+        self.thread: threading.Thread | None = None
         self.proxy_failed = False
         self.last_check_ok = True
         # threading.Event for interruptible shutdown. stop() sets this so

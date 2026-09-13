@@ -23,11 +23,11 @@ pytest --cov=fetchers --cov=utils  # С отчётом о покрытии
 
 ## Структура тестов
 
-Всего **658 тестов** в 26 файлах (полный прогон ~40 с):
+Всего **682 теста** в 28 файлах (полный прогон ~40 с):
 
 | Файл | Тестов | Область |
 |------|--------|---------|
-| `test_config_processor.py` | 78 | Пайплайн обработки, `prepare_config_content`, `_add_unique`, `write_configs_file` |
+| `test_config_processor.py` | 81 | Пайплайн обработки, `prepare_config_content`, `_add_unique`, `write_configs_file` |
 | `test_file_utils.py` | 70 | `extract_host_port`, `deduplicate_configs`, `is_valid_vpn_config_url`, `filter_secure_configs` |
 | `test_xray_tester.py` | 44 | Парсеры, сигналы, startup-timeout, security edge-кейсы |
 | `test_security_filter.py` | 35 | `has_insecure_setting`, все протоколы и edge-кейсы, 2022 key length validation |
@@ -43,18 +43,20 @@ pytest --cov=fetchers --cov=utils  # С отчётом о покрытии
 | `test_health_check.py` | 21 | Health check: DNS fallback, диск, память, токен |
 | `test_telegram_proxy_scraper.py` | 21 | Извлечение MTProto и SOCKS5 из контента |
 | `test_proxy_monitor.py` | 19 | Мониторинг цепочек, stop-событие |
-| `test_xray_batch.py` | 18 | BatchRunner, shared xray, port allocation |
+| `test_xray_batch.py` | 20 | BatchRunner, shared xray, port allocation |
 | `test_config_tagger.py` | 17 | ConfigTagger: source+protocol tagging |
 | `test_fetcher.py` | 15 | Загрузка, парсинг ответов, обработка ошибок |
-| `test_executor_cache.py` | 15 | Пул тредов, shutdown, WSL-детекция |
+| `test_executor_cache.py` | 16 | Пул тредов, shutdown, WSL-детекция |
 | `test_managed_process.py` | 15 | ManagedProcess lifecycle |
 | `test_ip_checker.py` | 14 | Проверка IP, `_make_request` |
+| `test_scripts_import.py` | 12 | Импорт-смоук тесты точек входа в `scripts/`, загрузчик бенчмарка |
 | `test_telegram_proxy_verifier.py` | 12 | Верификация MTProto/SOCKS5 прокси |
 | `test_url_stats.py` | 11 | `record_fetch`, `get_dead_urls`, персистентность |
 | `test_ip_verifier.py` | 6 | env vars, TCP port polling |
 | `test_progress.py` | 6 | tqdm-консолидация |
+| `test_main.py` | 5 | Гварды путей загрузки в точке входа пайплайна |
 
-Покрытие: ~46% (измеряется через `pytest --cov=fetchers --cov=utils`).
+Покрытие: ~56% (измеряется через `pytest --cov=fetchers --cov=utils`).
 
 ## Утилиты для ручного тестирования
 
@@ -102,7 +104,7 @@ python main.py --dry-run
 
 ```bash
 cd source
-../.venv/bin/python -m mypy .        # полный отчёт: 97 ошибок в 23 файлах
+../.venv/bin/python -m mypy .        # полный отчёт: 95 ошибок в 22 файлах
 ```
 
 В CI `mypy` работает как блокирующий гейт по явному списку модулей с **нулём**
@@ -114,6 +116,7 @@ cd source
 
 `strict`, `disallow_untyped_defs` и `check_untyped_defs` намеренно не включены:
 каждый из них умножает число ошибок, а не выявляет новые дефекты, поэтому
-строгость включается поэтапно. Оставшиеся 97 ошибок — это семейства гигиены
-(`assignment`, `arg-type`, `var-annotated`, `no-any-return`, `return-value`) и
-четыре находки `name-defined`.
+строгость включается поэтапно. Оставшиеся 95 ошибок — это семейства гигиены
+(`assignment`, `arg-type`, `var-annotated`, `no-any-return`, `return-value`);
+находки `name-defined`, стоявшие рядом с ними, оказались реальными дефектами и
+исправлены.

@@ -420,7 +420,7 @@ class TestAddUnique:
         target = []
         # The function checks `if cfg and cfg not in seen` — None is falsy,
         # so None entries are skipped without error.
-        added = add_unique([None, "a", None, "b"], target, seen, lock)  # type: ignore[arg-type]
+        added = add_unique([None, "a", None, "b"], target, seen, lock)
         assert added == 2
         assert target == ["a", "b"]
 

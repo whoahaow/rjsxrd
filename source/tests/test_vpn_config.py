@@ -86,7 +86,7 @@ class TestParseUrlFactory:
 
     def test_parse_empty_or_malformed_returns_none(self):
         assert parse_url("") is None
-        assert parse_url(None) is None  # type: ignore
+        assert parse_url(None) is None
         assert parse_url("not-a-url") is None
         assert parse_url("http://example.com") is None
 

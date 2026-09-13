@@ -18,12 +18,18 @@ docstring-code-format = true
 
 [tool.mypy]
 python_version = "3.11"
-strict = false
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = false
 ignore_missing_imports = true
 explicit_package_bases = true
+# Staged tightening, not a finished configuration. `strict`,
+# `disallow_untyped_defs` and `check_untyped_defs` are deliberately NOT set:
+# each one multiplies the error count instead of revealing new defects, so they
+# are tracked separately from the ratchet below.
+show_error_codes = true
+# A `# type: ignore` that no longer suppresses anything is a stale claim about
+# the code. Turning this on makes them visible so they get deleted.
+warn_unused_ignores = true
 
 [tool.pytest.ini_options]
 testpaths = ["source/tests"]

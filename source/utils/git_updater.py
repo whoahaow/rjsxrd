@@ -11,7 +11,7 @@ from utils.logger import log
 class GitUpdater:
     """Handles git commit and push operations for GitHub Actions."""
 
-    def __init__(self, repo_dir: str = None, output_prefix: str = "githubmirror/") -> None:
+    def __init__(self, repo_dir: str | None = None, output_prefix: str = "githubmirror/") -> None:
         if repo_dir is None:
             self.repo_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
         else:

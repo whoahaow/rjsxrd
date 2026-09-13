@@ -80,7 +80,9 @@ class BatchRunner:
             success, process, error_msg = self.tester.start_xray_instance(
                 config, socks_port, verbose=verbose
             )
-            if not success:
+            # start_xray_instance returns a process only on success, so this
+            # restates that contract rather than adding a new failure mode.
+            if not success or process is None:
                 self.tester._track_error(error_msg or "Xray failed to start")
                 if attempt < max_retries - 1:
                     time.sleep(0.1)
@@ -148,7 +150,8 @@ class BatchRunner:
         # Start xray — poll the first allocated port
         first_port = min(port_map.keys())
         success, process, error = self.tester.start_xray_instance(config, first_port)
-        if not success:
+        # Same contract as the single-config path above.
+        if not success or process is None:
             log(
                 f"Chunk {chunk_idx + 1}: xray failed to start on port {first_port}: {error or 'unknown'}"
             )
@@ -175,8 +178,8 @@ class BatchRunner:
     def _test_batch_shared_xray(
         self,
         urls: list[str],
-        concurrency: int = None,
-        timeout: float = None,
+        concurrency: int | None = None,
+        timeout: float | None = None,
         verbose: bool = False,
         progress_callback: Callable | None = None,
     ) -> list[tuple[str, bool, float]]:
@@ -336,8 +339,8 @@ class BatchRunner:
     def test_batch(
         self,
         urls: list[str],
-        concurrency: int = None,
-        timeout: float = None,
+        concurrency: int | None = None,
+        timeout: float | None = None,
         verbose: bool = False,
         progress_callback: Callable | None = None,
     ) -> list[tuple[str, bool, float]]:
@@ -513,7 +516,7 @@ class BatchRunner:
                                         u for _, u in sorted(working_results, key=lambda x: x[0])
                                     ]
 
-                        if should_fire:
+                        if should_fire and progress_callback is not None:
                             loop = asyncio.get_running_loop()
                             await loop.run_in_executor(None, progress_callback, snapshot, count)
                         eta_tracker.record_completion(duration)

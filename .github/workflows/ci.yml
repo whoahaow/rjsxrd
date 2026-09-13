@@ -45,6 +45,46 @@ jobs:
       - name: Format check
         run: .venv/bin/ruff format --check .
 
+      - name: Type check (ratchet)
+        # Blocking, and deliberately narrow. Every module listed here is at zero
+        # type errors; the list may only grow. `--follow-imports=silent` keeps
+        # the check scoped to the listed files, so a module can join the list
+        # without inheriting the residual of everything it imports.
+        #
+        # Residual when this step landed: 97 errors in 23 files. The hygiene
+        # families (assignment, arg-type, var-annotated, no-any-return,
+        # return-value) are owned by the K05 follow-up card; the four
+        # name-defined findings are owned by K06.
+        run: |
+          cd source
+          ../.venv/bin/python -m mypy --follow-imports=silent \
+            config/settings.py \
+            fetchers/daily_repo_fetcher.py \
+            fetchers/sstap_scraper.py \
+            fetchers/telegram_proxy_scraper.py \
+            fetchers/upstream_aggregator.py \
+            fetchers/yaml_converter.py \
+            scripts/purge_dead_urls.py \
+            scripts/test_telegram_proxies.py \
+            utils/_sni_worker.py \
+            utils/config_helpers.py \
+            utils/config_tagger.py \
+            utils/curl_import.py \
+            utils/file_utils.py \
+            utils/git_updater.py \
+            utils/ip_verifier.py \
+            utils/managed_process.py \
+            utils/process_registry.py \
+            utils/progress.py \
+            utils/proxy_monitor.py \
+            utils/psutil_available.py \
+            utils/resource_monitor.py \
+            utils/security_filter.py \
+            utils/smart_eta.py \
+            utils/system_specs.py \
+            utils/telegram_notifier.py \
+            utils/vpn_config.py
+
       - name: Tests
         # Coverage is folded into this run and reported, not gated: the
         # threshold is a later card's ratchet.

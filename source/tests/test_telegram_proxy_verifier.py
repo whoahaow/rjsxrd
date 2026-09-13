@@ -175,3 +175,37 @@ class TestVerifyProxyListGatherResults:
         assert results[0][0] == url
         assert results[0][1] is False
         assert results[0][2].startswith("EXCEPTION")
+
+
+class TestMissingMtprotoSecret:
+    """The MTProto handshake needs a secret; a missing one must be reported.
+
+    `verify_proxy_async` defaults `hex_secret` to None and passes it straight to
+    `async_verify_mtproto`. `_create_handshake_packet` then falls through its own
+    try/except to `None.encode()`, and the AttributeError that raises is caught
+    by none of the clauses on this path — the handshake's `except` covers
+    TimeoutError/OSError, the caller's covers TimeoutError/CancelledError/OSError/
+    ConnectionError/RuntimeError — so it escapes the verifier instead of being
+    reported as a failed proxy.
+    """
+
+    def test_missing_secret_is_reported_instead_of_raising(self):
+        import asyncio
+        import socket
+
+        # A live loopback listener, so the test reaches the handshake instead of
+        # failing earlier at connect().
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server.bind(("127.0.0.1", 0))
+        server.listen(1)
+        port = server.getsockname()[1]
+        try:
+            verifier = TelegramProxyVerifier()
+            ok, message = asyncio.run(
+                verifier.verify_proxy_async("127.0.0.1", port, None, timeout=1.0)
+            )
+        finally:
+            server.close()
+
+        assert ok is False
+        assert "secret" in message.lower()

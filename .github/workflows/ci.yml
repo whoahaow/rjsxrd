@@ -1,0 +1,67 @@
+name: CI
+
+# Quality gate for the Python pipeline: format, tests and the dependency audit
+# are blocking. Deliberately separate from frequent_update.yml — that workflow
+# runs the pipeline, this one only verifies the code.
+
+on:
+  push:
+  pull_request:
+
+# Supersede an in-flight run when a new commit lands on the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29  # v4.1.6
+
+      - name: Set up Python
+        uses: actions/setup-python@0b93645e92151f777d924e8c48dc00eee2ebc3ea  # v5.3.0
+        with:
+          python-version: '3.12'
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4  # v10.1.0
+        with:
+          enable-cache: true
+
+      - name: Install development dependencies
+        # No [project] table yet, so `uv run` is unavailable: create the virtual
+        # environment explicitly and install the dev manifest into it.
+        run: |
+          uv venv --python 3.12
+          cd source && uv pip install --python ../.venv/bin/python -r requirements-dev.txt
+
+      - name: Format check
+        run: .venv/bin/ruff format --check .
+
+      - name: Tests
+        run: |
+          cd source
+          ../.venv/bin/python -m pytest -q
+
+      - name: Dependency audit
+        run: .venv/bin/pip-audit -r source/requirements.txt
+
+      - name: Lint
+        # Non-blocking: 46 known findings — 41 in the test files (card K14) and
+        # 5 F821 defects (card K06). Visible now, gating once those cards land.
+        continue-on-error: true
+        run: .venv/bin/ruff check .
+
+      - name: Coverage (report only)
+        # Reported, not gated: the threshold is a later card's ratchet.
+        continue-on-error: true
+        run: |
+          cd source
+          ../.venv/bin/python -m pytest --cov=. --cov-report=term-missing -q

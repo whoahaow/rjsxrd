@@ -11,6 +11,7 @@ import math
 import os
 import re
 from functools import lru_cache
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from config.settings import SNI_DOMAINS
@@ -21,8 +22,16 @@ from utils.logger import log
 # API: build the automaton once with all patterns, then check each
 # haystack against the whole automaton via find_matches_as_strings().
 # Per-pattern API (the c wrapper) is not used and not installed.
+#
+# Declared as Any so the absent-binding branch below is a legal assignment:
+# the module contract is "AhoCorasick is None means the Rust binding is
+# unavailable" (see the guard in extract_sni_domains).
+AhoCorasick: Any
+
 try:
-    from ahocorasick_rs import AhoCorasick
+    from ahocorasick_rs import AhoCorasick as _AhoCorasick
+
+    AhoCorasick = _AhoCorasick
 except ImportError:
     AhoCorasick = None
 

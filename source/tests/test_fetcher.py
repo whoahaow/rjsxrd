@@ -149,6 +149,22 @@ class TestFetchData:
         assert result.success is False
         assert result.text == ""
 
+    @patch("fetchers.fetcher.build_session")
+    def test_zero_attempts_returns_a_failed_result_not_none(self, mock_build_session):
+        """`max_attempts=0` skips the retry loop entirely.
+
+        The function is declared to return a FetchResult, and every caller reads
+        `.success` off it — returning None from here turns a bad argument into an
+        AttributeError inside the caller instead of a reported fetch failure.
+        """
+        mock_build_session.return_value = MagicMock()
+
+        result = fetch_data("https://example.com", max_attempts=0)
+
+        assert result is not None
+        assert result.success is False
+        assert result.text == ""
+
     @patch("fetchers.fetcher._get_env_proxy")
     @patch("fetchers.fetcher.build_session")
     def test_fetch_uses_proxy_from_env(self, mock_build_session, mock_get_env):

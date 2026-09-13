@@ -300,5 +300,10 @@ def fetch_data(
                 text="", status_code=_extract_status(exc), error=str(exc), success=False
             )
 
-    # max_attempts <= 0 never enters the loop; keep the fall-through explicit.
-    return None
+    # max_attempts <= 0 never enters the loop. Report a failure rather than
+    # returning None: the declared contract is a FetchResult that callers
+    # inspect through `.success`, so None turns a bad argument into an
+    # AttributeError at the call site.
+    return FetchResult(
+        text="", status_code=0, error="max_attempts must be at least 1", success=False
+    )

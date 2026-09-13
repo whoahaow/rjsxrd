@@ -4,7 +4,31 @@ ConfigTagger tags configs with protocol and source metadata on first
 encounter, so downstream stages don't need to re-parse URLs.
 """
 
+import ast
+from pathlib import Path
+
+import utils
 from utils.config_tagger import ConfigTagger
+
+
+class TestPackageImportCost:
+    """Importing anything under `utils` must not run imports on its behalf."""
+
+    def test_package_init_declares_no_imports(self):
+        """`utils/__init__.py` is import-free, so `utils.*` stays cheap.
+
+        The package used to re-export GitHubHandler, which pulled PyGithub into
+        every process that imported any utils module — a venv without PyGithub
+        could not collect this very file. The check is static on purpose: it
+        holds in any test order, unlike a `sys.modules` assertion.
+        """
+        tree = ast.parse(Path(utils.__file__).read_text(encoding="utf-8"))
+        imports = [
+            node for node in ast.walk(tree) if isinstance(node, (ast.Import, ast.ImportFrom))
+        ]
+        assert imports == [], (
+            "utils/__init__.py must declare no imports; import from the defining module instead"
+        )
 
 
 class TestConfigTaggerTag:

@@ -88,12 +88,48 @@ class TestExecutorCache:
         # Both should have been attempted; cache is cleared
         assert len(ExecutorCache._executors) == 0
 
-    def test_lock_initialized_lazily(self):
-        """_lock starts as None and gets created on first use."""
-        ExecutorCache._lock = None  # Reset
-        lock = ExecutorCache._get_lock()
-        assert lock is not None
-        ExecutorCache._lock = None  # Restore for other tests
+    def test_concurrent_callers_receive_one_lock(self):
+        """Every thread reaching for the lock must get the same object.
+
+        The lock was built lazily behind `if cls._lock is None` — a
+        check-then-act: two threads could each see None, each build a lock, and
+        the loser's lock was discarded, leaving both callers holding different
+        locks and the mutual exclusion void during its own initialisation.
+        """
+        import threading
+
+        barrier = threading.Barrier(8)
+        seen = []
+
+        def grab_lock():
+            barrier.wait()
+            seen.append(id(ExecutorCache._get_lock()))
+
+        threads = [threading.Thread(target=grab_lock) for _ in range(8)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        assert len(seen) == 8
+        assert len(set(seen)) == 1, "threads received different lock objects"
+        assert seen[0] == id(ExecutorCache._lock)
+
+    def test_lock_exists_as_soon_as_the_module_loads(self):
+        """The lock must be created with the class, not on first use."""
+        import importlib
+        import threading
+
+        import utils.executor_cache as executor_cache
+
+        module = importlib.reload(executor_cache)
+        lock = module.ExecutorCache._lock
+
+        assert lock is not None, "the lock is still created lazily"
+        assert isinstance(lock, type(threading.Lock()))
+        # Reloading keeps the module in the state its source describes, so a
+        # second load must expose the same eager property.
+        assert module.ExecutorCache._get_lock() is lock
 
 
 class TestConvenienceFunctions:

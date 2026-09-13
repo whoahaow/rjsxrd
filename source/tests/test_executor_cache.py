@@ -59,6 +59,16 @@ class TestExecutorCache:
         exec1 = ExecutorCache.get("test_custom", max_workers=4)
         assert exec1._max_workers == 4
 
+    def test_zero_workers_is_raised_to_one(self):
+        """A pool sized from an empty work list must not raise.
+
+        ``min(8, len(items))`` is zero for an empty list, and
+        ``ThreadPoolExecutor`` rejects zero — so a caller whose work list
+        happened to be empty crashed instead of doing nothing.
+        """
+        exec1 = ExecutorCache.get("test_zero_workers", max_workers=0)
+        assert exec1._max_workers == 1
+
     def test_get_without_max_workers_auto_optimizes(self):
         """Omitting max_workers triggers auto-optimization via _get_optimal_workers."""
         exec1 = ExecutorCache.get("test_auto")

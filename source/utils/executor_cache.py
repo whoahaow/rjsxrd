@@ -67,7 +67,9 @@ class ExecutorCache:
         Args:
             name: Unique identifier for this executor type
             max_workers: Number of workers (only used on first creation,
-                        auto-optimized for WSL/low-memory if not specified)
+                        auto-optimized for WSL/low-memory if not specified).
+                        Values below 1 are raised to 1: no pool can have zero
+                        workers.
 
         Returns:
             Cached ThreadPoolExecutor instance
@@ -83,6 +85,15 @@ class ExecutorCache:
                 # Auto-optimize worker count if not specified
                 if max_workers is None:
                     max_workers = _get_optimal_workers(default=8)
+
+                # A caller that sizes its pool from a work list can compute
+                # zero (``min(N, len(items))`` over an empty list). Zero is not
+                # a pool — ThreadPoolExecutor rejects it, so the call raised
+                # where it should have done nothing — and one worker still maps
+                # an empty list to no tasks. The floor lives here rather than at
+                # each call site so that no caller can construct a pool it
+                # cannot use.
+                max_workers = max(1, max_workers)
 
                 cls._executors[name] = ThreadPoolExecutor(
                     max_workers=max_workers, thread_name_prefix=name

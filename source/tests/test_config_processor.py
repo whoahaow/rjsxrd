@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from processors.config_processor import (
+    ConfigPipeline,
     append_remark_suffix,
     create_all_configs_file,
     create_protocol_split_files,
@@ -14,7 +15,9 @@ from processors.config_processor import (
 )
 from utils import bypass_builder
 from utils.config_helpers import resolve_flag, try_decode_base64_content
+from utils.executor_cache import ExecutorCache
 from utils.file_utils import is_valid_vpn_config_url
+from utils.url_stats import URLStats
 
 pytestmark = pytest.mark.unit
 
@@ -1656,6 +1659,51 @@ class TestCreateProtocolSplitFilesContract:
         # Only the secure one in the secure version
         assert "security=tls" in vless_secure
         assert "security=none" not in vless_secure
+
+
+class TestProtocolSplitEmptyInput:
+    """Zero mappable configs must write nothing, not raise.
+
+    ``create_protocol_split_files`` sizes its pool from the task list
+    (``min(8, len(write_tasks))``), so a run whose configs map to no protocol —
+    every source dead, a fetch that returned nothing — handed
+    ``ThreadPoolExecutor`` a ``max_workers`` of 0 and died there instead of
+    writing no files.
+
+    The executor cache is cleared around every case because this is a
+    *creation* failure: once any earlier test has built the ``write_tasks``
+    pool, the cached instance is reused and the crash cannot happen. Production
+    never has that earlier test — every run is the first run.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _cold_executor_cache(self):
+        ExecutorCache._executors.clear()
+        yield
+        ExecutorCache._executors.clear()
+
+    @pytest.mark.parametrize(
+        "configs",
+        [[], ["https://example.invalid/subscription"], ["not a config at all"]],
+        ids=["no-configs", "no-vpn-configs", "garbage"],
+    )
+    def test_the_stage_writes_nothing_and_does_not_raise(
+        self, tmp_path, monkeypatch, configs
+    ):
+        """The split flag on, zero mappable configs: no files, no exception."""
+        monkeypatch.setattr(
+            "processors.config_processor.URLStats",
+            lambda: URLStats(path=str(tmp_path / "url_stats.json")),
+        )
+        pipeline = ConfigPipeline(
+            output_dir=str(tmp_path), flag_overrides={"ENABLE_PROTOCOL_SPLIT": True}
+        )
+        pipeline.all_configs = list(configs)
+        pipeline.extra_bypass_configs = []
+
+        assert pipeline.stage_protocol_split() == 0.0
+        assert pipeline.protocol_files == []
+        assert not (tmp_path / "split-by-protocols").exists()
 
 
 class TestPathInOutput:

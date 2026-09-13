@@ -132,9 +132,16 @@ class SimpleTester:
             with contextlib.suppress(RuntimeError, OSError):
                 await asyncio.get_event_loop().run_in_executor(None, pbar.close)
 
-        working = [(url, ok, rtt) for url, ok, rtt in all_results if ok]
+        # Element type spelled out: the `if ok` / `if not ok` filters otherwise
+        # narrow each list to a Literal[True] / Literal[False] tuple, which makes
+        # `working + failed` a type error rather than a concatenation.
+        working: list[tuple[str, bool, float]] = [
+            (url, ok, rtt) for url, ok, rtt in all_results if ok
+        ]
         working.sort(key=lambda x: x[2])
-        failed = [(url, ok, rtt) for url, ok, rtt in all_results if not ok]
+        failed: list[tuple[str, bool, float]] = [
+            (url, ok, rtt) for url, ok, rtt in all_results if not ok
+        ]
 
         return working + failed
 

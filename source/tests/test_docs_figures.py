@@ -21,7 +21,13 @@ What it guards, and where each expectation comes from:
   tree and the prose sentence) and must keep stating them twice, so one site
   cannot be reworded while the other keeps the file looking guarded;
 * the marker registry in ``pyproject.toml`` — a registered marker no test
-  carries is a claim the suite does not make (``slow`` was one).
+  carries is a claim the suite does not make (``slow`` was one);
+* the auto-commit churn figures in ``modules.md`` / ``modules.en.md`` — that the
+  sentence still names the commit it was measured at, that the three figures add
+  up, that both shares follow from them, that the commands printed below it
+  reproduce the same three figures at the same commit, and that both languages
+  state the same measurement. Those figures moved ``6872/172`` → ``6894/194``
+  across two cards with nothing checking them, this sprint's own work included.
 
 What it does NOT guard, so nobody assumes otherwise:
 
@@ -29,7 +35,13 @@ What it does NOT guard, so nobody assumes otherwise:
   inside the suite; they stay a hand-measured figure, and a doc that states one
   names the command that produced it;
 * the warning counts, for the same reason;
-* the prose around the figures. This test reads numbers, not claims.
+* the prose around the figures. This test reads numbers, not claims;
+* the churn figures against ``git``. The anchor makes them a historical
+  measurement rather than a claim about HEAD, but nothing here runs ``git``, so
+  an edit that moved all three numbers together under a valid-looking anchor,
+  and an anchor naming a commit that does not exist, would both pass. Checking
+  them means a ``git`` subprocess and a full-depth clone — the CI checkout sets
+  no ``fetch-depth``, so it is shallow and cannot answer there.
 
 Run it with the whole suite: the guard answers about what was collected, so a
 single-module invocation (`pytest tests/test_docs_figures.py`) answers about
@@ -74,6 +86,26 @@ RU_SPLIT = re.compile(
 EN_SPLIT = re.compile(
     r"(?P<unit>\d+)\s+and\s+(?P<integration>\d+)\s+tests?\s+out of\s+(?P<total>\d+)"
 )
+# The churn measurement: "на ветке `main` в коммите `71972831`: 6894 коммита, из
+# них 6700 (≈ 97,2 %)…" / "on branch `main` at commit `71972831`: 6894 commits,
+# 6700 of them (≈ 97.2 %)…". The anchor, the three figures and both shares are
+# captured together because they are one claim: an edit to any of them without
+# the others is what this catches.
+RU_CHURN = re.compile(
+    r"на ветке `main` в коммите `(?P<sha>[0-9a-f]{7,40})`: (?P<total>\d+) коммит\w*, "
+    r"из них (?P<auto>\d+) \(≈ (?P<share>\d+,\d+) %\) начинаются с `auto: update`, "
+    r"а остальные (?P<other>\d+) \(≈ (?P<other_share>\d+,\d+) %\)"
+)
+EN_CHURN = re.compile(
+    r"on branch `main` at commit `(?P<sha>[0-9a-f]{7,40})`: (?P<total>\d+) commits, "
+    r"(?P<auto>\d+) of them \(≈ (?P<share>\d+\.\d+) %\) start with `auto: update`, "
+    r"and the remaining (?P<other>\d+) \(≈ (?P<other_share>\d+\.\d+) %\)"
+)
+# One line of the reproduction block: the commit it measures, and the figure the
+# command printed at it — "git rev-list --count 71972831   # 6894".
+CHURN_COMMAND = re.compile(
+    r"^git (?:rev-list|log)\b[^#]*?(?P<sha>[0-9a-f]{7,40})[^#]*#\s*(?P<value>\d+)\s*$"
+)
 # A row of the per-file table: "| `test_progress.py` | 6 | tqdm consolidation |".
 TABLE_ROW = re.compile(r"^\|\s*`(test_[a-z0-9_]+\.py)`\s*\|\s*(?P<count>\d+)\s*\|")
 # A test module inside a README's file tree: " │   ├─ test_progress.py".
@@ -106,6 +138,14 @@ COUNT_SITES: tuple[tuple[str, re.Pattern[str], int], ...] = (
 SPLIT_SITES: tuple[tuple[str, re.Pattern[str], int], ...] = (
     ("docs/development/testing.md", RU_SPLIT, 1),
     ("docs/development/testing.en.md", EN_SPLIT, 1),
+)
+
+# The churn measurement, one site per language. The count is a contract here for
+# the same reason it is above: a reworded sentence that no longer matches has to
+# fail loudly rather than leaving the page looking guarded by nothing.
+CHURN_SITES: tuple[tuple[str, re.Pattern[str], int], ...] = (
+    ("docs/development/modules.md", RU_CHURN, 1),
+    ("docs/development/modules.en.md", EN_CHURN, 1),
 )
 
 # Every per-file table, in both languages.
@@ -170,6 +210,56 @@ def find(path: str, pattern: re.Pattern[str]) -> list[tuple[int, re.Match[str]]]
         if match:
             found.append((number, match))
     return found
+
+
+def find_joined(path: str, pattern: re.Pattern[str]) -> list[tuple[int, re.Match[str]]]:
+    """Matches of a pattern that may span a line break, with its starting line.
+
+    `find` answers per line, which is right for a figure stated on one line and
+    wrong for the churn sentence: its anchor, three figures and two shares sit
+    on different lines of the source, so a pattern that described the wrapping
+    instead of the sentence would go red on a re-wrap. Emphasis is stripped as
+    in `find`, the lines are joined with a single space, and each match is
+    mapped back to the line it starts on so a failure still carries
+    ``path:line``.
+    """
+    offsets: list[int] = []
+    parts: list[str] = []
+    cursor = 0
+    for line in (REPO_ROOT / path).read_text(encoding="utf-8").splitlines():
+        offsets.append(cursor)
+        part = line.replace("**", "")
+        parts.append(part)
+        cursor += len(part) + 1
+    joined = " ".join(parts)
+
+    found: list[tuple[int, re.Match[str]]] = []
+    for match in pattern.finditer(joined):
+        start = max(index for index, offset in enumerate(offsets) if offset <= match.start())
+        found.append((start + 1, match))
+    return found
+
+
+def fenced_block(path: str, after: int) -> list[tuple[int, str]]:
+    """The first fenced block starting below line `after`, as (line, text).
+
+    Reading the block rather than the rest of the page keeps a `git` command
+    elsewhere in the file from being mistaken for a re-measurement site — or,
+    worse, from silently satisfying the expected number of them.
+    """
+    block: list[tuple[int, str]] = []
+    opened = False
+    for number, raw in enumerate(
+        (REPO_ROOT / path).read_text(encoding="utf-8").splitlines()[after:], start=after + 1
+    ):
+        if raw.startswith("```"):
+            if opened:
+                return block
+            opened = True
+            continue
+        if opened:
+            block.append((number, raw))
+    return block
 
 
 def tree_modules(path: str) -> set[str] | None:
@@ -364,3 +454,112 @@ class TestDocumentedTables:
             )
 
         report(problems, "the README file trees disagree with the collected suite:")
+
+
+def reproduction_problems(
+    path: str, anchor_line: int, anchor: str, stated: tuple[int, int, int]
+) -> list[str]:
+    """The commands in the churn page's reproduction block, against the sentence.
+
+    The block prints each figure a second time, in the comment of the command
+    that produced it, so a figure edited without its measurement becomes a
+    disagreement between two statements on the same page — which is what this
+    returns. The values are compared as a set: which command prints which half
+    is the page's business, that all three were printed at the anchor is not.
+    """
+    problems: list[str] = []
+    values: list[int] = []
+    for line, text in fenced_block(path, anchor_line):
+        command = CHURN_COMMAND.search(text)
+        if not command:
+            continue
+        values.append(int(command.group("value")))
+        if command.group("sha") != anchor:
+            problems.append(
+                f"{path}:{line}: this command measures {command.group('sha')}, the "
+                f"measurement above it is anchored to {anchor}"
+            )
+    if len(values) != len(stated):
+        problems.append(
+            f"{path}: the reproduction block prints {len(values)} figures, expected "
+            f"{len(stated)} — the total and its two halves"
+        )
+    elif sorted(values) != sorted(stated):
+        problems.append(
+            f"{path}: the reproduction commands print {sorted(values)}, the sentence "
+            f"states {sorted(stated)}"
+        )
+    return problems
+
+
+class TestDocumentedChurn:
+    """The churn figures, against the commit they say they were measured at.
+
+    These are the figures that drifted unobserved: ``6872`` → ``6894`` and
+    ``172`` → ``194`` across the two cards before this one, this sprint's own
+    work included, because they were stated for HEAD and nothing checked them.
+    They name a commit now, which makes them a historical measurement, and this
+    class holds the anchor and the arithmetic in place.
+    """
+
+    def test_the_churn_figures_are_anchored_and_add_up(self) -> None:
+        """Each figure is stated twice; the check compares both statements.
+
+        Once in the sentence, once in the comment of the command that printed it.
+        The anchor has to be one commit across both languages, the total has to
+        be its two halves, both shares have to follow from those figures, and the
+        commands have to print the three numbers the sentence states.
+        """
+        problems: list[str] = []
+        anchors: dict[str, str] = {}
+        measurements: dict[str, tuple[int, int, int]] = {}
+
+        for path, pattern, expected in CHURN_SITES:
+            found = find_joined(path, pattern)
+            if len(found) != expected:
+                problems.append(
+                    site_count_problem(path, pattern, expected, len(found), "CHURN_SITES")
+                )
+                continue
+
+            number, match = found[0]
+            anchor = match.group("sha")
+            total = int(match.group("total"))
+            auto = int(match.group("auto"))
+            other = int(match.group("other"))
+            anchors[path] = anchor
+            measurements[path] = (total, auto, other)
+
+            if total != auto + other:
+                problems.append(
+                    f"{path}:{number}: the figures do not add up — {total} total, "
+                    f"{auto} auto and {other} other, and {auto} + {other} = {auto + other}"
+                )
+            for label, value, stated_share in (
+                ("auto", auto, match.group("share")),
+                ("other", other, match.group("other_share")),
+            ):
+                share = round(value / total * 100, 1) if total else 0.0
+                if abs(float(stated_share.replace(",", ".")) - share) > 0.05:
+                    problems.append(
+                        f"{path}:{number}: the {label} share is stated as {stated_share} %, "
+                        f"and {value} of {total} is {share} %"
+                    )
+
+            problems.extend(reproduction_problems(path, number, anchor, measurements[path]))
+
+        if len(measurements) == len(CHURN_SITES):
+            if len(set(anchors.values())) != 1:
+                problems.append(
+                    "the two languages anchor the churn measurement to different commits: "
+                    + ", ".join(f"{path} names {sha}" for path, sha in sorted(anchors.items()))
+                )
+            if len(set(measurements.values())) != 1:
+                problems.append(
+                    "the two languages state different churn figures: "
+                    + ", ".join(
+                        f"{path} states {figures}" for path, figures in sorted(measurements.items())
+                    )
+                )
+
+        report(problems, "the documented churn measurement disagrees with itself:")

@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 ```
 
 Every test module declares its marker (`pytestmark`), so `-m unit` and
-`-m integration` actually select something: 747 and 15 tests out of 762
+`-m integration` actually select something: 748 and 15 tests out of 763
 (measured with `pytest --collect-only -q` under each marker). Only the two
 modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) carry `integration`. Pure logic needs
@@ -32,7 +32,7 @@ which took the 15 pure-logic tests out of `test_fetcher.py`.
 
 ## Test structure
 
-**762 tests** in 33 files. A full run takes around 70–80 seconds on the
+**763 tests** in 33 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
@@ -67,7 +67,7 @@ load, so measure with `pytest -q` on your own machine.
 | `test_url_stats.py` | 13 | `record_fetch`, `get_dead_urls`, persistence |
 | `test_scripts_import.py` | 12 | Import smoke tests for the `scripts/` entry points, benchmark loader |
 | `test_progress.py` | 6 | tqdm consolidation |
-| `test_docs_figures.py` | 5 | Docs figures match the collected suite |
+| `test_docs_figures.py` | 6 | Docs figures match the collected suite |
 | `test_main.py` | 6 | Upload-path guards and the deferred SDK import in the entry point |
 | `test_telegram_proxy_processor.py` | 3 | Writing MTProto/SOCKS5 proxies to files |
 | `test_purge_stale_urls.py` | 3 | Cache loading in `scripts/purge_stale_urls.py` |

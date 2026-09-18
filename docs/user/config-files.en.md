@@ -83,7 +83,7 @@ Convenient if you know which protocol you need:
 
 - **Secure** (for example `vless-secure.txt`) — only secure configs
 - **Unsecure** (for example `vless.txt`) — all configs of the protocol
-- A file over the limit (~49 MB) is split into parts: `vless.txt` → `vless-1.txt`, `vless-2.txt`, … — the same limit as the other sets
+- A file over the limit (~49 MB) is split into parts: `vless.txt` → `vless-1.txt`, `vless-2.txt`, … — the same limit as the other sets. The unsplit file is deleted when that happens, and the deletion is committed to the published mirror: pin a subscription to a part (`vless-1.txt`), not to the old name — a URL pinned at `vless.txt` answers 404 once the bucket has been split
 
 Supported protocols: VLESS, VMess, Trojan, Shadowsocks, ShadowsocksR, TUIC, Hysteria v1, Hysteria v2.
 

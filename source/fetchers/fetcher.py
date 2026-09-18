@@ -207,6 +207,34 @@ def _host_of(url: str) -> str:
     return (urlparse(url).hostname or "").lower()
 
 
+# The hosts a GitHub token may be sent to. Compared against the parsed hostname of the
+# request, never against the URL text: the text test this replaces handed the credential to
+# any host a URL merely named — `https://evil.example/x?u=github.com` carried it — and a set
+# is where a reader can see exactly who receives it.
+#
+# Established from where the credential is actually used, not from what the documentation
+# said, because that gap is the trap here: the two hosts a request is ever made to are
+# `github.com` and `raw.githubusercontent.com` (the only prefixes `_raw_to_api_url`
+# recognizes, and the retry ladder requests the URL it was given), and the host the API
+# fallback builds for itself is `api.github.com`. That last one is why this set is not the
+# two hosts SECURITY.md used to name — leaving it out would stop authenticating the fallback
+# silently, which is a worse outcome than the leak this closes.
+GITHUB_TOKEN_HOSTS: frozenset[str] = frozenset(
+    {"github.com", "raw.githubusercontent.com", "api.github.com"}
+)
+
+
+def _receives_github_token(url: str) -> bool:
+    """Whether a request to `url` may carry the GitHub token.
+
+    The policy, stated once: the credential goes to the hosts in `GITHUB_TOKEN_HOSTS` and
+    nowhere else. Two decisions consult it — the one for the URL a caller asked for, and the
+    one the API fallback makes for the host it is about to request (its metadata call and its
+    raw re-fetch both go to that host).
+    """
+    return _host_of(url) in GITHUB_TOKEN_HOSTS
+
+
 def _port_of(url: str) -> int | None:
     """The port the request will go to: the URL's own, or the scheme default.
 
@@ -471,7 +499,12 @@ def _raw_to_api_url(url: str) -> str | None:
 
 
 def _is_github_url(url: str) -> bool:
-    """Check if URL is a GitHub raw/blob URL that can be converted to API format."""
+    """Whether the URL can be converted to a GitHub API URL.
+
+    Not the token policy — that is `_receives_github_token`, and the two ask different
+    questions on purpose: this one asks whether `_raw_to_api_url` recognizes the URL, and it
+    implies the token policy only because the API host is in `GITHUB_TOKEN_HOSTS`.
+    """
     return _raw_to_api_url(url) is not None
 
 
@@ -498,7 +531,10 @@ def _fetch_via_api(
 
         # First, get file metadata (size + sha) via JSON
         headers = {"Accept": "application/vnd.github.v3+json"}
-        if token:
+        # The credential is attached for the host this call is about to request, not for the
+        # URL it was handed: the fallback builds an api.github.com URL from a GitHub one, and
+        # that host is in GITHUB_TOKEN_HOSTS precisely so this call stays authenticated.
+        if token and _receives_github_token(api_url):
             headers["Authorization"] = f"token {token}"
 
         resp = sess.get(api_url, timeout=timeout, headers=headers)
@@ -533,7 +569,7 @@ def _fetch_via_api(
 
             # Re-fetch with raw media type
             raw_headers = {"Accept": "application/vnd.github.raw+json"}
-            if token:
+            if token and _receives_github_token(api_url):
                 raw_headers["Authorization"] = f"token {token}"
 
             raw_resp = sess.get(api_url, timeout=timeout * 3, headers=raw_headers)
@@ -599,7 +635,9 @@ def fetch_data(
                  multiple fetches. Token is sent per-request, not on the session.
         proxy_url: Optional proxy URL for routing request.
                   If not provided, uses environment variable (set by --proxy arg).
-        token: Optional Bearer token. Only sent for GitHub URLs (github.com / raw.githubusercontent.com).
+        token: Optional GitHub token. Sent only to the hosts in GITHUB_TOKEN_HOSTS
+               (github.com, raw.githubusercontent.com, api.github.com) — never to a host
+               that merely appears in the URL text.
 
     Retry strategy — the order and the count are load-bearing, not tunable
     here (SECURITY.md states what they cost):
@@ -627,9 +665,10 @@ def fetch_data(
     # Auto-detect token: use provided, or fall back to env
     effective_token = token or _get_github_token()
 
-    # Only pass token for GitHub URLs — avoids leaking auth to random hosts
-    is_github_url = "github.com" in url or "raw.githubusercontent.com" in url
-    request_token = effective_token if effective_token and is_github_url else None
+    # The credential goes to the hosts in GITHUB_TOKEN_HOSTS and nowhere else. The
+    # comparison is on the parsed hostname, so a URL that merely mentions a GitHub host in
+    # its path or its query string carries no auth.
+    request_token = effective_token if effective_token and _receives_github_token(url) else None
 
     # Refuse a destination that is not public before anything is sent. The
     # resolution happens once per call: every attempt below targets the same
@@ -653,10 +692,11 @@ def fetch_data(
     if request_token:
         extra_headers["Authorization"] = f"token {request_token}"
 
-    # If API fallback enabled and URL is GitHub — go straight to API, skip retries
+    # If API fallback enabled and URL is GitHub — go straight to API, skip retries. The token
+    # passed here is `request_token`: who may receive the credential was decided once, by the
+    # host set, and re-deriving it at this call site is how a second, weaker policy appears.
     if GITHUB_API_FALLBACK and _is_github_url(url):
-        api_token = request_token or _get_github_token()
-        api_content = _fetch_via_api(url, token=api_token, session=sess, timeout=timeout)
+        api_content = _fetch_via_api(url, token=request_token, session=sess, timeout=timeout)
         if api_content:
             return FetchResult(text=api_content, status_code=200)
         # API also failed — fall through to normal retry loop as last resort

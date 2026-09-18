@@ -75,7 +75,7 @@ class TestSmartETABasics:
         ft.advance(4.0)
         eta.record_completion(4.0)
         desc = eta.description
-        assert desc.endswith("m") or desc.endswith("s"), f"got: {desc}"
+        assert desc.endswith(("m", "s")), f"got: {desc}"
 
     def test_description_formats_hours(self):
         ft = FakeTime()
@@ -83,7 +83,7 @@ class TestSmartETABasics:
         ft.advance(10.0)
         eta.record_completion(10.0)
         desc = eta.description
-        assert desc.endswith("h") or desc.endswith("m"), f"got: {desc}"
+        assert desc.endswith(("h", "m")), f"got: {desc}"
 
     def test_reset(self):
         ft = FakeTime()

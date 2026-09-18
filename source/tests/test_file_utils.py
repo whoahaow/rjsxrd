@@ -370,7 +370,7 @@ class TestFileOperations:
             with open(temp_path) as f:
                 content = f.read()
 
-            lines = [l.strip() for l in content.split("\n") if l.strip()]
+            lines = [line.strip() for line in content.split("\n") if line.strip()]
             assert len(lines) == 2
         finally:
             os.unlink(temp_path)
@@ -510,7 +510,7 @@ class TestSplitAndReplaceFile:
             with open(f) as fp:
                 all_split_content.extend(fp.read().splitlines())
         # Filter empty lines (file may have trailing newlines)
-        all_split_content = [l for l in all_split_content if l]
+        all_split_content = [line for line in all_split_content if line]
         assert len(all_split_content) == 1000
         # And the original is gone
         assert not src.exists()

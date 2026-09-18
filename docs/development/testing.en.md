@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 ```
 
 Every test module declares its marker (`pytestmark`), so `-m unit` and
-`-m integration` actually select something: 742 and 15 tests out of 757
+`-m integration` actually select something: 747 and 15 tests out of 762
 (measured with `pytest --collect-only -q` under each marker). Only the two
 modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) carry `integration`. Pure logic needs
@@ -32,7 +32,7 @@ which took the 15 pure-logic tests out of `test_fetcher.py`.
 
 ## Test structure
 
-**757 tests** in 33 files. A full run takes around 70–80 seconds on the
+**762 tests** in 33 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
@@ -58,7 +58,7 @@ load, so measure with `pytest -q` on your own machine.
 | `test_pipeline_e2e.py` | 19 | Full offline pipeline run with every seam stubbed |
 | `test_config_tagger.py` | 18 | ConfigTagger: source+protocol tagging; `utils/__init__.py` declares no imports |
 | `test_fetcher.py` | 1 | `fetch_data` against a real URL; self-skips without network |
-| `test_fetcher_unit.py` | 15 | Env proxy, session shape, retry loop, error mapping (no network) |
+| `test_fetcher_unit.py` | 20 | Env proxy, session shape, retry loop, error mapping (no network) |
 | `test_executor_cache.py` | 17 | Thread pool, shutdown, WSL detection |
 | `test_managed_process.py` | 15 | ManagedProcess lifecycle |
 | `test_ip_verifier.py` | 35 | env vars, TCP port polling, response validators, chain reads |

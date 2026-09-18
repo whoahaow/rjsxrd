@@ -181,6 +181,32 @@ def report(problems: Sequence[str], headline: str) -> None:
     assert not problems, "\n".join((headline, *(f"  {problem}" for problem in problems)))
 
 
+def site_count_problem(
+    path: str,
+    pattern: re.Pattern[str],
+    expected: int,
+    found: int,
+    registry: str,
+) -> str:
+    """Why a figure's site count disagrees, and what the fix is in that direction.
+
+    The count is a contract in both directions and the remedies are opposite:
+    fewer matches than expected means the sentence this pattern describes was
+    reworded or lost, and more means a site was legitimately added whose registry
+    row has not moved with it. A message that only names the first direction
+    sends the reader of the too-many case looking for a lost sentence that was
+    never lost, so this states which case fired and what to change.
+    """
+    if found < expected:
+        remedy = (
+            "the sentence this pattern describes was reworded or lost — restore it, or "
+            "extend the guard if the wording genuinely changed"
+        )
+    else:
+        remedy = f"a site was added — bump this entry's expected count in {registry}"
+    return f"{path}: expected {expected} sites for {pattern.pattern!r}, found {found} — {remedy}"
+
+
 class TestDocumentedSuiteSize:
     """The totals the docs state, against the totals the suite has."""
 
@@ -197,9 +223,7 @@ class TestDocumentedSuiteSize:
             found = find(path, pattern)
             if len(found) != expected:
                 problems.append(
-                    f"{path}: expected {expected} sites for {pattern.pattern!r}, found "
-                    f"{len(found)} — the sentence was reworded or a site was lost, so "
-                    "extend the guard instead of leaving the site unchecked"
+                    site_count_problem(path, pattern, expected, len(found), "COUNT_SITES")
                 )
             for number, match in found:
                 documented = int(match.group("tests"))
@@ -235,8 +259,7 @@ class TestDocumentedMarkers:
             found = find(path, pattern)
             if len(found) != expected:
                 problems.append(
-                    f"{path}: expected {expected} sites for {pattern.pattern!r}, found "
-                    f"{len(found)} — the sentence was reworded or a site was lost"
+                    site_count_problem(path, pattern, expected, len(found), "SPLIT_SITES")
                 )
             for number, match in found:
                 documented = (

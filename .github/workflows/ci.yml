@@ -1,8 +1,8 @@
 name: CI
 
-# Quality gate for the Python pipeline: format, tests and the dependency audit
-# are blocking. Deliberately separate from frequent_update.yml — that workflow
-# runs the pipeline, this one only verifies the code.
+# Quality gate for the Python pipeline: format, lint, tests and the dependency
+# audit are blocking. Deliberately separate from frequent_update.yml — that
+# workflow runs the pipeline, this one only verifies the code.
 
 on:
   push:
@@ -82,7 +82,9 @@ jobs:
         run: .venv/bin/pip-audit -r source/requirements-dev.txt
 
       - name: Lint
-        # Non-blocking: 40 known findings, all in the test files (card K14).
-        # Visible now, gating once that card lands.
-        continue-on-error: true
+        # Blocking, like every step above it. The 40 findings this step was made
+        # non-blocking for are fixed at the source rather than silenced: no
+        # `noqa`, no per-file ignore, no rule added to the `ignore` list in
+        # pyproject.toml. A finding here is a defect to fix or a rule to justify
+        # in the open, never something to suppress.
         run: .venv/bin/ruff check .

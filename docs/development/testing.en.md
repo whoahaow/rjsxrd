@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 ```
 
 Every test module declares its marker (`pytestmark`), so `-m unit` and
-`-m integration` actually select something: 812 and 15 tests out of 827
+`-m integration` actually select something: 816 and 15 tests out of 831
 (measured with `pytest --collect-only -q` under each marker). Only the two
 modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) carry `integration`. Pure logic needs
@@ -32,7 +32,7 @@ which took the 15 pure-logic tests out of `test_fetcher.py`.
 
 ## Test structure
 
-**827 tests** in 33 files. A full run takes around 70–80 seconds on the
+**831 tests** in 34 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
@@ -68,6 +68,7 @@ load, so measure with `pytest -q` on your own machine.
 | `test_scripts_import.py` | 12 | Import smoke tests for the `scripts/` entry points, benchmark loader |
 | `test_progress.py` | 6 | tqdm consolidation |
 | `test_docs_figures.py` | 6 | Docs figures match the collected suite |
+| `test_module_size.py` | 4 | Module ceiling and the debt budget: the ceiling covers the whole tree, a budget only shrinks |
 | `test_main.py` | 6 | Upload-path guards and the deferred SDK import in the entry point |
 | `test_telegram_proxy_processor.py` | 3 | Writing MTProto/SOCKS5 proxies to files |
 | `test_purge_stale_urls.py` | 3 | Cache loading in `scripts/purge_stale_urls.py` |
@@ -81,8 +82,8 @@ this pipeline's crashes have lived.
 | Command | Scope | Coverage |
 |---------|-------|----------|
 | `pytest --cov=fetchers --cov=utils` | two packages | **58 %** (5595 statements, 2156 missed, 1884 branches) |
-| `pytest --cov=.` — the full run, as in CI | all of `source/` | **71 %** (13083 statements, 3170 missed, 2852 branches) |
-| `pytest -m "not integration" --cov=.` — the offline floor | all of `source/` | **71 %** (13083 statements, 3306 missed, 2852 branches) |
+| `pytest --cov=.` — the full run, as in CI | all of `source/` | **72 %** (13609 statements, 3187 missed, 2924 branches) |
+| `pytest -m "not integration" --cov=.` — the offline floor | all of `source/` | **71 %** (13609 statements, 3325 missed, 2924 branches) |
 
 `fail_under = 65` is stated for the CI scope — the whole `source/` tree. It is not
 a per-scope number: `pytest --cov=fetchers --cov=utils` reports 58 % and does not
@@ -91,7 +92,7 @@ That run illustrates that coverage depends on scope; it is not the gate.
 
 Below the floor, CI fails. The floor sits below the offline floor — a run without
 the 15 network tests and without the coverage those tests alone provide, 71 % at
-the current measurement, which leaves about 5.5 points and roughly 730 statements
+the current measurement, which leaves about 6.5 points and roughly 880 statements
 of headroom. It was set four points under the offline measurement as it stood
 then, and it does not move with a new one: that figure is a measurement from the
 development machine (Windows), while the runner is Linux and executes the other

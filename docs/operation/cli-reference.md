@@ -100,6 +100,7 @@ python main.py --dry-run --no-proxy-check --verbose
 | `MAX_WORKERS` | 50 | Количество потоков для загрузок |
 | `FETCH_TIMEOUT` | 5 | Таймаут HTTP запроса (с) |
 | `FETCH_MAX_ATTEMPTS` | 3 | Количество попыток загрузки URL |
+| `REFUSE_INSECURE_FETCH` | 0 | Отключает попытки 2 и 3 (без проверки сертификата и по HTTP) — ценой выхода загрузки |
 | `VALIDATION_TCP_CONCURRENCY` | 300 | Параллельность TCP-пинга |
 | `VALIDATION_HTTP_CONCURRENCY` | 20 | Параллельность HTTP-проверок |
 | `VALIDATION_MAX_WORKERS` | 200 | Максимум потоков верификации |

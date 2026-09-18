@@ -240,6 +240,23 @@ FETCH_MAX_ATTEMPTS = _validate_int_env("FETCH_MAX_ATTEMPTS", 3, 1, 5)
 # Requires GITHUB_TOKEN for >60 req/hour (unauthenticated limit).
 GITHUB_API_FALLBACK = os.environ.get("GITHUB_API_FALLBACK", "1") not in ("0", "false", "no")
 
+# === Fetch security posture ===
+# fetchers/fetcher.py retries a failed fetch in an order that trades TLS
+# verification for reachability: attempt 2 skips certificate verification and
+# attempt 3 re-sends the request in the clear. That ladder is deliberate — this
+# pipeline runs on a network that actively interferes with TLS, and without
+# those two attempts a large share of the sources is simply unreachable. What
+# is not acceptable is that it used to be silent: the fetcher now logs every
+# downgrade with its host and counts them (see SECURITY.md). This setting is
+# the operator's side of that posture.
+#
+# REFUSE_INSECURE_FETCH=1 skips attempts 2 and 3 entirely, so no request leaves
+# the process without certificate validation and none goes out in the clear.
+# What it costs: fetch yield. Every source the network breaks TLS for (rather
+# than blocks outright) is lost, because the verified attempt is the only one
+# left. Default off — today's behaviour, with a log line per downgrade.
+REFUSE_INSECURE_FETCH = os.environ.get("REFUSE_INSECURE_FETCH", "0").lower() in ("1", "true", "yes")
+
 # Validation concurrency settings
 VALIDATION_TCP_CONCURRENCY = _validate_int_env("VALIDATION_TCP_CONCURRENCY", 300, 10, 500)
 VALIDATION_HTTP_CONCURRENCY = _validate_int_env("VALIDATION_HTTP_CONCURRENCY", 20, 5, 100)

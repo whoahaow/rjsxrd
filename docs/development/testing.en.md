@@ -178,10 +178,13 @@ noisy, the filter is scoped to its module
 (`ignore::DeprecationWarning:<module>.*`), never to the category.
 
 `default::ResourceWarning` is on deliberately: it shows unclosed files and
-sockets. At the last measurement there are 8 such warnings, and every one of
-them is triggered by a test: `test_config_processor.py` — 6,
-`test_file_utils.py` — 1, `test_pipeline_e2e.py` — 1. None is allocated in
-production code — there used to be 10, and two of them were allocated in
-`check_internet_connectivity` (`utils/health_check.py`), which opened a socket
-and never closed it. The socket is now closed with `contextlib.closing`, which
-is why the count fell to 8. The run stays green — the warnings are only printed.
+sockets. The run now reports none. There used to be 10, and two of them were
+allocated in `check_internet_connectivity` (`utils/health_check.py`), which
+opened a socket and never closed it; closing it with `contextlib.closing` took
+the count down to 8. The remaining eight were all in the tests: six temporary
+output files read without a context manager in `test_config_processor.py`
+(`open(out).read()` → `out.read_text()`), one module file read the same way in
+`test_file_utils.py`, and one socket in `test_pipeline_e2e.py`, now owned by
+`contextlib.closing`. The filter is what made them visible — a category-wide
+`ignore` would have hidden all eight. The run stays green: warnings are printed,
+so a new one is a signal rather than a failure.

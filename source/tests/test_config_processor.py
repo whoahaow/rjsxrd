@@ -1732,10 +1732,13 @@ class _TwoReadings:
 class TestProtocolSplitTiming:
     """The split stage reports the time its own work took, like its siblings.
 
-    ``stage_download``, ``stage_default_files``, ``stage_bypass_raw``,
-    ``stage_bypass_unsecure_raw``, ``stage_telegram_proxy`` and ``stage_verify``
-    each read the clock around their work and return the difference — which is
-    what ``stage_report`` prints as the timing summary. The split stage returned
+    Most stages read the clock around their work and return the difference —
+    ``stage_download``, ``stage_bypass_raw``, ``stage_bypass_unsecure_raw``,
+    ``stage_telegram_proxy`` and ``stage_verify``. ``stage_default_files`` is
+    the exception: it reads the clock around two of its three sub-steps and
+    returns their sum, so ``create_numbered_default_files`` at the top of it
+    sits outside the measured span. Either way the return is what
+    ``stage_report`` prints as the timing summary, and the split stage returned
     a hard-coded ``0.0`` instead, so the summary showed it as instantaneous no
     matter how many protocol buckets it wrote.
     """

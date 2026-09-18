@@ -19,12 +19,17 @@ unavailable and carries the `integration` marker for that reason.
 
 The security posture the fetch path carries is covered here too: the retry
 ladder's three attempts, the log line and the count each downgrade produces, the
-setting that refuses the downgrades, and the scope of the one warning filter this
-module still installs. None of those reach the network — the client is a mock.
+setting that refuses the downgrades, the scope of the one warning filter this
+module still installs, and the guard that refuses a destination resolving into a
+private or metadata range. None of those reach the network either — the resolver
+is stubbed for the whole module (the guard resolves before it connects) and the
+client is a mock.
 """
 
+import ast
 import os
 import warnings
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -37,6 +42,8 @@ from fetchers.fetcher import (
     _extract_status,
     _fetch_via_api,
     _get_env_proxy,
+    _is_blocked_address,
+    _is_destination_allowlisted,
     build_session,
     fetch_data,
     report_insecure_fetches,
@@ -45,19 +52,30 @@ from utils.logger import LOGS_BY_FILE
 
 pytestmark = pytest.mark.unit
 
+# Addresses the tests below use as resolver answers. They are never dialled —
+# what is under test is what the guard does with an answer, not the answer.
+PUBLIC_ADDRESS = "93.184.216.34"
+LOOPBACK_ADDRESS = "127.0.0.1"
+METADATA_ADDRESS = "169.254.169.254"
+
 CONFIG_URL = "https://example.com/config.txt"
 PLAINTEXT_CONFIG_URL = "http://example.com/config.txt"
+METADATA_URL = f"http://{METADATA_ADDRESS}/latest/meta-data/"
 
 
 @pytest.fixture(autouse=True)
-def clean_run_counter(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Keep the run's downgrade counter clean, and the ladder's waits short.
+def offline_fetch(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep this module off the network, and its run counters clean.
 
-    The counter is one object for the whole process, so without this one test's
-    numbers would be the next test's starting point. `time.sleep` is stubbed
-    with it because the ladder's one-second wait is not what these tests are
-    about and it would otherwise be paid per retry.
+    Two module-level effects make this necessary now that the fetcher resolves
+    its destination and counts its downgrades. The private-range guard resolves
+    the name before connecting, so without this stub every fetch test here would
+    reach a real resolver; and the downgrade counter is one object for the whole
+    process, so one test's numbers would otherwise be the next test's starting
+    point. `time.sleep` is stubbed with it because the ladder's one-second wait
+    is not what these tests are about and it would otherwise be paid per retry.
     """
+    monkeypatch.setattr(fetcher_module, "_resolved_addresses", lambda host, port: [PUBLIC_ADDRESS])
     monkeypatch.setattr(fetcher_module.time, "sleep", lambda _seconds: None)
     INSECURE_FETCHES.reset()
 
@@ -559,21 +577,32 @@ class TestRefuseInsecureFetch:
 class TestTlsWarningScope:
     """The one warning filter this module installs, and how far it reaches."""
 
-    def test_no_process_wide_ignore_for_the_client_warning_is_installed(self):
+    def test_no_warning_filter_is_installed_at_import(self):
         """The regression guard for the defect this replaced.
 
-        The filter used to be installed at import time, so it was present in the
-        process's filter list whenever any code warned — not only around the
-        call that needed it. Nothing else in the process suppresses this
-        message, so an entry matching it while no fetch is running is the leak.
+        The ignore used to sit at the module's top level, where it applied to
+        every warning of that shape for the rest of the process. A test cannot
+        see that by reading `warnings.filters` at run time: pytest wraps each
+        test in its own warning context and restores the list, so the runtime
+        answer is the same whether or not the module installed anything. The
+        module's top level is read instead -- a filter installed by a statement
+        there is the defect, and the two tests below pin what the scoped call
+        does and does not silence.
         """
-        leaked = [
-            entry
-            for entry in warnings.filters
-            if entry[0] == "ignore" and entry[1] and "Unverified HTTPS" in entry[1].pattern
+        tree = ast.parse(Path(fetcher_module.__file__).read_text(encoding="utf-8"))
+
+        installed_at_import = [
+            f"warnings.{node.value.func.attr}"
+            for node in tree.body
+            if isinstance(node, ast.Expr)
+            and isinstance(node.value, ast.Call)
+            and isinstance(node.value.func, ast.Attribute)
+            and isinstance(node.value.func.value, ast.Name)
+            and node.value.func.value.id == "warnings"
+            and node.value.func.attr in ("filterwarnings", "simplefilter")
         ]
 
-        assert leaked == []
+        assert installed_at_import == []
 
     def test_the_client_warning_is_silenced_inside_the_call_and_seen_outside_it(self):
         """The same message is suppressed in the call and reported after it."""
@@ -626,3 +655,258 @@ class TestTlsWarningScope:
             fetch_data(CONFIG_URL, session=session)
 
         assert len(caught) == 1
+
+
+class TestBlockedAddresses:
+    """Which resolved answers a fetch refuses — the classification alone."""
+
+    @pytest.mark.parametrize(
+        "address",
+        [
+            "127.0.0.1",  # loopback
+            "127.1.2.3",  # the rest of 127/8
+            "::1",  # loopback, v6
+            "10.0.0.5",  # RFC 1918
+            "172.16.3.4",  # RFC 1918
+            "192.168.1.1",  # RFC 1918
+            "fc00::1",  # unique-local
+            "fd12:3456::1",  # unique-local
+            "169.254.169.254",  # the cloud metadata endpoint
+            "::ffff:169.254.169.254",  # the metadata endpoint, v4-mapped
+            "fe80::1",  # link-local
+            "0.0.0.0",  # unspecified
+            "100.64.0.1",  # carrier-grade NAT
+            "not-an-address",  # an answer that cannot be classified
+        ],
+    )
+    def test_this_answer_is_refused(self, address):
+        """Blocked, not "handled elsewhere": the guard is the only gate."""
+        assert _is_blocked_address(address) is True
+
+    @pytest.mark.parametrize(
+        "address",
+        ["93.184.216.34", "8.8.8.8", "140.82.121.4", "2606:4700::1111"],
+    )
+    def test_a_globally_routable_answer_is_not_refused(self, address):
+        """A subscription host is a public host; the guard must not block one."""
+        assert _is_blocked_address(address) is False
+
+
+class TestDestinationGuard:
+    """The guard as the fetch path drives it: resolve, then decide."""
+
+    def test_a_public_looking_host_that_resolves_to_loopback_is_refused(self, monkeypatch):
+        """The whole point of checking the answer instead of the URL text."""
+        monkeypatch.setattr(
+            fetcher_module, "_resolved_addresses", lambda host, port: [LOOPBACK_ADDRESS]
+        )
+        session = _session(_response())
+
+        with patch.object(fetcher_module, "warning") as logged:
+            result = fetch_data("https://subscriptions.example/list.txt", session=session)
+
+        assert result.success is False
+        assert result.text == ""
+        assert session.get.call_count == 0
+        assert "subscriptions.example" in result.error
+        assert LOOPBACK_ADDRESS in result.error
+        assert any("refused" in call.args[0] for call in logged.call_args_list)
+
+    def test_the_metadata_endpoint_is_refused(self, monkeypatch):
+        """The address that matters most, because this runs on a VPS."""
+        monkeypatch.setattr(
+            fetcher_module, "_resolved_addresses", lambda host, port: [METADATA_ADDRESS]
+        )
+        session = _session(_response())
+
+        result = fetch_data("https://subscriptions.example/list.txt", session=session)
+
+        assert result.success is False
+        assert session.get.call_count == 0
+        assert METADATA_ADDRESS in result.error
+
+    @pytest.mark.parametrize(
+        "address", ["10.0.0.5", "172.16.3.4", "192.168.1.1", "fc00::1", "fe80::1"]
+    )
+    def test_a_private_answer_is_refused(self, monkeypatch, address):
+        """Every range the posture names, through the same path."""
+        monkeypatch.setattr(fetcher_module, "_resolved_addresses", lambda host, port: [address])
+
+        result = fetch_data("https://subscriptions.example/list.txt", session=_session())
+
+        assert result.success is False
+        assert address in result.error
+
+    def test_one_blocked_answer_refuses_the_destination(self, monkeypatch):
+        """A name that answers with both is a name whose connection is unknown."""
+        monkeypatch.setattr(
+            fetcher_module,
+            "_resolved_addresses",
+            lambda host, port: [PUBLIC_ADDRESS, LOOPBACK_ADDRESS],
+        )
+
+        result = fetch_data("https://subscriptions.example/list.txt", session=_session())
+
+        assert result.success is False
+        assert LOOPBACK_ADDRESS in result.error
+
+    def test_a_literal_address_is_judged_without_resolving_it(self, monkeypatch):
+        """An IP literal needs no lookup, and must not cause one."""
+        resolver = MagicMock(side_effect=AssertionError("the guard resolved a literal address"))
+        monkeypatch.setattr(fetcher_module, "_resolved_addresses", resolver)
+        session = _session(_response())
+
+        result = fetch_data("http://169.254.169.254/latest/meta-data/", session=session)
+
+        assert result.success is False
+        assert session.get.call_count == 0
+        resolver.assert_not_called()
+
+    def test_an_unresolvable_host_is_not_a_refusal(self, monkeypatch):
+        """A resolver failure is not a blocked destination, and stays visible."""
+
+        def unresolvable(host, port):
+            raise OSError("name resolution failed")
+
+        monkeypatch.setattr(fetcher_module, "_resolved_addresses", unresolvable)
+        session = _session(_response(text="payload"))
+
+        with patch.object(fetcher_module, "warning") as logged:
+            result = fetch_data("https://broken.example/config.txt", session=session)
+
+        assert result.success is True
+        assert result.text == "payload"
+        assert any(
+            "could not resolve broken.example" in call.args[0] for call in logged.call_args_list
+        ), [call.args[0] for call in logged.call_args_list]
+
+    def test_a_public_destination_is_fetched_normally(self):
+        """The default stub answers with a public address; nothing is refused."""
+        session = _session(_response(text="payload"))
+
+        result = fetch_data(CONFIG_URL, session=session)
+
+        assert result.success is True
+        assert result.text == "payload"
+        assert session.get.call_count == 1
+
+    def test_a_body_from_a_refused_redirect_target_is_discarded(self):
+        """The client follows redirects itself; the body must not come back."""
+        session = _session(_response(text="instance-role-credentials", url=METADATA_URL))
+
+        with patch.object(fetcher_module, "warning") as logged:
+            result = fetch_data("https://subscriptions.example/list.txt", session=session)
+
+        assert result.success is False
+        assert result.text == ""
+        assert METADATA_ADDRESS in result.error
+        assert any("refused" in call.args[0] for call in logged.call_args_list)
+
+    def test_a_redirect_within_the_same_host_keeps_the_body(self):
+        """A normal redirect is not a destination change."""
+        session = _session(_response(text="payload", url="https://example.com/other.txt"))
+
+        result = fetch_data(CONFIG_URL, session=session)
+
+        assert result.success is True
+        assert result.text == "payload"
+
+
+class TestPrivateAllowlist:
+    """The escape hatch: read exactly as written, and empty by default."""
+
+    def test_the_allowlist_is_empty_by_default(self):
+        """Nothing is permitted implicitly."""
+        assert fetcher_module.FETCH_PRIVATE_ALLOWLIST == []
+
+    @pytest.mark.parametrize(
+        ("entry", "host", "port", "address"),
+        [
+            ("127.0.0.1", "mirror.example", 443, LOOPBACK_ADDRESS),
+            ("127.0.0.0/8", "mirror.example", 443, LOOPBACK_ADDRESS),
+            ("mirror.example", "mirror.example", 443, LOOPBACK_ADDRESS),
+            ("mirror.example:8443", "mirror.example", 8443, LOOPBACK_ADDRESS),
+        ],
+    )
+    def test_an_entry_covers_the_destination_it_names(self, entry, host, port, address):
+        """An IP or CIDR matches the answer; a host or host:port matches the name."""
+        assert _is_destination_allowlisted(host, port, address, [entry]) is True
+
+    @pytest.mark.parametrize(
+        ("entry", "host", "port", "address"),
+        [
+            ("other.example", "mirror.example", 443, LOOPBACK_ADDRESS),
+            ("mirror.example:8443", "mirror.example", 443, LOOPBACK_ADDRESS),
+            ("127.0.0.1", "mirror.example", 443, "10.0.0.5"),
+            ("10.0.0.0/8", "mirror.example", 443, LOOPBACK_ADDRESS),
+            ("", "mirror.example", 443, LOOPBACK_ADDRESS),
+            ("not a host at all", "mirror.example", 443, LOOPBACK_ADDRESS),
+        ],
+    )
+    def test_an_entry_does_not_cover_what_it_does_not_name(self, entry, host, port, address):
+        """A near miss is a miss: the list is a decision, not a fuzzy filter."""
+        assert _is_destination_allowlisted(host, port, address, [entry]) is False
+
+    def test_an_allowlisted_destination_is_fetched(self, monkeypatch):
+        """The documented case: a local mirror during development."""
+        monkeypatch.setattr(fetcher_module, "FETCH_PRIVATE_ALLOWLIST", ["localhost:8080"])
+        monkeypatch.setattr(
+            fetcher_module, "_resolved_addresses", lambda host, port: [LOOPBACK_ADDRESS]
+        )
+        session = _session(_response(text="mirror", url="http://localhost:8080/mirror.txt"))
+
+        result = fetch_data("http://localhost:8080/mirror.txt", session=session)
+
+        assert result.success is True
+        assert result.text == "mirror"
+        assert session.get.call_count == 1
+
+    def test_an_entry_does_not_admit_its_neighbours(self, monkeypatch):
+        """One permitted host is not a permitted range."""
+        monkeypatch.setattr(fetcher_module, "FETCH_PRIVATE_ALLOWLIST", ["localhost:8080"])
+        monkeypatch.setattr(
+            fetcher_module, "_resolved_addresses", lambda host, port: [LOOPBACK_ADDRESS]
+        )
+
+        result = fetch_data("http://mirror.example/mirror.txt", session=_session())
+
+        assert result.success is False
+        assert LOOPBACK_ADDRESS in result.error
+
+    def test_an_entry_with_a_port_does_not_cover_an_implicit_one(self, monkeypatch):
+        """`localhost:8080` is not `localhost`; the implicit port is the scheme's.
+
+        The response carries the requested URL so the redirect check cannot
+        answer for the guard here: the refusal has to come from the port the
+        entry did not name.
+        """
+        monkeypatch.setattr(fetcher_module, "FETCH_PRIVATE_ALLOWLIST", ["localhost:8080"])
+        monkeypatch.setattr(
+            fetcher_module, "_resolved_addresses", lambda host, port: [LOOPBACK_ADDRESS]
+        )
+        session = _session(_response(text="mirror", url="http://localhost/mirror.txt"))
+
+        result = fetch_data("http://localhost/mirror.txt", session=session)
+
+        assert result.success is False
+        assert result.text == ""
+        assert "localhost" in result.error
+        assert LOOPBACK_ADDRESS in result.error
+
+    def test_the_allowlist_matches_the_port_the_request_will_use(self, monkeypatch):
+        """A URL that leaves the port out is judged at its scheme default."""
+        resolved_ports: list[int | None] = []
+
+        def resolver(host, port):
+            resolved_ports.append(port)
+            return [LOOPBACK_ADDRESS]
+
+        monkeypatch.setattr(fetcher_module, "FETCH_PRIVATE_ALLOWLIST", ["localhost:443"])
+        monkeypatch.setattr(fetcher_module, "_resolved_addresses", resolver)
+        session = _session(_response(text="mirror", url="https://localhost/mirror.txt"))
+
+        result = fetch_data("https://localhost/mirror.txt", session=session)
+
+        assert resolved_ports == [443]
+        assert result.success is True
+        assert result.text == "mirror"

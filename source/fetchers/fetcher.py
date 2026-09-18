@@ -1,12 +1,14 @@
 """Fetcher module for downloading VPN configs using curl_cffi for speed."""
 
 import base64
+import ipaddress
 import os
 import re
+import socket
 import threading
 import time
 import warnings
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from urllib.parse import urlparse
@@ -14,7 +16,12 @@ from urllib.parse import urlparse
 import requests
 from curl_cffi.requests import Session
 
-from config.settings import CHROME_UA, GITHUB_API_FALLBACK, REFUSE_INSECURE_FETCH
+from config.settings import (
+    CHROME_UA,
+    FETCH_PRIVATE_ALLOWLIST,
+    GITHUB_API_FALLBACK,
+    REFUSE_INSECURE_FETCH,
+)
 from utils.logger import log, warning
 
 # The retry ladder in fetch_data() trades TLS verification for reachability:
@@ -179,6 +186,177 @@ def _get_github_token() -> str | None:
 def _host_of(url: str) -> str:
     """The host of a URL, lower-cased, or "" when it carries none."""
     return (urlparse(url).hostname or "").lower()
+
+
+def _port_of(url: str) -> int | None:
+    """The port the request will go to: the URL's own, or the scheme default.
+
+    Defaulted rather than left unset, because the allowlist matches on it: an
+    entry that names a port must not cover a URL that leaves the port implicit,
+    or the list admits a destination the operator did not write down. None only
+    when the URL carries no port and no scheme this module can default.
+    """
+    parsed = urlparse(url)
+    try:
+        explicit = parsed.port
+    except ValueError:
+        # A port that is not a number: the transport reports the malformed URL.
+        return None
+    if explicit is not None:
+        return explicit
+    if parsed.scheme == "https":
+        return 443
+    if parsed.scheme == "http":
+        return 80
+    return None
+
+
+def _is_blocked_address(address: str) -> bool:
+    """Whether a resolved address is one a fetch must never connect to.
+
+    The rule is "globally routable, or refused": `ipaddress` already knows
+    which answers are not — loopback, RFC 1918 and unique-local private space,
+    link-local (which is where the cloud metadata endpoint `169.254.169.254`
+    lives, the address that matters most because this pipeline runs on a VPS),
+    unspecified `0.0.0.0/8`, carrier-grade NAT, reserved and documentation
+    ranges. Multicast is spelled out because `is_global` reports it as global
+    on this interpreter.
+
+    An answer the parser cannot read is refused as well: it came from a
+    resolver, and an address this module cannot classify is not one it can
+    clear. The cost of the strict direction is a source that lives somewhere
+    unroutable, which is not a source a subscription can be served from; the
+    allowlist in `config/settings.py` is the explicit way around it.
+    """
+    try:
+        parsed = ipaddress.ip_address(address)
+    except ValueError:
+        return True
+    return not parsed.is_global or parsed.is_multicast
+
+
+def _resolved_addresses(host: str, port: int | None) -> list[str]:
+    """Every address `host` currently resolves to.
+
+    This is the I/O seam the guard below reads through: the decision is about
+    what to do with the answers, so the suite drives it with a stub instead of
+    a resolver. `getaddrinfo` rather than `gethostbyname` so a v6 answer is
+    seen too — a name that is public over v4 and loopback over v6 is still a
+    destination that has to be refused.
+    """
+    infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    return [str(info[4][0]) for info in infos]
+
+
+def _is_destination_allowlisted(
+    host: str, port: int | None, address: str, allowlist: Sequence[str]
+) -> bool:
+    """Whether an operator entry covers an otherwise-blocked destination.
+
+    Entries are as documented in `config/settings.py`: a CIDR or an IP literal,
+    matched against the address the name resolved to; or `host` / `host:port`,
+    matched against the URL's own host name. An entry that parses as none of
+    those matches nothing — the list is an explicit operator decision, so it is
+    read exactly as written rather than guessed at.
+    """
+    try:
+        resolved = ipaddress.ip_address(address)
+    except ValueError:
+        resolved = None
+
+    for entry in allowlist:
+        entry = entry.strip()
+        if not entry:
+            continue
+        if "/" in entry:
+            try:
+                network = ipaddress.ip_network(entry, strict=False)
+            except ValueError:
+                continue
+            if resolved is not None and resolved in network:
+                return True
+            continue
+        try:
+            literal = ipaddress.ip_address(entry)
+        except ValueError:
+            literal = None
+        if literal is not None:
+            if resolved is not None and literal == resolved:
+                return True
+            continue
+        entry_host, _, entry_port = entry.rpartition(":")
+        if entry_host and entry_port.isdigit():
+            if entry_host.lower() == host.lower() and (port is None or int(entry_port) == port):
+                return True
+            continue
+        if entry.lower() == host.lower():
+            return True
+    return False
+
+
+def _destination_refusal(url: str, allowlist: Sequence[str]) -> str | None:
+    """Why this URL's destination must not be fetched, or None when it may be.
+
+    The check is on the *resolved* address, not on the URL text: a curated host
+    name that resolves into a private range is exactly the case this exists
+    for, and a URL that looks public is not evidence that it is. An IP literal
+    is judged directly, so it costs no lookup.
+
+    Every answer is checked and one blocked answer is enough to refuse — a name
+    that answers with both a public and a private address is a name whose
+    connection this module cannot predict, and the client picks among them.
+
+    The message it returns names the host and the address so the caller can
+    report the refusal as its own outcome. A destination that is refused must
+    never end up as an empty successful fetch: that is indistinguishable from a
+    dead source, so it would be invisible.
+    """
+    host = _host_of(url)
+    if not host:
+        return None
+
+    port = _port_of(url)
+    try:
+        literal = ipaddress.ip_address(host)
+    except ValueError:
+        literal = None
+
+    if literal is not None:
+        addresses = [str(literal)]
+    else:
+        try:
+            addresses = _resolved_addresses(host, port)
+        except OSError as exc:
+            # No address to judge. The request is left to fail on its own (a
+            # resolver hiccup is not a blocked destination) but the reason is
+            # stated, so it cannot be mistaken for a deliberate refusal.
+            warning(f"[fetch-security] could not resolve {host}: {exc} — not verified as public")
+            return None
+
+    for address in addresses:
+        if not _is_blocked_address(address):
+            continue
+        if _is_destination_allowlisted(host, port, address, allowlist):
+            continue
+        return f"[fetch-security] refused {host}: it resolves to the non-public address {address}"
+    return None
+
+
+def _redirect_refusal(requested_url: str, response, allowlist: Sequence[str]) -> str | None:
+    """Why the body of a response must be dropped, or None when it may be used.
+
+    The client follows redirects itself (`allow_redirects=True`), so a curated
+    host that redirects into a private range is followed without this module
+    seeing it happen. The address the request ended at is the one that decides,
+    so the final URL goes through the same guard and the body is discarded when
+    it is refused — the data never reaches the pipeline.
+    """
+    final_url = getattr(response, "url", None)
+    if not isinstance(final_url, str) or not final_url:
+        return None
+    if _host_of(final_url) == _host_of(requested_url):
+        return None
+    return _destination_refusal(final_url, allowlist)
 
 
 def _attempt_mode(attempt: int, url: str) -> str:
@@ -437,6 +615,12 @@ def fetch_data(
     printed by report_insecure_fetches(). With `REFUSE_INSECURE_FETCH` set,
     attempts 2 and 3 are skipped rather than performed.
 
+    A destination that resolves into a private, loopback, link-local or
+    metadata range is refused before any connection is made, and a response
+    that arrived from a host the request did not ask for (a redirect) is
+    discarded when that host is refused too — so neither can reach the
+    pipeline. Both refusals are reported as failures, never as empty results.
+
     Note: Uses curl_cffi for better performance and TLS fingerprinting.
     """
     # Use provided proxy or fall back to environment
@@ -448,6 +632,15 @@ def fetch_data(
     # Only pass token for GitHub URLs — avoids leaking auth to random hosts
     is_github_url = "github.com" in url or "raw.githubusercontent.com" in url
     request_token = effective_token if effective_token and is_github_url else None
+
+    # Refuse a destination that is not public before anything is sent. The
+    # resolution happens once per call: every attempt below targets the same
+    # host, and a second lookup would not make the answer the client's own
+    # lookup any more predictable.
+    refusal = _destination_refusal(url, FETCH_PRIVATE_ALLOWLIST)
+    if refusal:
+        warning(refusal)
+        return FetchResult(text="", status_code=0, error=refusal, success=False)
 
     # Create or reuse session. When reusing, token is passed per-request
     # instead of being baked into the session, so a shared session is safe
@@ -501,6 +694,11 @@ def fetch_data(
                     headers=extra_headers or None,
                 )
             response.raise_for_status()
+
+            redirected_into = _redirect_refusal(url, response, FETCH_PRIVATE_ALLOWLIST)
+            if redirected_into:
+                warning(redirected_into)
+                return FetchResult(text="", status_code=0, error=redirected_into, success=False)
             return FetchResult(text=response.text, status_code=response.status_code)
 
         except (requests.RequestException, OSError, ValueError, TypeError) as exc:

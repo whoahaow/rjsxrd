@@ -17,6 +17,7 @@ import threading
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from utils.fetch_outcomes import is_destination_refusal
 from utils.logger import log
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
@@ -31,6 +32,7 @@ class FetchHistoryItem:
     """A single fetch attempt result."""
 
     success: bool
+    refused: bool = False
     status: int = 0
     error: str = ""
     time: str = ""
@@ -168,17 +170,34 @@ class URLStats:
     # --- Fetch tracking ---
 
     def record_fetch(self, url: str, success: bool, status_code: int = 0, error: str = "") -> None:
-        """Thread-safe fetch result recording. Save happens on flush()."""
+        """Thread-safe fetch result recording. Save happens on flush().
+
+        A destination refusal does not age the URL. Three consecutive refusals used to be
+        indistinguishable from three dead fetches, and `remove_dead_from_urls_txt()`
+        deleted a curated source from `URLS.txt` because a name resolved somewhere private
+        — a DNS blip, or an answer this pipeline must not connect to. A refusal is recorded
+        here (the history says which kind of outcome it was) and reported with its host and
+        address on every run (`fetchers/destination_guard.py`); dropping a line from
+        `URLS.txt` stays a decision for a human. A failure that is not a refusal raises the
+        count exactly as it did, and a success still clears it, so the purge keeps removing
+        the sources it exists for.
+
+        Which kind of outcome this is comes from the marker the guard's own message is
+        built from (`utils/fetch_outcomes.py`), so what is recorded here cannot disagree
+        with what the guard produced.
+        """
+        refused = not success and is_destination_refusal(error)
         with self.lock:
             entry = self.data.setdefault(url, {})
             f = entry.setdefault("fetch", {"consecutive_failures": 0, "history": []})
             if success:
                 f["consecutive_failures"] = 0
-            else:
+            elif not refused:
                 f["consecutive_failures"] = f.get("consecutive_failures", 0) + 1
             f["history"].append(
                 {
                     "success": success,
+                    "refused": refused,
                     "status": status_code,
                     "error": error[:200],
                     "time": datetime.now().isoformat(),
@@ -312,6 +331,14 @@ class URLStats:
     # --- Auto-cleanup ---
 
     def remove_dead_from_urls_txt(self, path: str = URLS_TXT_PATH, threshold: int = 3) -> None:
+        """Remove the URLs the fetch stage proved dead — and only those.
+
+        A destination refusal never reaches this method: `record_fetch` does not age a URL
+        for one, because a refusal is a statement about the network the run is on rather
+        than about the source. So a line can only be deleted here after a real fetch failed
+        to reach that source `threshold` times running; a refused source stays in the file
+        and is named in every run's report instead (`fetchers/destination_guard.py`).
+        """
         if not os.path.exists(path):
             return
         dead_urls = {url for url, _ in self.get_dead_urls(threshold)}

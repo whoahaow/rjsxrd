@@ -133,6 +133,7 @@ Each config is tested on a unique port, which excludes mutual influence.
 Automatic report at the end of each run:
 
 - URLs with 3+ consecutive fetch errors are removed from `URLS.txt`
+- A refusal of a private address is not part of that count and never removes a line: it does not raise the failure count (`utils/fetch_outcomes.py`, `utils/url_stats.py`), and it is named separately — with its host and address — in the run's report (`fetchers/destination_guard.py`)
 - Configs from `servers.txt` with 3+ verification failures are removed
 - Top sources by number of working configs
 - Statistics are stored in `data/url_stats.json` (gitignored)

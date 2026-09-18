@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 ```
 
 Every test module declares its marker (`pytestmark`), so `-m unit` and
-`-m integration` actually select something: 816 and 15 tests out of 831
+`-m integration` actually select something: 830 and 15 tests out of 845
 (measured with `pytest --collect-only -q` under each marker). Only the two
 modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) carry `integration`. Pure logic needs
@@ -32,7 +32,7 @@ which took the 15 pure-logic tests out of `test_fetcher.py`.
 
 ## Test structure
 
-**831 tests** in 34 files. A full run takes around 70–80 seconds on the
+**845 tests** in 35 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
@@ -59,12 +59,13 @@ load, so measure with `pytest -q` on your own machine.
 | `test_config_tagger.py` | 18 | ConfigTagger: source+protocol tagging; `utils/__init__.py` declares no imports |
 | `test_fetcher.py` | 1 | `fetch_data` against a real URL; self-skips without network |
 | `test_fetcher_unit.py` | 84 | Env proxy, session shape, retry loop, error mapping, TLS downgrades, private-range guard (no network) |
+| `test_fetch_posture.py` | 12 | Destination refusals: the counter, the report, and that a refusal does not age like a dead source (no network) |
 | `test_executor_cache.py` | 17 | Thread pool, shutdown, WSL detection |
 | `test_managed_process.py` | 15 | ManagedProcess lifecycle |
 | `test_ip_verifier.py` | 35 | env vars, TCP port polling, response validators, chain reads |
 | `test_telegram_proxy_verifier.py` | 14 | MTProto/SOCKS5 proxy verification |
 | `test_ip_checker.py` | 14 | IP check, `_make_request` |
-| `test_url_stats.py` | 13 | `record_fetch`, `get_dead_urls`, persistence |
+| `test_url_stats.py` | 15 | `record_fetch`, `get_dead_urls`, persistence; a destination refusal does not age a URL |
 | `test_scripts_import.py` | 12 | Import smoke tests for the `scripts/` entry points, benchmark loader |
 | `test_progress.py` | 6 | tqdm consolidation |
 | `test_docs_figures.py` | 6 | Docs figures match the collected suite |

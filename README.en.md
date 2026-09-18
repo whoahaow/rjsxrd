@@ -435,13 +435,14 @@ source/               - generator source code
  │   ├─ purge_stale_urls.py - cleaning by git timestamp
  │   ├─ setup-vps.sh   - VPS deployment script
  │   └─ test_telegram_proxies.py - testing Telegram proxies
- ├─ tests/            - unit tests (831 tests, 34 files)
+ ├─ tests/            - unit tests (845 tests, 35 files)
  │   ├─ __init__.py
  │   ├─ conftest.py   - pytest fixtures and configuration
  │   ├─ test_config_processor.py
  │   ├─ test_config_tagger.py
  │   ├─ test_docs_figures.py
  │   ├─ test_executor_cache.py
+ │   ├─ test_fetch_posture.py - destination refusals: counter, report, a URL's life in URLS.txt
  │   ├─ test_fetcher.py
  │   ├─ test_fetcher_unit.py
  │   ├─ test_file_utils.py
@@ -538,7 +539,7 @@ cd source && ../.venv/Scripts/python.exe main.py   # configs will appear in ../g
 
 #### Running the tests
 
-The project includes a set of unit tests to verify the correctness of the main modules (831 tests, 34 files; measured with `pytest -q`):
+The project includes a set of unit tests to verify the correctness of the main modules (845 tests, 35 files; measured with `pytest -q`):
 
 ```bash
 # test toolchain — from the repository root

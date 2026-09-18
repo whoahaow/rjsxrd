@@ -323,6 +323,8 @@ Merged with `ip_checker.py` (deleted). Contains:
 - `IP_CHECK_URLS` — list of URLs for IP checking
 - `_clear_proxy_env_vars()` — clearing HTTP_PROXY/HTTPS_PROXY/ALL_PROXY (registered in ProcessRegistry)
 - `_json_payload()` / `_json_str_field()` / `_json_nested_str_field()` — validated reads of a provider response: a body that is not a JSON object (an array, a scalar) reads as no fields instead of raising `AttributeError`
+- `setup_proxy_chain()` — a provider that names no IP (a body that is not a JSON object, no `ip` field, an empty body) counts as a failure: the loop moves on to the next provider, and a chain is never reported as working with an empty exit address; when no provider names an IP, the result is the `Failed to get IP through proxy chain` error
+- Readers on top of `_json_payload()`: `_json_ip_field()`, `_json_org_field()`, `_plain_text_body()` — the same contract: a missing field or a body of the wrong type means no value, not an exception
 
 ## resource_monitor.py — resource monitoring
 

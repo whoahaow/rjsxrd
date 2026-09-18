@@ -53,7 +53,8 @@
 - `FetchResult` — dataclass с полями `text`, `status_code`, `error`, `success`. Функция `fetch_data()` **никогда не выбрасывает исключений** — всегда проверяйте `.success` перед использованием
 - использует curl_cffi Session с Chrome 124 impersonation — в 2-3x быстрее requests, обходит анти-бот системы
 - `build_session()` — создаёт сессию с прокси из `--proxy` или `HTTPS_PROXY`/`HTTP_PROXY`/`ALL_PROXY` окружения
-- retry: до 3 попыток (по умолчанию) с 1s wait между попытками. Стратегия: attempt 1 — `verify=True`, attempt 2 — `verify=False` (SSL skip), attempt 3 — HTTPS→HTTP downgrade. Таймаут 5 с (настраивается через `FETCH_TIMEOUT`/`FETCH_MAX_ATTEMPTS`)
+- retry: до 3 попыток (по умолчанию) с 1s wait между попытками. Стратегия: attempt 1 — `verify=True`, attempt 2 — `verify=False` (SSL skip), attempt 3 — HTTPS→HTTP downgrade. Таймаут 5 с (настраивается через `FETCH_TIMEOUT`/`FETCH_MAX_ATTEMPTS`). Порядок попыток и их число — не настройка: на сети, которая мешает TLS, именно эти две попытки держат выход загрузки. Что они стоят и почему остаются — в [SECURITY.md](../../SECURITY.md)
+- даунгрейды видны и посчитаны: `_log_downgrade()` пишет в лог хост и номер попытки, счётчик `INSECURE_FETCHES` копит попытки и хосты, `report_insecure_fetches()` печатает итог в конце прогона рядом с отчётом о здоровье URL. Предупреждение клиента о непроверенном TLS глушится только вокруг самой insecure-попытки, а не на весь процесс (`_silence_client_tls_warning`). `REFUSE_INSECURE_FETCH=1` отключает попытки 2 и 3 — ценой выхода загрузки
 - `fetch_data()` принимает `token` — если передан и URL содержит `github.com`/`raw.githubusercontent.com`, в сессию добавляется заголовок `Authorization: Bearer <token>`. Это повышает лимиты GitHub с ~60/ч до 5000/ч
 - `_extract_status(exc)` — извлекает HTTP-статус из разных типов исключений
 

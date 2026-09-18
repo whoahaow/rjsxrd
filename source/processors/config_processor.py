@@ -37,7 +37,7 @@ from config.settings import (
     URLS_YAML,
 )
 from fetchers.daily_repo_fetcher import fetch_configs_from_daily_repo
-from fetchers.fetcher import FetchResult, build_session, fetch_data
+from fetchers.fetcher import FetchResult, build_session, fetch_data, report_insecure_fetches
 from fetchers.sstap_scraper import scrape_sstap_configs
 from fetchers.upstream_aggregator import fetch_upstream_dynamic_configs
 from processors.telegram_proxy_processor import TelegramProxyProcessor
@@ -789,6 +789,11 @@ class ConfigPipeline:
         self.stats.remove_dead_from_urls_txt()
         self.stats.remove_dead_from_servers_txt()
         self.stats.print_report()
+        # The fetch stage's own security figure, next to the URL health report:
+        # how many fetches skipped TLS verification or went out in the clear, and
+        # on which hosts. A run whose sources were all downgraded has to be
+        # distinguishable from a clean one by reading the report.
+        report_insecure_fetches()
         self.stats.flush()
 
     def _free_download_data(self) -> None:

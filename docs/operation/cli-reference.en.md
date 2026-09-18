@@ -100,6 +100,7 @@ All variables can be set via the `.env` file in the project root (see `.env.exam
 | `MAX_WORKERS` | 50 | Number of threads for downloads |
 | `FETCH_TIMEOUT` | 5 | HTTP request timeout (s) |
 | `FETCH_MAX_ATTEMPTS` | 3 | Number of URL fetch attempts |
+| `REFUSE_INSECURE_FETCH` | 0 | Skips fetch attempts 2 and 3 (no certificate check, and over HTTP) — at the cost of fetch yield |
 | `VALIDATION_TCP_CONCURRENCY` | 300 | TCP ping concurrency |
 | `VALIDATION_HTTP_CONCURRENCY` | 20 | HTTP check concurrency |
 | `VALIDATION_MAX_WORKERS` | 200 | Maximum verification threads |

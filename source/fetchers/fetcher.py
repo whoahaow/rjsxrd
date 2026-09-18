@@ -3,17 +3,36 @@
 import base64
 import os
 import re
+import threading
 import time
 import warnings
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
+from urllib.parse import urlparse
 
 import requests
 from curl_cffi.requests import Session
 
-from config.settings import CHROME_UA, GITHUB_API_FALLBACK
+from config.settings import CHROME_UA, GITHUB_API_FALLBACK, REFUSE_INSECURE_FETCH
+from utils.logger import log, warning
 
-# Suppress SSL warnings when verify=False
-warnings.filterwarnings("ignore", message="Unverified HTTPS request")
+# The retry ladder in fetch_data() trades TLS verification for reachability:
+# attempt 2 skips certificate verification and attempt 3 re-sends the request
+# in the clear. That is deliberate — this pipeline runs on a network that
+# interferes with TLS — but it is also the point where an attacker on the path
+# can influence what gets fetched, and therefore what gets published. It used
+# to be invisible: a process-wide warning filter installed at import time hid
+# the client's own signal, and nothing counted how often a fetch took the
+# downgrade. Every downgrade is now logged with its host, counted, and printed
+# by report_insecure_fetches() at the end of a run. SECURITY.md records the
+# threat; REFUSE_INSECURE_FETCH refuses the downgrades outright.
+
+# The modes the ladder can use on an attempt.
+_MODE_VERIFIED = "verified"
+_MODE_UNVERIFIED = "unverified"
+_MODE_PLAINTEXT = "plaintext"
+_INSECURE_MODES = frozenset({_MODE_UNVERIFIED, _MODE_PLAINTEXT})
 
 
 @dataclass
@@ -24,6 +43,106 @@ class FetchResult:
     status_code: int = 0
     error: str = ""
     success: bool = True
+
+
+@dataclass(frozen=True)
+class InsecureFetchStats:
+    """A snapshot of one run's TLS downgrades, as the report states them."""
+
+    unverified_attempts: int = 0
+    plaintext_attempts: int = 0
+    unverified_hosts: tuple[str, ...] = ()
+    plaintext_hosts: tuple[str, ...] = ()
+
+    @property
+    def attempts(self) -> int:
+        """Attempts that skipped verification or went out in the clear."""
+        return self.unverified_attempts + self.plaintext_attempts
+
+    @property
+    def hosts_affected(self) -> int:
+        """Distinct hosts behind those attempts.
+
+        A single host that downgraded on every attempt counts once: the number
+        an operator needs is how much of the source list was fetched insecurely,
+        not how many requests it took.
+        """
+        return len(set(self.unverified_hosts) | set(self.plaintext_hosts))
+
+
+class _InsecureFetchCounter:
+    """Counts the ladder's downgrades for the current run, thread-safely.
+
+    The fetch pool runs these calls in dozens of threads, and nothing else
+    aggregates them — without this a run in which every source was fetched
+    without certificate validation reports exactly like a clean one.
+    """
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._unverified_attempts = 0
+        self._plaintext_attempts = 0
+        self._unverified_hosts: set[str] = set()
+        self._plaintext_hosts: set[str] = set()
+
+    def record(self, mode: str, host: str) -> None:
+        """Count one downgraded attempt on `host`."""
+        with self._lock:
+            if mode == _MODE_PLAINTEXT:
+                self._plaintext_attempts += 1
+                self._plaintext_hosts.add(host)
+            elif mode == _MODE_UNVERIFIED:
+                self._unverified_attempts += 1
+                self._unverified_hosts.add(host)
+
+    def reset(self) -> None:
+        """Drop the run's counts — for a test, or a process that runs twice."""
+        with self._lock:
+            self._unverified_attempts = 0
+            self._plaintext_attempts = 0
+            self._unverified_hosts.clear()
+            self._plaintext_hosts.clear()
+
+    def snapshot(self) -> InsecureFetchStats:
+        """A consistent copy of the counts, safe to report from."""
+        with self._lock:
+            return InsecureFetchStats(
+                unverified_attempts=self._unverified_attempts,
+                plaintext_attempts=self._plaintext_attempts,
+                unverified_hosts=tuple(sorted(self._unverified_hosts)),
+                plaintext_hosts=tuple(sorted(self._plaintext_hosts)),
+            )
+
+
+# One counter per process, which is one per run: every entry point imports this
+# module once and runs the fetch stage once. Tests reset it per case.
+INSECURE_FETCHES = _InsecureFetchCounter()
+
+
+def report_insecure_fetches() -> InsecureFetchStats:
+    """Log the run's TLS downgrades and return the snapshot it logged.
+
+    Called at the end of a run next to the URL health report, so a run that
+    downgraded its fetches is distinguishable from a clean one by reading the
+    last lines of its output rather than by recounting the log. Names the hosts
+    it affected, not just the total: "42 attempts" says nothing about whether
+    one source or all of them went plaintext.
+    """
+    stats = INSECURE_FETCHES.snapshot()
+    if stats.attempts == 0:
+        log("[fetch-security] no fetch skipped TLS verification and none went out in the clear")
+        return stats
+
+    warning(
+        f"[fetch-security] {stats.attempts} attempts on {stats.hosts_affected} host(s) "
+        f"skipped TLS verification: {stats.unverified_attempts} unverified, "
+        f"{stats.plaintext_attempts} plaintext — see SECURITY.md"
+    )
+    for host in stats.plaintext_hosts:
+        warning(f"[fetch-security]   plaintext HTTP: {host}")
+    for host in stats.unverified_hosts:
+        warning(f"[fetch-security]   unverified TLS: {host}")
+    return stats
 
 
 def _extract_status(exc: Exception) -> int:
@@ -55,6 +174,77 @@ def _get_github_token() -> str | None:
     Used as fallback when callers don't pass token explicitly.
     """
     return os.environ.get("GITHUB_TOKEN")
+
+
+def _host_of(url: str) -> str:
+    """The host of a URL, lower-cased, or "" when it carries none."""
+    return (urlparse(url).hostname or "").lower()
+
+
+def _attempt_mode(attempt: int, url: str) -> str:
+    """Which mode the ladder uses on a given attempt for this URL.
+
+    attempt 1: TLS with certificate verification
+    attempt 2: TLS with verification skipped
+    attempt 3: the same request over plaintext HTTP, verification skipped
+    attempt 4 and beyond: verified TLS again, as the loop's previous
+    `verify = True` default did for every attempt it did not rewrite
+
+    The third attempt is only a downgrade when the URL is https; for an
+    http URL it repeats the second, and the log says which of the two happened
+    rather than claiming a downgrade that did not. Callers must not reorder
+    these or drop the third — the order is what keeps the fetch yield up on a
+    network that interferes with TLS (SECURITY.md).
+    """
+    if attempt == 2:
+        return _MODE_UNVERIFIED
+    if attempt == 3:
+        return _MODE_PLAINTEXT if urlparse(url).scheme == "https" else _MODE_UNVERIFIED
+    return _MODE_VERIFIED
+
+
+def _log_downgrade(mode: str, host: str, attempt: int) -> None:
+    """State, in the run's log, what this attempt costs.
+
+    A downgrade that nothing reports is the defect this replaces: someone
+    reading a run's output has to be able to see "this host was fetched without
+    TLS verification" without reading this module.
+    """
+    if mode == _MODE_PLAINTEXT:
+        warning(f"[fetch-security] attempt {attempt}: {host} is fetched over plaintext HTTP")
+    else:
+        warning(
+            f"[fetch-security] attempt {attempt}: {host} is fetched without TLS "
+            "certificate verification"
+        )
+
+
+@contextmanager
+def _silence_client_tls_warning(verify: bool) -> Iterator[None]:
+    """Silence the client's unverified-request warning for one call only.
+
+    The ignore used to be installed at import time and applied to the whole
+    process: every warning of that shape, from any module, for the rest of the
+    run. It is scoped here to the single call that sets `verify=False`, so
+    unrelated code keeps reporting its warnings, and this module's own signal
+    for a downgrade is `_log_downgrade` — which names the host, where the
+    client's generic warning does not.
+
+    Caveat, because it is inherited rather than fixable here: the filter list
+    `warnings.catch_warnings()` swaps is process-global and has no thread-local
+    form, so two unverified calls overlapping in different threads can leave
+    the ignore installed after both return. That window is narrow and it
+    silences the same warning this call deliberately silences; what it cannot
+    do is hide anything for a thread that never fetched insecurely *and* never
+    overlapped one that did. A scoped leak is the trade accepted against a
+    filter that was installed for the whole process at import.
+    """
+    if verify:
+        yield
+        return
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="Unverified HTTPS request")
+        yield
 
 
 def _raw_to_api_url(url: str) -> str | None:
@@ -235,11 +425,17 @@ def fetch_data(
                   If not provided, uses environment variable (set by --proxy arg).
         token: Optional Bearer token. Only sent for GitHub URLs (github.com / raw.githubusercontent.com).
 
-    Retry strategy:
+    Retry strategy — the order and the count are load-bearing, not tunable
+    here (SECURITY.md states what they cost):
         attempt 1: normal with verify=True
         attempt 2: verify=False (skip SSL cert check)
         attempt 3: downgrade HTTPS to HTTP (for DPI/workaround)
         attempt 4: GitHub API fallback (for raw.githubusercontent.com IP blocks)
+
+    Every attempt that skips certificate verification, and every one that goes
+    out in the clear, is logged with its host and counted; the run's total is
+    printed by report_insecure_fetches(). With `REFUSE_INSECURE_FETCH` set,
+    attempts 2 and 3 are skipped rather than performed.
 
     Note: Uses curl_cffi for better performance and TLS fingerprinting.
     """
@@ -274,39 +470,61 @@ def fetch_data(
             return FetchResult(text=api_content, status_code=200)
         # API also failed — fall through to normal retry loop as last resort
 
+    host = _host_of(url)
+    refused_attempts = 0
+    last_error = ""
+
     for attempt in range(1, max_attempts + 1):
+        mode = _attempt_mode(attempt, url)
+        if mode in _INSECURE_MODES and REFUSE_INSECURE_FETCH:
+            refused_attempts += 1
+            warning(
+                f"[fetch-security] attempt {attempt} for {host} skipped: "
+                "REFUSE_INSECURE_FETCH refuses the TLS downgrades"
+            )
+            continue
         try:
             modified_url = url
-            verify = True
+            if mode == _MODE_PLAINTEXT:
+                modified_url = urlparse(url)._replace(scheme="http").geturl()
+            verify = mode == _MODE_VERIFIED
+            if mode in _INSECURE_MODES:
+                _log_downgrade(mode, host, attempt)
+                INSECURE_FETCHES.record(mode, host)
 
-            if attempt == 2:
-                verify = False
-            elif attempt == 3:
-                from urllib.parse import urlparse
-
-                parsed = urlparse(url)
-                if parsed.scheme == "https":
-                    modified_url = parsed._replace(scheme="http").geturl()
-                verify = False
-
-            response = sess.get(
-                modified_url,
-                timeout=timeout,
-                verify=verify,
-                allow_redirects=True,
-                headers=extra_headers or None,
-            )
+            with _silence_client_tls_warning(verify):
+                response = sess.get(
+                    modified_url,
+                    timeout=timeout,
+                    verify=verify,
+                    allow_redirects=True,
+                    headers=extra_headers or None,
+                )
             response.raise_for_status()
             return FetchResult(text=response.text, status_code=response.status_code)
 
         except (requests.RequestException, OSError, ValueError, TypeError) as exc:
+            last_error = str(exc)
             if attempt < max_attempts:
                 time.sleep(1)
                 continue
 
             return FetchResult(
-                text="", status_code=_extract_status(exc), error=str(exc), success=False
+                text="", status_code=_extract_status(exc), error=last_error, success=False
             )
+
+    # The loop can end here only when the insecure attempts it would have made
+    # were refused. Report that as the reason when it is the reason, and keep
+    # the transport's own error when there was one — the refusal explains why
+    # nothing further was tried, not why the first attempt failed.
+    if refused_attempts:
+        refused_note = f"{refused_attempts} insecure attempt(s) skipped by REFUSE_INSECURE_FETCH"
+        return FetchResult(
+            text="",
+            status_code=0,
+            error=f"{last_error}; {refused_note}" if last_error else refused_note,
+            success=False,
+        )
 
     # max_attempts <= 0 never enters the loop. Report a failure rather than
     # returning None: the declared contract is a FetchResult that callers

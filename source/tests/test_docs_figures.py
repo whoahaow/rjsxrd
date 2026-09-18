@@ -119,7 +119,23 @@ TREE_SITES: tuple[str, ...] = ("README.md", "README.en.md")
 
 
 def collected(request: pytest.FixtureRequest) -> list[pytest.Item]:
-    """The whole collected suite, before `-m` narrowed it."""
+    """The whole collected suite, before `-m` narrowed it.
+
+    The snapshot is written by the `pytest_collection_modifyitems` hook in
+    `tests/conftest.py`. Without it, reading the stash raises a bare
+    ``KeyError: <_pytest.stash.StashKey object at 0x…>`` — loud, but naming no
+    file, cause or remedy — so the missing case reports the hook that did not run
+    instead. The failure stays hard: every figure below is derived from this
+    collection, and answering from anything else would defeat the guard.
+    """
+    if COLLECTED_ITEMS not in request.config.stash:
+        raise AssertionError(
+            "the collection snapshot is missing: the `pytest_collection_modifyitems` "
+            "hook in `tests/conftest.py` did not run, so this guard cannot see the "
+            "suite it checks the documented figures against. Check that conftest.py is "
+            "collected and that the hook still writes the stash (it runs `tryfirst`), "
+            "then re-run the suite."
+        )
     return request.config.stash[COLLECTED_ITEMS]
 
 

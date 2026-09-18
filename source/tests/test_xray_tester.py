@@ -6,6 +6,7 @@ test gap (7 parsers, 84-153 lines each, zero direct tests before this file).
 
 import asyncio
 import base64
+import contextlib
 import glob
 import json
 import os
@@ -590,10 +591,8 @@ class TestXrayStartupTimeout:
             # Allow 25s headroom for CI under load.
             assert elapsed < 25.0, f"expected <25.0s, took {elapsed:.1f}s"
         finally:
-            try:
+            with contextlib.suppress(OSError):
                 os.unlink(fake_path)
-            except OSError:
-                pass
 
     def test_fast_xray_startup_succeeds(self):
         fake_path = self._fake_xray_path()
@@ -627,10 +626,8 @@ class TestXrayStartupTimeout:
             assert result[1] is True
             assert result[2] == 0.123
         finally:
-            try:
+            with contextlib.suppress(OSError):
                 os.unlink(fake_path)
-            except OSError:
-                pass
 
     def test_xray_startup_returns_failure_with_error(self):
         fake_path = self._fake_xray_path()
@@ -656,10 +653,8 @@ class TestXrayStartupTimeout:
             assert result[1] is False
             assert result[2] == 0.0
         finally:
-            try:
+            with contextlib.suppress(OSError):
                 os.unlink(fake_path)
-            except OSError:
-                pass
 
 
 class TestMissingXrayBinary:

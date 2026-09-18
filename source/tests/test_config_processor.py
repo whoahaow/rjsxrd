@@ -1,5 +1,6 @@
 """Unit tests for config processor."""
 
+import contextlib
 import os
 from pathlib import Path
 from unittest.mock import patch
@@ -176,16 +177,14 @@ class TestDownloadAllConfigsDirCreation:
                 list(x) if x else []
             )
             # scan_for_telegram_proxies=False avoids the scraper import
-            try:
+            with contextlib.suppress(Exception):
+                # Some imports may fail; we only care about dir creation,
+                # which happens before any actual fetch
                 config_processor.download_all_configs(
                     output_dir=output_dir,
                     scan_for_telegram_proxies=False,
                     flag_overrides=flag_overrides,
                 )
-            except Exception:
-                # Some imports may fail; we only care about dir creation,
-                # which happens before any actual fetch
-                pass
 
     def test_all_flags_off_creates_only_bypass_and_qr(self, tmp_path):
         """With all 4 flags off, only bypass/ and qr-codes/ are created."""

@@ -642,9 +642,10 @@ class ConfigPipeline:
             self.protocol_files = []
             return 0.0
         log("Creating protocol-specific files...")
+        start = time.time()
         all_protocol = self.all_configs + self.extra_bypass_configs
         self.protocol_files = create_protocol_split_files(all_protocol, self.output_dir)
-        return 0.0
+        return time.time() - start
 
     def stage_telegram_proxy(self) -> float:
         """Process and verify Telegram proxies (gated by enable_tg_proxy)."""

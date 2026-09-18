@@ -22,6 +22,18 @@ warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true
 explicit_package_bases = true
+# The first-party import root, named so the answer does not depend on where you
+# stand. `explicit_package_bases` makes the working directory a package base,
+# and this file is read from two of them: the CI step runs `cd source && mypy .`,
+# where `utils`, `fetchers` and `processors` resolve because they sit under the
+# working directory — and `mypy .` from the repository root, where they do not,
+# silently become `Any` (via `ignore_missing_imports` below) and raise 14
+# `[no-any-return]` errors over the same 90 files. Pinning the root here makes
+# both invocations judge the same program instead of one of them judging
+# unresolved names. An entry that does not exist from a given directory is
+# simply a base that contributes nothing, so the `source/` invocation is
+# unaffected by it.
+mypy_path = "source"
 # Staged tightening, not a finished configuration. `strict`,
 # `disallow_untyped_defs` and `check_untyped_defs` are deliberately NOT set:
 # each one multiplies the error count instead of revealing new defects, so they

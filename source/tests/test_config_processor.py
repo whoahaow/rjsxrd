@@ -1700,9 +1700,61 @@ class TestProtocolSplitEmptyInput:
         pipeline.all_configs = list(configs)
         pipeline.extra_bypass_configs = []
 
-        assert pipeline.stage_protocol_split() == 0.0
+        # The stage measures itself now, so its return is the elapsed time; the
+        # value is asserted exactly in TestProtocolSplitTiming. What this case
+        # is about is that no work happened, which the two assertions below it
+        # and the missing directory state.
+        assert pipeline.stage_protocol_split() >= 0.0
         assert pipeline.protocol_files == []
         assert not (tmp_path / "split-by-protocols").exists()
+
+
+class _TwoReadings:
+    """A stand-in for the ``time`` module holding a fixed set of readings.
+
+    The split stage reads its clock once before its work and once after it, so a
+    stub with exactly two readings makes the value it returns predictable — a
+    hard-coded return cannot produce it. A third read exhausts the iterator and
+    fails the case rather than passing silently.
+    """
+
+    def __init__(self, *readings: float) -> None:
+        self._readings = iter(readings)
+
+    def time(self) -> float:
+        return next(self._readings)
+
+
+class TestProtocolSplitTiming:
+    """The split stage reports the time its own work took, like its siblings.
+
+    ``stage_download``, ``stage_default_files``, ``stage_bypass_raw``,
+    ``stage_bypass_unsecure_raw``, ``stage_telegram_proxy`` and ``stage_verify``
+    each read the clock around their work and return the difference — which is
+    what ``stage_report`` prints as the timing summary. The split stage returned
+    a hard-coded ``0.0`` instead, so the summary showed it as instantaneous no
+    matter how many protocol buckets it wrote.
+    """
+
+    def test_the_returned_time_is_what_the_stage_measured(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Two readings around the work: the return value is their difference."""
+        monkeypatch.setattr(
+            "processors.config_processor.URLStats",
+            lambda: URLStats(path=str(tmp_path / "url_stats.json")),
+        )
+        monkeypatch.setattr(
+            "processors.config_processor.create_protocol_split_files", lambda *_: []
+        )
+        monkeypatch.setattr("processors.config_processor.time", _TwoReadings(100.0, 100.25))
+        pipeline = ConfigPipeline(
+            output_dir=str(tmp_path), flag_overrides={"ENABLE_PROTOCOL_SPLIT": True}
+        )
+        pipeline.all_configs = ["vless://u@h.example.invalid:443#c"]
+        pipeline.extra_bypass_configs = []
+
+        assert pipeline.stage_protocol_split() == 0.25
 
 
 class TestProtocolSplitSizeCap:

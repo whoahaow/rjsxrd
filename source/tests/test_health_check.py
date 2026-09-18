@@ -116,8 +116,7 @@ class TestCheckInternetConnectivity:
 
             check_internet_connectivity()
 
-            for call_args, _ in mock_conn.call_args_list:
-                _host_port, kwargs = mock_conn.call_args_list[0]
+            for _host_port, kwargs in mock_conn.call_args_list:
                 assert kwargs.get("timeout") == CHECK_INTERNET_TIMEOUT
 
 

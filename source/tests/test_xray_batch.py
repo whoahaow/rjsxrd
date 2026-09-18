@@ -111,18 +111,18 @@ class TestBatchModeSwitch:
             tester = self._make_mock_tester()
             runner = BatchRunner(tester)
 
-            with mock_patch.object(
-                runner, "_test_batch_shared_xray", return_value=[]
-            ) as mock_batch:
-                with mock_patch.object(
+            with (
+                mock_patch.object(runner, "_test_batch_shared_xray", return_value=[]) as mock_batch,
+                mock_patch.object(
                     runner, "_test_batch_async_wrapper", return_value=[]
-                ) as mock_single:
-                    runner.test_batch(["vless://a"])
+                ) as mock_single,
+            ):
+                runner.test_batch(["vless://a"])
 
-                    assert mock_batch.called, (
-                        "_test_batch_shared_xray should be called when override=batch"
-                    )
-                    assert not mock_single.called, "_test_batch_async_wrapper should NOT be called"
+                assert mock_batch.called, (
+                    "_test_batch_shared_xray should be called when override=batch"
+                )
+                assert not mock_single.called, "_test_batch_async_wrapper should NOT be called"
 
         finally:
             import config.settings as _settings

@@ -243,9 +243,11 @@ class TestProxyMonitorLifecycle:
         def capture_log(msg, *a, **kw):
             log_calls.append(str(msg))
 
-        with patch("utils.proxy_monitor._make_request", return_value=mock_response):
-            with patch("utils.proxy_monitor.log", side_effect=capture_log):
-                result = monitor.check_proxy()
+        with (
+            patch("utils.proxy_monitor._make_request", return_value=mock_response),
+            patch("utils.proxy_monitor.log", side_effect=capture_log),
+        ):
+            result = monitor.check_proxy()
 
         assert result is True
         recovery_msgs = [m for m in log_calls if "recovered" in m.lower()]

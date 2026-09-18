@@ -55,11 +55,11 @@ branch = true
 
 [tool.coverage.report]
 # The floor, not the measured value. The Tests step runs the full suite; the
-# number is the offline floor (`-m "not integration"` deselects the 30 network
-# tests, and the coverage they alone provide with them) rounded down, so a
-# runner without network still passes it. The headroom is deliberate: the
-# development machine and the Linux runner execute opposite sides of the
-# `sys.platform` branches in utils/download_xray.py, utils/xray_batch.py and
+# number sits below the offline floor (`-m "not integration"` deselects the 15
+# network tests, and the coverage they alone provide with them), so a runner
+# without network still passes it. The headroom is deliberate: the development
+# machine and the Linux runner execute opposite sides of the `sys.platform`
+# branches in utils/download_xray.py, utils/xray_batch.py and
 # utils/xray_tester.py.
 fail_under = 65
 exclude_also = [

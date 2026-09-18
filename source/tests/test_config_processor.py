@@ -1562,8 +1562,11 @@ class TestCreateAllConfigsFileContract:
             "vless://u3@h.com:443#c",
         ]
         created = create_all_configs_file(all_configs, str(tmp_path))
-        # all.txt was created
+        # A list this small is never split, so the return value is the single path
+        # written — the same contract the numbered-file tests assert a length on.
         all_txt = tmp_path / "default" / "all.txt"
+        assert [Path(path) for path in created] == [all_txt], created
+        # all.txt was created
         assert all_txt.exists()
         content = all_txt.read_text()
         # All 3 configs are in the file (no dedup removed any)

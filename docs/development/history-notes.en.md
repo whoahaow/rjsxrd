@@ -80,6 +80,26 @@ Before touching the ref, everything that could have depended on it was checked:
   .git/logs/...` finds neither the tip nor any of its ancestors).
 - **Merging.** `git merge-base` returns no common commit.
 
+## Outcome
+
+The ref was removed on 18 September 2026 (`git update-ref -d`), after which
+`.git` was collected once without an object age limit (`git gc --prune=now`).
+No age limit is needed here: the ref that was keeping those objects alive is
+exactly the one that was deleted.
+
+| | Before | After |
+| --- | --- | --- |
+| `.git` size | 374 MB | 75 MB |
+| Loose objects | 2059 (51.77 MiB) | 0 |
+| Objects in packs | 40397 (317.50 MiB) | 35262 (73.74 MiB) |
+| Packs | 17 | 1 |
+
+`git fsck --no-progress` says nothing after the collection (no errors, no
+dangling objects), `git log --oneline -1` resolves, and the full test run
+passes. The line's objects are no longer in the repository: `git cat-file -e
+<tip>` refuses, so the only route to its contents is the one described below,
+through the public `origin`.
+
 ## How to recover the contents
 
 The public `origin` still serves the line's objects: the public GitHub API

@@ -23,20 +23,20 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 ```
 
 Every test module declares its marker (`pytestmark`), so `-m unit` and
-`-m integration` actually select something: 726 and 30 tests out of 756
+`-m integration` actually select something: 727 and 30 tests out of 757
 (measured with `pytest --collect-only -q` under each marker). The two
 modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) are marked `integration`.
 
 ## Test structure
 
-**756 tests** in 32 files. A full run takes around 70–80 seconds on the
+**757 tests** in 32 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
 | File | Tests | Scope |
 |------|--------|---------|
-| `test_config_processor.py` | 85 | Processing pipeline, `prepare_config_content`, `_add_unique`, `write_configs_file` |
+| `test_config_processor.py` | 86 | Processing pipeline, `prepare_config_content`, `_add_unique`, `write_configs_file` |
 | `test_file_utils.py` | 70 | `extract_host_port`, `deduplicate_configs`, `is_valid_vpn_config_url`, `filter_secure_configs` |
 | `test_xray_tester.py` | 45 | Parsers, signals, startup-timeout, security edge cases |
 | `test_vpn_config.py` | 35 | VPNConfig typed dataclasses |

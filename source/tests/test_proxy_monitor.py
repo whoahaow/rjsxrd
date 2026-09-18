@@ -141,7 +141,7 @@ class TestProxyMonitorShutdown:
         except SystemExit:
             raise AssertionError(
                 "monitor_loop called sys.exit() on 'quit' — should return, not exit process"
-            )
+            ) from None
 
         # After quit, the thread marked itself as not running
         assert monitor.running is False

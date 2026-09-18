@@ -510,13 +510,15 @@ class TestProtocolSplitUploadPairs:
 
     ``ENABLE_PROTOCOL_SPLIT`` is off in ``OUTPUT_FLAGS``, so on every other run
     in this module the stage returns early and its contribution to the upload
-    list is an empty list. Running it is what exposes the seam between
-    ``_write_protocol_file`` (which returns the path *string* it wrote, or
-    ``None``) and ``create_protocol_split_files`` (which accumulated that
-    return value): extending a list with a string contributes one entry per
+    list is an empty list. Running it exercises the seam between
+    ``_write_protocol_file`` — which returns the paths its write left on disk:
+    one per bucket, one per numbered part when a bucket had to be split, and an
+    empty list when it wrote nothing — and ``create_protocol_split_files``,
+    which turns each returned path into a ``(local, remote)`` pair. The shape is
+    what matters at this seam: a bare string contributes one entry per
     character, so the pre-verify upload loop in ``ConfigPipeline.run`` — the
-    loop a non-dry run drives with ``upload_fn`` — dies unpacking a single
-    character, and a dry run hands the same characters to the uploaders.
+    loop a non-dry run drives with ``upload_fn`` — would die unpacking a single
+    character, and a dry run would hand the same characters to the uploaders.
     """
 
     def test_the_split_stage_publishes_well_formed_pairs(
@@ -564,14 +566,15 @@ class TestProtocolSplitUploadPairs:
     def test_a_failed_write_contributes_no_pair(
         self, pipeline_seams: dict[str, Any], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """The ``None`` arm: a worker that wrote nothing adds nothing.
+        """The empty-list arm: a worker that wrote nothing adds nothing.
 
-        ``_write_protocol_file`` is annotated ``str | None`` and returns
-        ``None`` when there is nothing to write (``_write_numbered_file`` has
-        the same contract). The old accumulation raised ``TypeError`` on that
-        value; the pair list must simply skip it.
+        ``_write_protocol_file`` is annotated ``list[str]`` — every path its
+        write left on disk, and an empty list when there is nothing to write,
+        as its own docstring states. ``_write_numbered_file`` is the worker that
+        still reports an absent write as ``None``. The pair assembly filters
+        each returned list, so an empty one contributes no pair.
         """
-        monkeypatch.setattr(config_processor, "_write_protocol_file", lambda args: None)
+        monkeypatch.setattr(config_processor, "_write_protocol_file", lambda args: [])
 
         out, file_pairs = run_pipeline(tmp_path, flag_overrides=SPLIT_FLAGS)
 

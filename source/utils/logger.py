@@ -44,7 +44,6 @@ CURRENT_LOG_LEVEL = LogLevel.INFO
 
 # Regular expression to extract file index from message
 _GITHUBMIRROR_INDEX_RE = re.compile(r"githubmirror/(\d+)\.txt")
-updated_files: set[str] = set()
 
 # --- Stdlib logging setup (thin backend) ---
 _logger = logging.getLogger("rjsxrd")

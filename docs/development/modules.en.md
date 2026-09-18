@@ -369,6 +369,24 @@ Automatically removes old `auto: update ...` commits before creating a new one, 
 - **Requires `fetch-depth: 0`** in GitHub Actions (full history) — configured in `frequent_update.yml`
 - Tests, all mock-based on `subprocess.run`; the count is in the [test table](testing.en.md)
 
+### How much of the history the auto-commits account for
+
+`main`'s history is mostly auto-updates. Measured on 18 September 2026: 6872
+commits, 6700 of them (**97.5 %**) start with `auto: update`, and the remaining
+172 (2.5 %) are every other piece of text the history carries (`reinit`,
+`feat:`, `fix:`, `docs:`, `chore:` and the old labels such as `Update
+bypass-`). That is why `git log` reads the way it does: the hourly update job
+commits every change, and `squash_auto_commits()` only squashes *runs* of
+consecutive auto-commits, so the fresh ones stay visible one by one.
+
+To re-measure:
+
+```bash
+git rev-list --count HEAD                                  # 6872
+git log --format=%s | grep -c '^auto: update'              # 6700
+git log --format=%s | grep -vc '^auto: update'             # 172
+```
+
 ## config_helpers.py — common pipeline helpers
 
 Helper functions extracted from config_processor.py:

@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # С отчётом о покрытии
 ```
 
 Маркеры проставлены на каждом тестовом модуле (`pytestmark`), поэтому `-m unit`
-и `-m integration` действительно что-то выбирают: 816 и 15 тестов из 831
+и `-m integration` действительно что-то выбирают: 830 и 15 тестов из 845
 (замер — `pytest --collect-only -q` с тем и другим маркером). Сеть трогают
 только два модуля (`test_fetcher.py`, `test_ip_checker.py`) — они помечены
 `integration`. Чистая логика сети не требует и лежит в unit-модулях, включая
@@ -31,7 +31,7 @@ pytest --cov=fetchers --cov=utils  # С отчётом о покрытии
 
 ## Структура тестов
 
-Всего **831 тест** в 34 файлах. Полный прогон на машине разработки (Windows,
+Всего **845 тестов** в 35 файлах. Полный прогон на машине разработки (Windows,
 Python 3.12) занимает около 70–80 секунд; время зависит от диска и загрузки
 машины, поэтому ориентируйтесь на `pytest -q` у себя.
 
@@ -58,12 +58,13 @@ Python 3.12) занимает около 70–80 секунд; время зав
 | `test_config_tagger.py` | 18 | ConfigTagger: source+protocol tagging; `utils/__init__.py` не импортирует ничего |
 | `test_fetcher.py` | 1 | `fetch_data` по реальному URL; самоскип без сети |
 | `test_fetcher_unit.py` | 84 | Прокси из окружения, параметры сессии, ретраи, маппинг ошибок, TLS-даунгрейды, защита от приватных адресов (без сети) |
+| `test_fetch_posture.py` | 12 | Отказы от приватных адресов: счётчик, отчёт и то, что отказ не стареет как мёртвый источник (без сети) |
 | `test_executor_cache.py` | 17 | Пул тредов, shutdown, WSL-детекция |
 | `test_managed_process.py` | 15 | ManagedProcess lifecycle |
 | `test_ip_verifier.py` | 35 | Переменные окружения, polling TCP-порта, валидаторы ответов, чтения в цепочке |
 | `test_telegram_proxy_verifier.py` | 14 | Верификация MTProto/SOCKS5 прокси |
 | `test_ip_checker.py` | 14 | Проверка IP, `_make_request` |
-| `test_url_stats.py` | 13 | `record_fetch`, `get_dead_urls`, персистентность |
+| `test_url_stats.py` | 15 | `record_fetch`, `get_dead_urls`, персистентность; отказ от приватного адреса URL не стареет |
 | `test_scripts_import.py` | 12 | Импорт-смоук тесты точек входа в `scripts/`, загрузчик бенчмарка |
 | `test_progress.py` | 6 | tqdm-консолидация |
 | `test_docs_figures.py` | 6 | Фигуры в документации сверяются с собранным набором тестов |

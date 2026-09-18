@@ -22,6 +22,11 @@ from config.settings import (
     GITHUB_API_FALLBACK,
     REFUSE_INSECURE_FETCH,
 )
+from fetchers.destination_guard import (
+    _is_blocked_address,
+    refusal_reason,
+    report_destination_refusals,
+)
 from utils.logger import log, warning
 
 # The retry ladder in fetch_data() trades TLS verification for reachability:
@@ -152,6 +157,20 @@ def report_insecure_fetches() -> InsecureFetchStats:
     return stats
 
 
+def report_fetch_security() -> None:
+    """Print this run's fetch-security figures: what it refused, and what it downgraded.
+
+    One call site, two reports, kept as separate sections on purpose: a refused
+    destination is a network condition (the name resolved to an address this pipeline must
+    not connect to), and a downgraded fetch is a reachability trade (the request went out
+    without certificate verification, or in the clear). Neither is evidence that a source
+    is dead — the URL health report is where that is said, and keeping the three apart is
+    what lets an operator reading one run tell which one they are looking at.
+    """
+    report_destination_refusals()
+    report_insecure_fetches()
+
+
 def _extract_status(exc: Exception) -> int:
     """Extract HTTP status code from various exception types.
 
@@ -209,30 +228,6 @@ def _port_of(url: str) -> int | None:
     if parsed.scheme == "http":
         return 80
     return None
-
-
-def _is_blocked_address(address: str) -> bool:
-    """Whether a resolved address is one a fetch must never connect to.
-
-    The rule is "globally routable, or refused": `ipaddress` already knows
-    which answers are not — loopback, RFC 1918 and unique-local private space,
-    link-local (which is where the cloud metadata endpoint `169.254.169.254`
-    lives, the address that matters most because this pipeline runs on a VPS),
-    unspecified `0.0.0.0/8`, carrier-grade NAT, reserved and documentation
-    ranges. Multicast is spelled out because `is_global` reports it as global
-    on this interpreter.
-
-    An answer the parser cannot read is refused as well: it came from a
-    resolver, and an address this module cannot classify is not one it can
-    clear. The cost of the strict direction is a source that lives somewhere
-    unroutable, which is not a source a subscription can be served from; the
-    allowlist in `config/settings.py` is the explicit way around it.
-    """
-    try:
-        parsed = ipaddress.ip_address(address)
-    except ValueError:
-        return True
-    return not parsed.is_global or parsed.is_multicast
 
 
 def _resolved_addresses(host: str, port: int | None) -> list[str]:
@@ -306,10 +301,13 @@ def _destination_refusal(url: str, allowlist: Sequence[str]) -> str | None:
     that answers with both a public and a private address is a name whose
     connection this module cannot predict, and the client picks among them.
 
-    The message it returns names the host and the address so the caller can
-    report the refusal as its own outcome. A destination that is refused must
-    never end up as an empty successful fetch: that is indistinguishable from a
-    dead source, so it would be invisible.
+    The message it returns names the host and the address, and the refusal is reported as
+    an outcome of its own rather than as a failure: `destination_guard.refusal_reason()`
+    counts it, the end-of-run report names it with its host and address, and
+    `utils/url_stats.py` recognizes it through `utils.fetch_outcomes` and leaves the URL's
+    age alone — a refusal is a statement about the network the run is on, never evidence
+    that the source is gone. What it must not become is an empty successful fetch: that is
+    indistinguishable from a dead source, so it would be invisible.
     """
     host = _host_of(url)
     if not host:
@@ -338,7 +336,7 @@ def _destination_refusal(url: str, allowlist: Sequence[str]) -> str | None:
             continue
         if _is_destination_allowlisted(host, port, address, allowlist):
             continue
-        return f"[fetch-security] refused {host}: it resolves to the non-public address {address}"
+        return refusal_reason(host, address)
     return None
 
 

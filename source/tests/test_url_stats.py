@@ -5,6 +5,7 @@ import tempfile
 
 import pytest
 
+from utils.fetch_outcomes import DESTINATION_REFUSAL_PREFIX
 from utils.url_stats import URLStats
 
 pytestmark = pytest.mark.unit
@@ -165,3 +166,34 @@ class TestURLStats:
         assert yield_data["total_raw"] == 10  # not 30 — fresh accumulator
         assert yield_data["total_secure"] == 5
         os.unlink(path)
+
+    def test_a_destination_refusal_does_not_age_the_url(self):
+        """A refusal is an outcome, not a failure: three of them are not three failures.
+
+        The marker is the one the guard builds its own message from
+        (`utils/fetch_outcomes.py`), so this also holds the two ends of that contract
+        together — a refusal recorded here is what keeps a curated source in `URLS.txt`.
+        """
+        stats = URLStats(path=tempfile.mktemp(suffix=".json"))
+        refusal = (
+            f"{DESTINATION_REFUSAL_PREFIX}example.com: it resolves to the "
+            "non-public address 127.0.0.1"
+        )
+
+        for _ in range(3):
+            stats.record_fetch("https://example.com", False, 0, refusal)
+
+        assert stats.get_dead_urls(3) == []
+        history = stats.data["https://example.com"]["fetch"]["history"]
+        assert [item["refused"] for item in history] == [True, True, True]
+
+    def test_a_fetch_failure_that_is_not_a_refusal_still_ages_the_url(self):
+        """The converse: an error that is not a refusal is a failure, and it counts."""
+        stats = URLStats(path=tempfile.mktemp(suffix=".json"))
+
+        for _ in range(3):
+            stats.record_fetch("https://example.com", False, 0, "connection reset")
+
+        assert stats.get_dead_urls(3) == [("https://example.com", 3)]
+        history = stats.data["https://example.com"]["fetch"]["history"]
+        assert [item["refused"] for item in history] == [False, False, False]

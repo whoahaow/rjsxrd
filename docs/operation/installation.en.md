@@ -128,7 +128,7 @@ The main URL list is in `source/config/URLS.txt`. The file is parsed by the `par
 
 **Base64 autodetect:** each URL is checked for base64 encoding. Heuristics: newline ratio (<10%), absence of `://`, space ratio (<5%), character composition (only A-Za-z0-9+/=).
 
-To add a source, simply place the URL under the appropriate heading. Dead URLs are removed automatically after 3 consecutive fetch errors (via `URLStats`).
+To add a source, simply place the URL under the appropriate heading. Dead URLs are removed automatically after 3 consecutive fetch errors (via `URLStats`). A refusal of a private address is not a fetch error: that source stays in the file and is named in the run's report with its host and address.
 
 ## Dependencies
 

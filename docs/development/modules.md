@@ -323,6 +323,8 @@
 - `IP_CHECK_URLS` — список URL для проверки IP
 - `_clear_proxy_env_vars()` — очистка HTTP_PROXY/HTTPS_PROXY/ALL_PROXY (зарегистрирована в ProcessRegistry)
 - `_json_payload()` / `_json_str_field()` / `_json_nested_str_field()` — чтение полей ответа с проверкой формы: ответ, который не является JSON-объектом (массив, скаляр), читается как отсутствие полей, а не падает с `AttributeError`
+- `setup_proxy_chain()` — провайдер, не назвавший IP (ответ не JSON-объект, нет поля `ip`, пустое тело), считается неудачей: перебор идёт к следующему провайдеру, и цепочка не может быть признана рабочей с пустым exit-адресом; если IP не назвал никто, возвращается ошибка «Failed to get IP through proxy chain»
+- Читатели поверх `_json_payload()`: `_json_ip_field()`, `_json_org_field()`, `_plain_text_body()` — тот же контракт: нет поля или тело не того типа — значит значения нет, а не исключение
 
 ## resource_monitor.py — мониторинг ресурсов
 

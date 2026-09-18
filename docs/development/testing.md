@@ -23,20 +23,20 @@ pytest --cov=fetchers --cov=utils  # С отчётом о покрытии
 ```
 
 Маркеры проставлены на каждом тестовом модуле (`pytestmark`), поэтому `-m unit`
-и `-m integration` действительно что-то выбирают: 726 и 30 тестов из 756
+и `-m integration` действительно что-то выбирают: 727 и 30 тестов из 757
 (замер — `pytest --collect-only -q` с тем и другим маркером). Два
 модуля, которые обращаются к сети и сами пропускаются при её отсутствии
 (`test_fetcher.py`, `test_ip_checker.py`), помечены `integration`.
 
 ## Структура тестов
 
-Всего **756 тестов** в 32 файлах. Полный прогон на машине разработки (Windows,
+Всего **757 тестов** в 32 файлах. Полный прогон на машине разработки (Windows,
 Python 3.12) занимает около 70–80 секунд; время зависит от диска и загрузки
 машины, поэтому ориентируйтесь на `pytest -q` у себя.
 
 | Файл | Тестов | Область |
 |------|--------|---------|
-| `test_config_processor.py` | 85 | Пайплайн обработки, `prepare_config_content`, `_add_unique`, `write_configs_file` |
+| `test_config_processor.py` | 86 | Пайплайн обработки, `prepare_config_content`, `_add_unique`, `write_configs_file` |
 | `test_file_utils.py` | 70 | `extract_host_port`, `deduplicate_configs`, `is_valid_vpn_config_url`, `filter_secure_configs` |
 | `test_xray_tester.py` | 45 | Парсеры, сигналы, startup-timeout, security edge-кейсы |
 | `test_vpn_config.py` | 35 | VPNConfig typed dataclass'ы |

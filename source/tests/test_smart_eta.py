@@ -49,7 +49,7 @@ class TestSmartETABasics:
         """1000 configs all complete → ETA 0."""
         ft = FakeTime()
         eta = SmartETA(total=1000, concurrency=50, timeout=10, time_fn=ft)
-        for i in range(1000):
+        for _ in range(1000):
             ft.advance(0.02)
             eta.record_completion(9.5)
         assert eta.eta == 0.0  # all done
@@ -123,7 +123,7 @@ class TestSmartETARealistic:
         # First batch of 150 concurrent configs at 1s each = 1s wall time
         # First batch of 150 concurrent configs at 1s each.
         # Even concurrent, completions spread across ~1s wall time.
-        for i in range(150):
+        for _ in range(150):
             ft.advance(1.0 / 150)
             eta.record_completion(1.0)
 
@@ -146,7 +146,7 @@ class TestSmartETARealistic:
         ft = FakeTime()
         eta = SmartETA(total=30000, concurrency=300, timeout=10, time_fn=ft)
 
-        for i in range(300):
+        for _ in range(300):
             ft.advance(0.02)
             eta.record_completion(4.0)
 
@@ -169,13 +169,13 @@ class TestSmartETARealistic:
 
         # 25k fast configs at 1s each. With 300 concurrency, each "batch"
         # of 300 finishes in about 1s (all 300 concurrent).
-        for i in range(300):
+        for _ in range(300):
             ft.advance(1.0 / 300)  # 300 concurrent = 1s total for batch
             eta.record_completion(1.0)
 
         # After 300 completions, we've seen only fast ones
         # Now switch to slow — complete another 300 at 8s each
-        for i in range(300):
+        for _ in range(300):
             ft.advance(8.0 / 300)
             eta.record_completion(8.0)
 
@@ -202,12 +202,12 @@ class TestSmartETARealistic:
         eta = SmartETA(total=10000, concurrency=100, timeout=15, time_fn=ft)
 
         # 9900 fast configs at 0.5s each
-        for i in range(9900):
+        for _ in range(9900):
             ft.advance(0.01)
             eta.record_completion(0.5)
 
         # 100 slow configs at 10s each (the remaining ones)
-        for i in range(100):
+        for _ in range(100):
             ft.advance(10.0 / 100)
             eta.record_completion(10.0)
 
@@ -239,14 +239,14 @@ class TestSmartETARealistic:
         eta = SmartETA(total=50000, concurrency=300, timeout=10, time_fn=ft)
 
         # First 1000 configs at 1s each (concurrent, so 300/s throughput)
-        for i in range(1000):
+        for _ in range(1000):
             ft.advance(1.0 / 300)
             eta.record_completion(1.0)
 
         eta_at_1000 = eta.eta
 
         # Now rate drops: configs now take 8s each
-        for i in range(300):
+        for _ in range(300):
             ft.advance(8.0 / 300)
             eta.record_completion(8.0)
 
@@ -300,7 +300,7 @@ class TestSmartETAEdgeCases:
         ft = FakeTime()
         eta = SmartETA(total=1000, concurrency=100, timeout=30, time_fn=ft)
 
-        for i in range(500):
+        for _ in range(500):
             ft.advance(0.001)
             eta.record_completion(0.0)  # zero duration
 
@@ -382,7 +382,7 @@ class TestSmartETAFloor:
         ft = FakeTime()
         eta = SmartETA(total=1000, concurrency=300, timeout=10, time_fn=ft)
 
-        for i in range(300):
+        for _ in range(300):
             ft.advance(2.0 / 300)
             eta.record_completion(2.0)
 
@@ -397,7 +397,7 @@ class TestSmartETAFloor:
         eta = SmartETA(total=500, concurrency=10, timeout=30, time_fn=ft)
 
         # 9 fast (1s) + 1 slow (25s) in first batch of 10
-        for i in range(9):
+        for _ in range(9):
             ft.advance(0.1)
             eta.record_completion(1.0)
         ft.advance(2.0)

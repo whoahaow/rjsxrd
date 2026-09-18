@@ -65,7 +65,7 @@ class TestURLStats:
 
     def test_history_trimmed_to_max(self):
         stats = URLStats(path=tempfile.mktemp(suffix=".json"))
-        for i in range(5):
+        for _ in range(5):
             stats.record_fetch("https://example.com", True, 200, "")
         data = stats.data["https://example.com"]["fetch"]["history"]
         assert len(data) == 3  # MAX_HISTORY = 3

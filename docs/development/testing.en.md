@@ -80,20 +80,22 @@ this pipeline's crashes have lived.
 
 | Command | Scope | Coverage |
 |---------|-------|----------|
-| `pytest --cov=fetchers --cov=utils` | two packages | **58 %** (5596 statements, 2181 missed, 1884 branches) |
-| `pytest --cov=.` — the full run, as in CI | all of `source/` | **71 %** (12959 statements, 3187 missed, 2808 branches) |
-| `pytest -m "not integration" --cov=.` — the offline floor | all of `source/` | **69 %** (12959 statements, 3446 missed, 2808 branches) |
+| `pytest --cov=fetchers --cov=utils` | two packages | **58 %** (5595 statements, 2156 missed, 1884 branches) |
+| `pytest --cov=.` — the full run, as in CI | all of `source/` | **71 %** (13083 statements, 3170 missed, 2852 branches) |
+| `pytest -m "not integration" --cov=.` — the offline floor | all of `source/` | **71 %** (13083 statements, 3306 missed, 2852 branches) |
 
 `fail_under = 65` is stated for the CI scope — the whole `source/` tree. It is not
 a per-scope number: `pytest --cov=fetchers --cov=utils` reports 58 % and does not
 pass the floor, because two packages and the tree have different denominators.
 That run illustrates that coverage depends on scope; it is not the gate.
 
-Below the floor, CI fails. The number comes from the offline floor (69 % — a run
-without the 30 network tests and without the coverage those tests alone provide)
-minus a 4-point headroom, about 520 statements. The offline figure is
-a measurement from the development machine (Windows): the runner is Linux and
-executes the other side of the `sys.platform` branches in `utils/download_xray.py`,
+Below the floor, CI fails. The floor sits below the offline floor — a run without
+the 15 network tests and without the coverage those tests alone provide, 71 % at
+the current measurement, which leaves about 5.5 points and roughly 730 statements
+of headroom. It was set four points under the offline measurement as it stood
+then, and it does not move with a new one: that figure is a measurement from the
+development machine (Windows), while the runner is Linux and executes the other
+side of the `sys.platform` branches in `utils/download_xray.py`,
 `utils/xray_batch.py` and `utils/xray_tester.py`, so the runner's own number has
 never been observed. It will be recorded here the first time CI runs green; until
 then the floor rests on a Windows measurement and does not move — changing it now

@@ -255,7 +255,7 @@ class TestVMessConfig:
             uuid="uuid",
             tls=True,
             transport="tcp",
-            h2_hosts=tuple(),
+            h2_hosts=(),
         )
         out = cfg.to_xray_outbound()
         assert out is not None

@@ -263,7 +263,7 @@ class TestBatchSharedXray:
 
         assert len(result) == 3
         # The invalid URL should be failed
-        failed = [(u, s, l) for u, s, l in result if not s]
+        failed = [(u, s, latency) for u, s, latency in result if not s]
         assert len(failed) == 1
         assert failed[0][0] == "invalid-url"
 
@@ -349,9 +349,9 @@ class TestBatchSettings:
             import config.settings as _settings
 
             _settings.BATCH_MODE_OVERRIDE = "batch"
-            from config.settings import BATCH_MODE_OVERRIDE as override
+            from config.settings import BATCH_MODE_OVERRIDE as OVERRIDE
 
-            assert override == "batch"
+            assert OVERRIDE == "batch"
         finally:
             import config.settings as _settings
 

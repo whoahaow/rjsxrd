@@ -684,9 +684,9 @@ class TestVerifyConfigFileXrayUnavailable:
         mock_tester.xray_path = None
 
         # Patch XrayTester class import inside the function
-        with mock_patch.object(config_processor, "XrayTester", create=True) as MockCls:
+        with mock_patch.object(config_processor, "XrayTester", create=True) as mock_cls:
             # Make the constructor return our mock with no xray
-            MockCls.return_value = mock_tester
+            mock_cls.return_value = mock_tester
             # We need XrayTester to actually exist in the namespace — we just
             # patched the module-level name. Re-inject via the import path.
             import sys
@@ -732,7 +732,7 @@ class TestVerifyConfigFileXrayUnavailable:
                 # The mock_tester's cleanup should not be called (xray_path is None,
                 # so we never created an XrayTester instance — verify XrayTester was
                 # never instantiated)
-                MockCls.assert_not_called()
+                mock_cls.assert_not_called()
             finally:
                 # Restore the real xray_tester module so later tests work
                 if original_xray_module is not None:
@@ -1053,7 +1053,9 @@ class TestBypassSplitFileDisjointness:
             f = tmp_path / "bypass" / f"bypass-{i}.txt"
             assert f.exists()
             content = f.read_text()
-            lines = [l for l in content.splitlines() if l.strip() and not l.startswith("#")]
+            lines = [
+                line for line in content.splitlines() if line.strip() and not line.startswith("#")
+            ]
             assert len(lines) == 300, f"bypass-{i}.txt should have 300 lines, got {len(lines)}"
 
     def test_seal_writes_disjoint_files(self, tmp_path):

@@ -1,0 +1,18 @@
+# Generated outputs, not sources.
+#
+# `githubmirror/` is written by the pipeline (each run rewrites the config
+# lists) and `qr-codes/` is produced alongside them from those lists. No human
+# edits either directory — the published layout is described in
+# docs/user/config-files.md, and the update job commits them on a schedule.
+#
+# `linguist-generated` is what GitHub reads to treat a path as generated: the
+# file is collapsed in diff views and marked as generated in the file listing.
+# `qr-codes/` holds PNG, so it also carries the `binary` macro (`-diff -merge
+# -text`) rather than relying on content detection.
+#
+# Deliberately NOT matched: everything hand-written — `source/`, `docs/`,
+# `.github/`, the root text files, and the config lists a human maintains under
+# `source/config/` (`URLS.txt`, `servers.txt`, the whitelists). Those are
+# sources and must keep appearing as one in diffs.
+githubmirror/** linguist-generated=true
+qr-codes/** linguist-generated=true binary

@@ -132,8 +132,12 @@ list.
 
 * `.env` holds `MY_TOKEN` (or `GITHUB_TOKEN`) and is never committed — it is in
   `.gitignore`. `config/settings.py` reads it into the process only.
-* The token is sent only to `github.com` / `raw.githubusercontent.com` requests
-  (and to the API fallback), never to the arbitrary hosts in `URLS.txt`.
+* The token is sent only to an explicit set of GitHub hosts — `github.com`,
+  `raw.githubusercontent.com`, and `api.github.com` (the host the API fallback requests,
+  built from one of the other two) — matched against the **hostname** of the request
+  (`GITHUB_TOKEN_HOSTS` in `source/fetchers/fetcher.py`), never to the arbitrary hosts in
+  `URLS.txt`. A GitHub name that appears only in a URL's path or query string receives
+  nothing.
 * An attacker holding a token with `repo` scope could write to the artifacts this
   repository publishes — including by pushing a commit that adds a
   configuration. The token is the highest-value credential in the project, and it

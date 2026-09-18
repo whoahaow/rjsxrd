@@ -10,8 +10,13 @@ apart: a source that is dead (a fetch that failed), a source whose name resolved
 this pipeline must not connect to (a refusal), and a source that was fetched without TLS
 verification (a downgrade). A refusal is the second kind, and it must not be aged toward
 removal from `URLS.txt` as if it were the first.
+
+The other half of the posture has its own class here: which hosts may carry the GitHub
+token, which is a set of hostnames rather than a test on the URL text, and the API fallback
+that would have been de-authenticated silently by the obvious tightening.
 """
 
+import base64
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -191,6 +196,106 @@ class TestARefusalIsAnOutcomeOfItsOwn:
         assert result.success is False
         assert result.text == ""
         assert DESTINATION_REFUSALS.snapshot().destinations == ((REDIRECT_HOST, LOOPBACK_ADDRESS),)
+
+
+class TestTheGithubTokenScope:
+    """Which hosts may carry the GitHub token, and that the fallback still gets it."""
+
+    TOKEN = "example-token-not-a-real-one"
+    RAW_URL = "https://raw.githubusercontent.com/example/example/main/config.txt"
+
+    @pytest.fixture(autouse=True)
+    def ladder_only(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Keep the API fallback out of these cases: they are about the ladder's header.
+
+        The fallback is the one path that requests a host the caller never named, and the
+        test below drives it directly instead of through every case here.
+        """
+        monkeypatch.setattr(fetcher_module, "GITHUB_API_FALLBACK", False)
+
+    @staticmethod
+    def _session() -> MagicMock:
+        """A client that answers every request successfully, echoing the URL it was given."""
+        session = MagicMock()
+        session.get.side_effect = lambda url, **kwargs: _response(text="payload", url=url)
+        return session
+
+    @staticmethod
+    def _auth_header(session: MagicMock) -> dict:
+        """The headers of the first request the session was asked to make."""
+        return session.get.call_args.kwargs.get("headers") or {}
+
+    @pytest.mark.parametrize("host", sorted(fetcher_module.GITHUB_TOKEN_HOSTS))
+    def test_a_host_in_the_set_receives_the_token(self, host: str) -> None:
+        """Every host the policy names is one the credential may go to."""
+        session = self._session()
+
+        result = fetch_data(
+            f"https://{host}/example/example/raw/main/config.txt",
+            session=session,
+            token=self.TOKEN,
+        )
+
+        assert result.success is True
+        assert self._auth_header(session) == {"Authorization": f"token {self.TOKEN}"}
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "https://evil.example/x?u=github.com",
+            "https://evil.example/raw.githubusercontent.com/config.txt",
+            "https://notgithub.com/example/example/raw/main/config.txt",
+            "https://github.com.evil.example/example/example/raw/main/config.txt",
+        ],
+    )
+    def test_a_host_that_merely_names_one_receives_nothing(self, url: str) -> None:
+        """The substring test this replaces handed the credential to all four of these.
+
+        Each URL contains the text the old test looked for and none of them is a GitHub
+        host, which is the whole difference between a test on the URL text and a set of
+        hostnames.
+        """
+        session = self._session()
+
+        fetch_data(url, session=session, token=self.TOKEN)
+
+        assert self._auth_header(session) == {}
+
+    def test_the_host_the_fallback_requests_is_in_the_set(self) -> None:
+        """The trap, stated as a relation between the producer and the policy.
+
+        The fallback builds its URL from the one it was handed, so tightening the comparison
+        to the parsed hostname only works while the host it builds is in the set. Dropping it
+        would de-authenticate the path silently: the fallback keeps working and the run is
+        simply limited to 60 requests an hour instead of 5000.
+        """
+        api_url = fetcher_module._raw_to_api_url(self.RAW_URL)
+
+        assert api_url is not None
+        assert fetcher_module._host_of(api_url) in fetcher_module.GITHUB_TOKEN_HOSTS
+
+    def test_a_raw_url_is_fetched_authenticated_through_the_api(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Driven for real: the request the fallback makes to its own host carries the token."""
+        monkeypatch.setattr(fetcher_module, "GITHUB_API_FALLBACK", True)
+        response = MagicMock(status_code=200)
+        response.json.return_value = {
+            "content": base64.b64encode(b"vless://example").decode(),
+            "encoding": "base64",
+        }
+        session = MagicMock()
+        session.get.return_value = response
+
+        result = fetch_data(self.RAW_URL, session=session, token=self.TOKEN)
+
+        assert result.success is True
+        assert result.text == "vless://example"
+        requested = session.get.call_args_list[0]
+        assert requested.args[0].startswith(
+            "https://api.github.com/repos/example/example/contents/"
+        )
+        assert requested.kwargs["headers"]["Authorization"] == f"token {self.TOKEN}"
 
 
 class TestTheRefusalReport:

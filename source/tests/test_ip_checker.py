@@ -48,14 +48,16 @@ class TestMakeRequestNormalPath:
 
         # requests is imported inside the function body, so we patch
         # the top-level module to catch any accidental fallback calls.
-        with patch("curl_cffi.requests.Session", return_value=mock_session):
-            with patch("requests.get") as mock_requests_get:
-                result = _make_request("https://example.com", timeout=5.0)
-                assert result.status_code == 200
-                mock_requests_get.assert_not_called()
-                mock_session.get.assert_called_once_with(
-                    "https://example.com", proxies=None, timeout=5.0
-                )
+        with (
+            patch("curl_cffi.requests.Session", return_value=mock_session),
+            patch("requests.get") as mock_requests_get,
+        ):
+            result = _make_request("https://example.com", timeout=5.0)
+            assert result.status_code == 200
+            mock_requests_get.assert_not_called()
+            mock_session.get.assert_called_once_with(
+                "https://example.com", proxies=None, timeout=5.0
+            )
 
 
 class TestMakeRequestFallback:
@@ -81,16 +83,18 @@ class TestMakeRequestFallback:
             "curl_cffi.requests": fake_requests_sub,
         }
 
-        with patch.dict("sys.modules", fake_modules):
-            with patch("requests.get") as mock_requests_get:
-                mock_response = MagicMock()
-                mock_response.status_code = 200
-                mock_requests_get.return_value = mock_response
-                result = _make_request("https://example.com", timeout=5.0)
-                assert result.status_code == 200
-                mock_requests_get.assert_called_once_with(
-                    "https://example.com", proxies=None, timeout=5.0
-                )
+        with (
+            patch.dict("sys.modules", fake_modules),
+            patch("requests.get") as mock_requests_get,
+        ):
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_requests_get.return_value = mock_response
+            result = _make_request("https://example.com", timeout=5.0)
+            assert result.status_code == 200
+            mock_requests_get.assert_called_once_with(
+                "https://example.com", proxies=None, timeout=5.0
+            )
 
 
 class TestMakeRequestRuntimeSmoke:

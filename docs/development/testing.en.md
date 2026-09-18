@@ -175,6 +175,47 @@ residual were defects and are resolved. The error and file counts move from card
 to card — measure them with the command above instead of carrying a number over
 from a document.
 
+## Module size
+
+Every file under `source/` has a ceiling — **800 lines** — and the files that were already
+over it when the gate landed have a budget: the size each was measured at that day.
+`source/tests/test_module_size.py` checks both, as a test rather than a separate CI step:
+it runs inside the suite, sees the same tree, and bypasses neither `--strict-markers` nor
+the figures guard.
+
+What the gate protects is not "small files". A file that has grown is hard to review: what
+depends on what stops being visible in it, and every further change makes it worse. The
+line counts are a proxy for that and are worth reading as a proxy: 800 lines are not
+harmful by themselves, a file whose change cannot be read in one pass is.
+
+- the ceiling covers **every** `.py` file in the tree, tests included, found by walking
+  directories rather than a list, so a module added tomorrow in a new subdirectory is
+  covered without an edit to the gate;
+- a file on the debt list may not grow by a single line: a budget is a measurement, not
+  permission;
+- a budget may only be lowered. A file more than 10 % below its budget fails the gate,
+  which asks for the budget to be lowered in the same commit — otherwise nobody lowers it,
+  and in two years the file is twice the size it should be and still "within budget". Ten
+  percent is the compromise: more than an ordinary edit moves, less than any real split, so
+  a genuine reduction costs one extra edit. That cost is the mechanism;
+- a file that drops below the ceiling comes off the list: while the entry stands, the
+  file's limit is its budget, which sits above the ceiling;
+- the list is closed: it holds the files that were over the ceiling on the day the gate
+  landed, four of which the audit named. A file over the ceiling is a file to split;
+  adding it to the list silences the gate instead of satisfying it.
+
+The debt is still debt. The audit named four modules — `xray_tester`, `xray_batch`,
+`config_processor` and `protocol_parsers` — and the whole-tree measurement added three test
+files to them, among them the largest file in the repository (`test_config_processor.py`).
+None of them has been split: the gate makes the debt visible and forbids it growing, and
+splitting them is separate work. The list with its sizes is in
+`source/tests/test_module_size.py`, in `BUDGETS`.
+
+A failure says what to do: it names the file, its current size, its limit and the response
+— split it, and for a listed file also that the budget may not be raised. Changing the gate
+itself is a change of policy: its own commit, with the reason in the message, not a way to
+find room for more lines.
+
 ## Warnings
 
 The pytest config carries no global `ignore`: the first `DeprecationWarning`

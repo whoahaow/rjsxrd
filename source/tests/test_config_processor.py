@@ -507,7 +507,7 @@ class TestWriteConfigsFile:
 
         out = tmp_path / "out.txt"
         write_configs_file(str(out), ["vless://uuid@host:443"], "# h\n")
-        content = open(out).read()
+        content = out.read_text()
         # The config_processor's append_remark_suffix uses URL-encoded t.me/rjsxrd
         assert "vless://uuid@host:443#%20t.me%2Frjsxrd" in content
 
@@ -522,7 +522,7 @@ class TestWriteConfigsFile:
 
         out = tmp_path / "out.txt"
         write_configs_file(str(out), ["vless://uuid@host:443#MyTag"], "# h\n")
-        content = open(out).read()
+        content = out.read_text()
         # Original fragment preserved
         assert "vless://uuid@host:443#MyTag" in content
         # Suffix appears exactly once (appended to the existing fragment)
@@ -538,7 +538,7 @@ class TestWriteConfigsFile:
 
         out = tmp_path / "raw.txt"
         write_configs_file(str(out), ["vless://x", "vmess://y#tag"], "# raw\n", add_suffix=False)
-        content = open(out).read()
+        content = out.read_text()
         assert "vless://x\n" in content
         assert "vmess://y#tag" in content
         # No encoding
@@ -555,7 +555,7 @@ class TestWriteConfigsFile:
         out = tmp_path / "empty.txt"
         write_configs_file(str(out), [], "# header\n")
         assert out.exists()
-        content = open(out).read()
+        content = out.read_text()
         # File contains the header
         assert "# header" in content
         # File does NOT contain a stray "None" or "[]" or empty line
@@ -591,7 +591,7 @@ class TestStreamWriteConfigsFile:
             chunk_size=2,
             progress_every=0,  # disable progress logging
         )
-        content = open(out).read()
+        content = out.read_text()
         # No double newlines anywhere (header's \n is followed directly by content)
         assert "\n\n" not in content, f"double newlines in: {repr(content)}"
         # All 6 configs present
@@ -646,7 +646,7 @@ class TestStreamWriteConfigsFile:
         out = tmp_path / "out.txt"
         configs = [f"vless://u{i}@h.com:443" for i in range(50)]
         stream_write_configs_file(str(out), configs, "# h\n", add_suffix=False, chunk_size=7)
-        content = open(out).read()
+        content = out.read_text()
         for c in configs:
             assert c in content, f"missing {c} in output"
 

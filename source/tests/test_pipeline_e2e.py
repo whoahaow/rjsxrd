@@ -35,6 +35,7 @@ asserted.
 
 from __future__ import annotations
 
+import contextlib
 import inspect
 import os
 import socket
@@ -790,8 +791,11 @@ class TestGuardsAndSideEffects:
     """The guards are what make the offline claim falsifiable."""
 
     def test_socket_connect_is_refused(self) -> None:
-        with pytest.raises(AssertionError, match="network call"):
-            socket.socket().connect(("example.invalid", 443))
+        with (
+            contextlib.closing(socket.socket()) as sock,
+            pytest.raises(AssertionError, match="network call"),
+        ):
+            sock.connect(("example.invalid", 443))
 
     def test_process_spawn_is_refused(self) -> None:
         with pytest.raises(AssertionError, match="spawn a process"):

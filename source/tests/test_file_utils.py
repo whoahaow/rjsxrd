@@ -722,7 +722,8 @@ class TestSniWorkerModule:
         """The worker does NOT self-import from utils.file_utils."""
         import utils._sni_worker
 
-        source = open(utils._sni_worker.__file__).read()
+        with open(utils._sni_worker.__file__) as handle:
+            source = handle.read()
         # Should import from utils.file_utils (allowed) but not re-import itself
         assert "from utils._sni_worker import" not in source
         assert "from utils import _sni_worker" not in source

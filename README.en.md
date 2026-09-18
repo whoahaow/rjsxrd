@@ -435,7 +435,7 @@ source/               - generator source code
  │   ├─ purge_stale_urls.py - cleaning by git timestamp
  │   ├─ setup-vps.sh   - VPS deployment script
  │   └─ test_telegram_proxies.py - testing Telegram proxies
- ├─ tests/            - unit tests (827 tests, 33 files)
+ ├─ tests/            - unit tests (831 tests, 34 files)
  │   ├─ __init__.py
  │   ├─ conftest.py   - pytest fixtures and configuration
  │   ├─ test_config_processor.py
@@ -454,6 +454,7 @@ source/               - generator source code
  │   ├─ test_logger.py
  │   ├─ test_main.py
  │   ├─ test_managed_process.py
+ │   ├─ test_module_size.py
  │   ├─ test_pipeline_e2e.py - full pipeline run offline
  │   ├─ test_process_registry.py
  │   ├─ test_progress.py
@@ -537,7 +538,7 @@ cd source && ../.venv/Scripts/python.exe main.py   # configs will appear in ../g
 
 #### Running the tests
 
-The project includes a set of unit tests to verify the correctness of the main modules (827 tests, 33 files; measured with `pytest -q`):
+The project includes a set of unit tests to verify the correctness of the main modules (831 tests, 34 files; measured with `pytest -q`):
 
 ```bash
 # test toolchain — from the repository root

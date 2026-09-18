@@ -29,6 +29,73 @@ from dataclasses import dataclass
 from utils.fetch_outcomes import DESTINATION_REFUSAL_PREFIX
 from utils.logger import log, warning
 
+# The IPv6 prefixes that carry an *IPv4 address* inside them, with the bit layout each one
+# carries it in. A wrapped address is judged by what it carries rather than by the prefix
+# being listed as blocked: the point is the address the traffic reaches, and `64:ff9b::/96`
+# is exactly where a real deployment puts public destinations, so refusing the whole prefix
+# would be a false positive.
+#
+# `64:ff9b::/96` is the NAT64 well-known prefix (RFC 6052, RFC 8215) and `2002::/16` is 6to4
+# (RFC 3056, whose `2002:V4ADDR::/48` form puts the address in the 32 bits after its 16-bit
+# prefix). `::/96` is the IPv4-compatible form `::a.b.c.d`, deprecated by RFC 4291 §2.5.5.1
+# and still parseable — which is why `::7f00:1` has to be read as loopback.
+#
+# Deliberately absent: `64:ff9b:1::/48`, the RFC 8215 local-use prefix. That RFC requires
+# nodes not to assume the syntax of an address inside it — "must not ... make any
+# assumptions regarding the syntax or properties of those addresses (e.g., the existence and
+# location of embedded IPv4 addresses)" — and the plain rule above it already refuses the
+# whole prefix, so an unwrap there could only make the guard more permissive, never less.
+_RFC_6052 = "rfc6052"
+_SIX_TO_FOUR = "six_to_four"
+
+_TRANSLATION_PREFIXES: tuple[tuple[ipaddress.IPv6Network, int, str], ...] = (
+    (ipaddress.IPv6Network("64:ff9b::/96"), 96, _RFC_6052),
+    (ipaddress.IPv6Network("2002::/16"), 16, _SIX_TO_FOUR),
+    (ipaddress.IPv6Network("::/96"), 96, _RFC_6052),
+)
+
+
+@dataclass(frozen=True)
+class EmbeddedAddress:
+    """An IPv4 address a translation prefix carries, and the prefix that carries it."""
+
+    prefix: str
+    address: ipaddress.IPv4Address
+
+
+def _rfc6052_bits(value: int, prefix_length: int) -> int:
+    """The IPv4 address RFC 6052 §2.2 placed at `prefix_length` inside a 128-bit address.
+
+    The split is a function of the prefix length: for a /96 the address is simply the last
+    32 bits, and for the shorter lengths the leading bits follow the prefix while the rest
+    land after the reserved octet at bits 64-71. The six lengths the RFC allows are 32, 40,
+    48, 56, 64 and 96, and the arithmetic covers all of them so that recognizing another
+    translation prefix is a row in `_TRANSLATION_PREFIXES` rather than a new branch here —
+    a prefix added by listing it would be the same defect one release later.
+    """
+    before = max(0, 64 - prefix_length)
+    after = 32 - before
+    high = (value >> 64) & ((1 << before) - 1) if before else 0
+    low_start = 72 if before else max(prefix_length, 72)
+    low = (value >> (128 - (low_start + after))) & ((1 << after) - 1) if after else 0
+    return (high << after) | low
+
+
+def embedded_ipv4(parsed: ipaddress.IPv4Address | ipaddress.IPv6Address) -> EmbeddedAddress | None:
+    """The IPv4 address `parsed` carries, when it sits inside a translation prefix."""
+    if not isinstance(parsed, ipaddress.IPv6Address):
+        return None
+    value = int(parsed)
+    for network, prefix_length, layout in _TRANSLATION_PREFIXES:
+        if parsed not in network:
+            continue
+        if layout == _SIX_TO_FOUR:
+            carried = (value >> 80) & 0xFFFFFFFF
+        else:
+            carried = _rfc6052_bits(value, prefix_length)
+        return EmbeddedAddress(prefix=str(network), address=ipaddress.IPv4Address(carried))
+    return None
+
 
 def _is_blocked_address(address: str) -> bool:
     """Whether a resolved address is one a fetch must never connect to.
@@ -40,6 +107,13 @@ def _is_blocked_address(address: str) -> bool:
     reserved and documentation ranges. Multicast is spelled out because `is_global`
     reports it as global on this interpreter.
 
+    An address inside a translation prefix is judged by the address it carries: the
+    well-known prefix reports itself as global on this interpreter, so `64:ff9b::7f00:1`
+    is a public-looking v6 address for 127.0.0.1 and the metadata endpoint encodes the same
+    way. What the wrappers do is add to the refused set, never subtract from it — a prefix
+    whose whole range already fails the check above stays refused, so no answer that was
+    refused before this is admitted by it.
+
     An answer the parser cannot read is refused as well: it came from a resolver, and an
     address this module cannot classify is not one it can clear. The cost of the strict
     direction is a source that lives somewhere unroutable, which is not a source a
@@ -50,7 +124,12 @@ def _is_blocked_address(address: str) -> bool:
         parsed = ipaddress.ip_address(address)
     except ValueError:
         return True
-    return not parsed.is_global or parsed.is_multicast
+    if not parsed.is_global or parsed.is_multicast:
+        return True
+    embedded = embedded_ipv4(parsed)
+    if embedded is None:
+        return False
+    return not embedded.address.is_global or embedded.address.is_multicast
 
 
 @dataclass(frozen=True)
@@ -110,6 +189,23 @@ class _DestinationRefusalCounter:
 DESTINATION_REFUSALS = _DestinationRefusalCounter()
 
 
+def _embedded_note(address: str) -> str:
+    """The address a translation prefix carries, named for the reader of a refusal.
+
+    A refusal that reads only `64:ff9b::7f00:1` looks like a v6 address that happens to be
+    unroutable. Naming what it carries is what tells the operator their source is being
+    answered with loopback.
+    """
+    try:
+        parsed = ipaddress.ip_address(address)
+    except ValueError:
+        return ""
+    embedded = embedded_ipv4(parsed)
+    if embedded is None or (embedded.address.is_global and not embedded.address.is_multicast):
+        return ""
+    return f" (the {embedded.prefix} prefix carries {embedded.address})"
+
+
 def refusal_reason(host: str, address: str) -> str:
     """The message a refused destination is reported with, and the run's record of it.
 
@@ -122,7 +218,10 @@ def refusal_reason(host: str, address: str) -> str:
     redirect the client followed by itself — and both go through this function.
     """
     DESTINATION_REFUSALS.record(host, address)
-    return f"{DESTINATION_REFUSAL_PREFIX}{host}: it resolves to the non-public address {address}"
+    return (
+        f"{DESTINATION_REFUSAL_PREFIX}{host}: it resolves to the "
+        f"non-public address {address}{_embedded_note(address)}"
+    )
 
 
 def report_destination_refusals() -> DestinationRefusalStats:

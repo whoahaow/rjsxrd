@@ -32,8 +32,9 @@ What it guards, and where each expectation comes from:
   names the commit it was measured at, that both languages name the same one and
   state the same three rows, that each row's percentage follows from the counters
   beside it within the band branch mode allows, and that the two rows measuring
-  all of ``source/`` agree about the tree with the offline floor the lower of the
-  two. Those rows went stale three times by hand before they were anchored.
+  the same tree (``--cov=.``, which the coverage config scopes to the code rather
+  than to the suite) agree about it with the offline floor the lower of the two.
+  Those rows went stale three times by hand before they were anchored.
 
 What it does NOT guard, so nobody assumes otherwise:
 
@@ -654,11 +655,13 @@ def coverage_scope_problems(
 ) -> list[str]:
     """The relations between the rows that measure the same tree.
 
-    Two of the three rows cover all of ``source/``, so they have to agree about the tree they
-    measured — the same statements and the same branches — and the one that deselects the 15
-    network tests can only be the worse of the two: dropping tests cannot execute more code. The
-    two-package row is deliberately not compared with them, and the page says why — two packages
-    and a tree have different denominators.
+    Two of the three rows cover what ``--cov=.`` reports, so they have to agree about the tree
+    they measured — the same statements and the same branches — and the one that deselects the 15
+    network tests can only be the worse of the two: dropping tests cannot execute more code. Both
+    of those rows are scoped by the coverage config, which measures the code rather than the
+    suite, so "the same tree" is the code under ``source/``. The two-package row is deliberately
+    not compared with them, and the page says why — two packages and a tree have different
+    denominators.
     """
     whole_tree = [
         (row.group("command"), figures)
@@ -667,7 +670,7 @@ def coverage_scope_problems(
     ]
     if len(whole_tree) != 2:
         return [
-            f"{path}: {len(whole_tree)} rows measure all of `source/` (`--cov=.`), expected 2 — "
+            f"{path}: {len(whole_tree)} rows measure the same tree (`--cov=.`), expected 2 — "
             "the relations here are between exactly those two"
         ]
 
@@ -675,7 +678,7 @@ def coverage_scope_problems(
     offline = next((entry for entry in whole_tree if "not integration" in entry[0]), None)
     if full is None or offline is None:
         return [
-            f"{path}: the rows measuring all of `source/` are not one full run and one offline "
+            f"{path}: the rows measuring the same tree are not one full run and one offline "
             "floor — the floor is the command that deselects the integration marker"
         ]
 

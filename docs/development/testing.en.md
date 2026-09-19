@@ -81,37 +81,48 @@ figures are not comparable: the mode is branches (`branch = true` in
 executed once still hides the arm of an `if` that never ran, and that is where
 this pipeline's crashes have lived.
 
+The `--cov=.` rows measure the code, not the test suite: it is excluded from the
+measurement (`omit = ["tests/*"]` in `[tool.coverage.run]`). It used to be included —
+6556 of the tree's 14234 statements were the tests, covered at 98 % against the code's
+57 % — so the percentage was mostly a statement about the suite rather than about the
+code it exists for, and every card that touched the suite moved the figures. That is
+why these rows went stale three times. The two-package row measured code only from the
+start; it has a denominator of its own.
+
 | Command | Scope | Coverage |
 |---------|-------|----------|
-| `pytest --cov=fetchers --cov=utils` | two packages | **61 %** (5918 statements, 2136 missed, 1970 branches) |
-| `pytest --cov=.` — the full run, as in CI | all of `source/` | **74 %** (14138 statements, 3159 missed, 2972 branches) |
-| `pytest -m "not integration" --cov=.` — the offline floor | all of `source/` | **73 %** (14138 statements, 3297 missed, 2972 branches) |
+| `pytest --cov=fetchers --cov=utils` | two packages | **60.7 %** (5916 statements, 2136 missed, 1970 branches) |
+| `pytest --cov=.` — the full run, as in CI | the code under `source/` | **57.1 %** (7678 statements, 3073 missed, 2520 branches) |
+| `pytest -m "not integration" --cov=.` — the offline floor | the code under `source/` | **56.9 %** (7678 statements, 3089 missed, 2520 branches) |
 
-The figures above are a measurement on branch `main` at commit `f0692e2e`, taken
-with the commands in the table's first column and `--cov-config=../pyproject.toml`.
-That makes them a historical fact rather than a claim about HEAD: every card that
-moves the suite moves them, which is why a figure stated without an anchor goes
-stale one commit later — and these three did, three times. The figures guard
-(`source/tests/test_docs_figures.py`) holds the anchor, the arithmetic behind each
-row and the agreement between the two languages; it does not re-derive the
-numbers, which would take a second instrumented run inside the suite.
+The figures above are a measurement on branch `main` at commit `46aa6544`, taken with
+the commands in the table's first column and `--cov-config=../pyproject.toml`. They are
+a historical fact rather than a claim about HEAD, and the commit names the revision of
+the code that was measured: it is the last one the measured tree changed at, because
+this commit itself moves only the configuration and this page. The test suite is out of
+the denominator, so a card that moves the suite no longer moves the figures — a card
+that moves the code still does. The figures guard (`source/tests/test_docs_figures.py`)
+holds the anchor, the arithmetic behind each row and the agreement between the two
+languages; it does not re-derive the numbers, which would take a second instrumented
+run inside the suite.
 
-`fail_under = 65` is stated for the CI scope — the whole `source/` tree. It is not
-a per-scope number: the two-package row above sits below the floor and does not
-pass it, because two packages and the tree have different denominators. That run
-illustrates that coverage depends on scope; it is not the gate.
+`fail_under = 53` is stated for the CI scope — the code under `source/`, without the
+suite. It is not a per-scope number: the two-package row now sits above the floor, but
+two packages and the tree's code have different denominators, and the coincidence says
+nothing about coverage. That run illustrates that coverage depends on scope; it is not
+the gate.
 
-Below the floor, CI fails. The floor sits below the offline floor — a run without
-the 15 network tests and without the coverage those tests alone provide, which is
-the last row of the table above; the points between that row and the floor are the
-headroom a runner without network has. The floor was set four points under the
-offline measurement as it stood then, and it does not move with a new one: that
-measurement is from the development machine (Windows), while the runner is Linux
-and executes the other side of the `sys.platform` branches in
-`utils/download_xray.py`, `utils/xray_batch.py` and `utils/xray_tester.py`, so the
-runner's own number has never been observed. It will be recorded here the first
-time CI runs green; until then the floor rests on a Windows measurement and does
-not move — changing it now would be calibrating against something unmeasured.
+Below the floor, CI fails. The 53 is the offline floor — the last row of the table
+above, a run without the 15 network tests and without the coverage those tests alone
+provide — less the four points this floor has always been set under that measurement;
+rounding to a whole number leaves 3.9 points of headroom. It is not comparable with the
+65 it replaces, and the difference is the point: that floor stood over a tree in which
+the tests were measured as code and covered themselves at 98 %, so the same run read
+73.58 % for the tree while the code the tests exist for read 57 %. The offline floor is
+a measurement from the development machine (Windows), while the runner is Linux and
+executes the other side of the `sys.platform` branches in `utils/download_xray.py`,
+`utils/xray_batch.py` and `utils/xray_tester.py`, so the runner's own number has never
+been observed. It will be recorded here the first time CI runs green.
 
 Every coverage command carries `--cov-config=../pyproject.toml`, the CI step
 included. pytest-cov looks for a `.coveragerc` in the invocation directory

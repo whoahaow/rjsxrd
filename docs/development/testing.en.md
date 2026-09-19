@@ -92,17 +92,18 @@ start; it has a denominator of its own.
 
 | Command | Scope | Coverage |
 |---------|-------|----------|
-| `pytest --cov=fetchers --cov=utils` | two packages | **60.53 %** (5873 statements, 2129 missed, 1970 branches; ±0.1 pt between runs) |
-| `pytest --cov=.` — the full run, as in CI | the code under `source/` | **56.95 %** (7635 statements, 3066 missed, 2520 branches; ±0.1 pt between runs) |
-| `pytest -m "not integration" --cov=.` — the offline floor | the code under `source/` | **56.76 %** (7635 statements, 3082 missed, 2520 branches) |
+| `pytest --cov=fetchers --cov=utils` | two packages | **60.63 %** (5885 statements, 2128 missed, 1976 branches; ±0.1 pt between runs) |
+| `pytest --cov=.` — the full run, as in CI | the code under `source/` | **57.11 %** (7659 statements, 3065 missed, 2532 branches; ±0.1 pt between runs) |
+| `pytest -m "not integration" --cov=.` — the offline floor | the code under `source/` | **56.92 %** (7659 statements, 3081 missed, 2532 branches) |
 
-The figures above are a measurement on branch `main` at commit `f865d66f`, taken with
+The figures above are a measurement on branch `main` at commit `9e7751e6`, taken with
 the commands in the table's first column and `--cov-config=../pyproject.toml`. They are a
 historical fact rather than a claim about HEAD, and the commit names the revision of the
 code that was measured: it is the last one the measured tree changed at — the one that
-removed the dead typed layer from `utils/url_stats.py` (the measured tree: 7635 statements
-instead of 7678). The test suite is out of the denominator, so a card that moves the suite
-no longer moves the figures — a card that moves the code still does. The figures guard
+taught the destination allowlist to read the bracketed v6 form (the measured tree: 7659
+statements, up from 7635 at the previous anchor). The test suite is out of the
+denominator, so a card that moves the suite no longer moves the figures — a card that
+moves the code still does. The figures guard
 (`source/tests/test_docs_figures.py`) holds the anchor, the arithmetic behind each row and
 the agreement between the two languages; it does not re-derive the numbers, which would
 take a second instrumented run inside the suite.

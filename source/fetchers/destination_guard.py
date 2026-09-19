@@ -208,6 +208,45 @@ def _embedded_note(address: str) -> str:
     return f" (the {embedded.prefix} prefix carries {embedded.address})"
 
 
+def _as_address(text: str) -> ipaddress.IPv4Address | ipaddress.IPv6Address | None:
+    """`text` as an IP address, or None when it is not one."""
+    try:
+        return ipaddress.ip_address(text)
+    except ValueError:
+        return None
+
+
+def _split_host_entry(entry: str) -> tuple[str, int | None]:
+    """A `host` / `host:port` entry as the host it names and the port it pins.
+
+    The port is `None` when the entry names none, which is not the same as a port
+    that happened to match: an entry that pins no port covers every port, and one
+    that pins a port covers exactly that one.
+
+    A v6 host is bracketed in URL syntax — `[::1]` / `[::1]:1080` — and `urlparse`
+    hands the host back unwrapped, so the brackets come off here rather than being
+    compared: the entry names a destination, and it has to name the same one the
+    URL does. They come off *before* the port is split, because the unwrapped form
+    of a qualified v6 entry (`::1:1080`) is itself a parseable address — splitting
+    that one would read a port out of an address the operator did not write it in.
+
+    Which is also why the whole entry is tried as an address first: `::1` is an
+    address and not a host with port `1`, and a bare v6 address with a port cannot
+    be written at all, because any such string parses as an address. The bracketed
+    form is the way to write that entry, and the only one.
+    """
+    if entry.startswith("["):
+        host, closed, rest = entry[1:].partition("]")
+        if closed and (rest == "" or (rest.startswith(":") and rest[1:].isdigit())):
+            return host, int(rest[1:]) if rest else None
+    if _as_address(entry) is not None:
+        return entry, None
+    entry_host, _, entry_port = entry.rpartition(":")
+    if entry_host and entry_port.isdigit():
+        return entry_host, int(entry_port)
+    return entry, None
+
+
 def _is_destination_allowlisted(
     host: str, port: int | None, address: str, allowlist: Sequence[str]
 ) -> bool:
@@ -215,9 +254,10 @@ def _is_destination_allowlisted(
 
     Entries are as documented in `config/settings.py`: an IP literal or a CIDR,
     matched against the address the name resolved to; or `host` / `host:port`,
-    matched against the URL's own host. An entry that parses as none of those
-    matches nothing — the list is an explicit operator decision, so it is read
-    exactly as written rather than guessed at.
+    matched against the URL's own host, with a v6 host written the way a URL writes
+    it (`[::1]`, `[::1]:1080`). An entry that parses as none of those matches
+    nothing — the list is an explicit operator decision, so it is read exactly as
+    written rather than guessed at.
 
     It lives here, beside the classification, because it is the same decision
     read from the other side: `_is_blocked_address` says an answer must not be
@@ -249,20 +289,15 @@ def _is_destination_allowlisted(
             if resolved is not None and resolved in network:
                 return True
             continue
-        try:
-            literal = ipaddress.ip_address(entry)
-        except ValueError:
-            literal = None
+        entry_host, entry_port = _split_host_entry(entry)
+        if entry_port is not None and entry_port != port:
+            continue
+        literal = _as_address(entry_host)
         if literal is not None:
             if resolved is not None and literal == resolved:
                 return True
             continue
-        entry_host, _, entry_port = entry.rpartition(":")
-        if entry_host and entry_port.isdigit():
-            if entry_host.lower() == host.lower() and int(entry_port) == port:
-                return True
-            continue
-        if entry.lower() == host.lower():
+        if entry_host.lower() == host.lower():
             return True
     return False
 

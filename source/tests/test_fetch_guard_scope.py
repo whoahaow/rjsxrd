@@ -22,6 +22,7 @@ Every check here is offline. The resolver and both HTTP clients are stubbed or a
 nothing in this module opens a socket.
 """
 
+import re
 from collections.abc import Iterator
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -290,3 +291,112 @@ class TestThePortAnEntryPins:
         assert result.text == ""
         assert LOOPBACK_ADDRESS in result.error
         assert session.get.call_count == 0
+
+
+BACKTICKED = re.compile(r"`([^`]+)`")
+
+# The entries the setting's own comment holds out to an operator, each with the
+# destination it is supposed to name: the URL's host, the port the request will use, and
+# the address the name resolved to. And the entries the same comment names as refused.
+DOCUMENTED_ENTRIES: dict[str, tuple[str, int | None, str]] = {
+    "127.0.0.1": ("mirror.example", 443, "127.0.0.1"),
+    "192.168.1.5/32": ("mirror.example", 443, "192.168.1.5"),
+    "[::1]": ("::1", 443, "::1"),
+    "[::1]:1080": ("::1", 1080, "::1"),
+}
+DOCUMENTED_REFUSALS: frozenset[str] = frozenset({"0.0.0.0/0", "::/0"})
+
+
+def documented_examples() -> set[str]:
+    """The entry-shaped examples in the comment above `FETCH_PRIVATE_ALLOWLIST`.
+
+    Read out of the module's own source instead of being restated here: the forms the
+    comment promises are the forms the code has to accept, so the promise is the thing
+    to read. "Entry-shaped" is a backticked token carrying a `.`, a `/` or a `[` — the
+    characters an address, a CIDR or a bracketed v6 host cannot be written without. The
+    placeholder forms (`host`, `host:port`) name a shape rather than a destination and
+    are covered by the cases below instead; a token with none of the three is prose.
+    """
+    lines = Path(settings_module.__file__).read_text(encoding="utf-8").splitlines()
+    start = next(index for index, line in enumerate(lines) if line.startswith("FETCH_PRIVATE"))
+    comment: list[str] = []
+    for line in reversed(lines[:start]):
+        if not line.startswith("#"):
+            break
+        comment.append(line)
+
+    return {
+        token
+        for token in BACKTICKED.findall("\n".join(reversed(comment)))
+        if set(token) & set("./[")
+    }
+
+
+class TestTheFormAnEntryIsWrittenIn:
+    """F6: the setting's comment and the matcher must name the same destinations.
+
+    The comment documented `host` / `host:port`, and an operator who wrote a v6 address
+    that way (`[::1]:8080`) got an entry that silently never matched: `rpartition(":")`
+    left the host as `"[::1]"`, while `urlparse` hands the URL's host back unwrapped as
+    `"::1"`. Nothing warned — the entry failed closed, which is why this is a
+    correctness-of-documentation bug rather than a hole, and why an entry that silently
+    does nothing is worse than one that errors.
+
+    The brackets now come off, so the documented form is the form that works. The cases
+    below are read out of that comment and matched against the implementation, the same
+    two-artefacts-one-contract shape `test_fetch_posture.py` uses for the token hosts: a
+    form promised in the comment with no case here fails the suite, rather than an
+    operator discovering it.
+    """
+
+    def test_every_documented_example_is_answered_for(self) -> None:
+        """A promised form the tests do not answer is a promise nobody checks."""
+        assert documented_examples() == set(DOCUMENTED_ENTRIES) | DOCUMENTED_REFUSALS
+
+    @pytest.mark.parametrize(
+        ("entry", "host", "port", "address"),
+        [(entry, *case) for entry, case in DOCUMENTED_ENTRIES.items()],
+    )
+    def test_a_documented_entry_covers_the_destination_it_names(
+        self, entry: str, host: str, port: int | None, address: str
+    ) -> None:
+        """`[::1]:1080` was the dead one: the documented form now matches."""
+        assert _is_destination_allowlisted(host, port, address, [entry]) is True
+
+    @pytest.mark.parametrize("entry", sorted(DOCUMENTED_REFUSALS))
+    def test_a_documented_refusal_is_refused(self, entry: str) -> None:
+        """The comment names these as refused, and the load refuses them."""
+        with pytest.raises(ValueError):
+            _refuse_guard_disabling_allowlist([entry])
+
+    def test_a_bracketed_address_without_a_port_covers_that_address(self) -> None:
+        """`[::1]` and `::1` name the same destination, under either spelling."""
+        assert _is_destination_allowlisted("mirror.example", 443, "::1", ["[::1]"]) is True
+        assert _is_destination_allowlisted("mirror.example", 443, "::1", ["::1"]) is True
+
+    @pytest.mark.parametrize("port", [443, 80, None])
+    def test_a_bracketed_entry_with_a_port_covers_only_that_port(self, port: int | None) -> None:
+        """The bracket changes how the host is written, not how the port is read."""
+        assert _is_destination_allowlisted("mirror.example", port, "::1", ["[::1]:1080"]) is False
+
+    def test_a_bare_v6_address_is_still_read_as_an_address(self) -> None:
+        """`::1` is an address, not a host with port `1`."""
+        assert _is_destination_allowlisted("mirror.example", 1, "::1", ["::1"]) is True
+        assert _is_destination_allowlisted("mirror.example", 1, "2001:db8::1", ["::1"]) is False
+
+    def test_a_bare_v6_address_with_a_port_is_not_expressible(self) -> None:
+        """What the bracket is for, stated as a test: `::1:1080` is an address.
+
+        Read as `0:0:0:0:0:0:1:1080`, so it covers a URL that resolves to that address
+        and no URL with host `::1`, whatever its port. The bracketed form is the only way
+        to write a qualified v6 entry, and the comment says so.
+        """
+        assert _is_destination_allowlisted("mirror.example", 1080, "::1:1080", ["::1:1080"]) is True
+        assert _is_destination_allowlisted("::1", 1080, "::1", ["::1:1080"]) is False
+
+    def test_a_bracketed_host_name_is_read_as_the_name_it_wraps(self) -> None:
+        """The brackets are URL syntax for a host, not part of the host."""
+        assert (
+            _is_destination_allowlisted("mirror.example", 443, "127.0.0.1", ["[mirror.example]"])
+            is True
+        )

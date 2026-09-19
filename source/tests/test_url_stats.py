@@ -349,6 +349,56 @@ class TestAStoreWrittenBeforeTheDerivedFlagWasDropped:
         )
         return str(path)
 
+    DISAGREEING_REFUSAL = (
+        f"{DESTINATION_REFUSAL_PREFIX}disagreeing.example: it resolves to the "
+        "non-public address 127.0.0.1"
+    )
+
+    def _store_where_the_key_disagrees(self, path: Path) -> str:
+        """A stats file whose stale `refused` keys contradict the texts beside them.
+
+        The two directions the agreeing file cannot show: `refused` set to True beside a
+        transport error, and to False beside a refusal. A writer that persisted the key
+        could set it from anything; what the class of an entry is has to come from the one
+        channel that is still written, and these entries are where the two disagree.
+        """
+        path.write_text(
+            json.dumps(
+                {
+                    "https://key-says-refused.example/list.txt": {
+                        "fetch": {
+                            "consecutive_failures": 3,
+                            "history": [
+                                {
+                                    "success": False,
+                                    "refused": True,
+                                    "status": 0,
+                                    "error": "connection reset",
+                                    "time": "2026-01-01T00:00:00",
+                                }
+                            ],
+                        }
+                    },
+                    "https://key-says-failed.example/list.txt": {
+                        "fetch": {
+                            "consecutive_failures": 0,
+                            "history": [
+                                {
+                                    "success": False,
+                                    "refused": False,
+                                    "status": 0,
+                                    "error": self.DISAGREEING_REFUSAL,
+                                    "time": "2026-01-01T00:00:00",
+                                }
+                            ],
+                        }
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        return str(path)
+
     def test_the_old_key_is_ignored_and_the_text_still_decides(self, tmp_path: Path) -> None:
         """The file loads, the counts stand, and the class comes from the recorded text."""
         stats = URLStats(path=self._store_in_the_old_shape(tmp_path / "url_stats.json"))
@@ -368,3 +418,38 @@ class TestAStoreWrittenBeforeTheDerivedFlagWasDropped:
         assert recorded["error"] == self.REFUSAL
         assert "refused" not in recorded
         assert is_destination_refusal(recorded["error"]) is True
+
+    def test_a_stale_key_cannot_shelter_a_failed_fetch(self, tmp_path: Path) -> None:
+        """refused=True beside a transport error: the text decides, so the URL still ages.
+
+        The direction that costs a source its line in `URLS.txt` if a reader believes the
+        key: three real failures are three real failures however the dropped flag was set.
+        """
+        stats = URLStats(path=self._store_where_the_key_disagrees(tmp_path / "url_stats.json"))
+        url = "https://key-says-refused.example/list.txt"
+        item = stats.data[url]["fetch"]["history"][0]
+
+        assert item["refused"] is True
+        assert is_destination_refusal(item["error"]) is False
+        assert is_source_evidence(item["error"]) is True
+        assert (url, 3) in stats.get_dead_urls(3)
+
+    def test_a_stale_key_cannot_hide_a_refusal(self, tmp_path: Path) -> None:
+        """refused=False beside a refusal text: the text decides, so the URL does not age.
+
+        The other direction, and the one the class exists for: a refusal was never a failure,
+        and a reader that asks the text sees that even where the dropped key says otherwise.
+        """
+        stats = URLStats(path=self._store_where_the_key_disagrees(tmp_path / "url_stats.json"))
+        url = "https://key-says-failed.example/list.txt"
+        item = stats.data[url]["fetch"]["history"][0]
+
+        assert item["refused"] is False
+        assert is_destination_refusal(item["error"]) is True
+        assert is_source_evidence(item["error"]) is False
+        assert url not in [dead_url for dead_url, _ in stats.get_dead_urls(3)]
+
+        stats.record_fetch(url, False, 0, item["error"])
+
+        assert stats.data[url]["fetch"]["consecutive_failures"] == 0
+        assert url not in [dead_url for dead_url, _ in stats.get_dead_urls(3)]

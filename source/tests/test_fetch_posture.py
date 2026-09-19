@@ -8,8 +8,11 @@ mock, so nothing here reaches the network.
 What this file pins is the difference between three outcomes a run's output has to keep
 apart: a source that is dead (a fetch that failed), a source whose name resolved somewhere
 this pipeline must not connect to (a refusal), and a source that was fetched without TLS
-verification (a downgrade). A refusal is the second kind, and it must not be aged toward
-removal from `URLS.txt` as if it were the first.
+verification (a downgrade). A refusal is the second kind: it must not be aged toward removal
+from `URLS.txt` as if it were the first, and it is named in the run's own report. The third
+outcome of that family — a fetch this run's own rules were not allowed to make — is pinned in
+`test_fetch_run_conditions.py`: this file reached the 800-line ceiling
+(`tests/test_module_size.py`) with it, and moving that class out is the split the gate asks for.
 
 The other half of the posture has its own class here: which hosts may carry the GitHub
 token, which is a set of hostnames rather than a test on the URL text, and the API fallback
@@ -614,11 +617,12 @@ class TestTheRefusalReport:
             0
         ]
 
-    def test_the_runs_security_report_prints_both_of_its_figures(self) -> None:
-        """One call at the end of a run, two sections: refusals, then TLS downgrades.
+    def test_the_runs_security_report_prints_all_three_of_its_figures(self) -> None:
+        """One call at the end of a run, three sections: refusals, run conditions, downgrades.
 
-        They answer different questions and call for different responses, so they stay
-        separate paragraphs rather than being folded into one number.
+        They answer different questions and call for different responses — a network
+        condition, the operator's own policy, and a reachability trade — so they stay separate
+        paragraphs rather than being folded into one number.
         """
         LOGS_BY_FILE.clear()
 
@@ -626,6 +630,7 @@ class TestTheRefusalReport:
 
         report = "\n".join(LOGS_BY_FILE[0])
         assert "no destination was refused" in report
+        assert "no fetch was curtailed by this run's own rules" in report
         assert "no fetch skipped TLS verification" in report
 
 

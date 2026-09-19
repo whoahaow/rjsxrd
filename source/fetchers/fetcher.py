@@ -27,6 +27,7 @@ from fetchers.destination_guard import (
     refusal_reason,
     report_destination_refusals,
 )
+from utils.fetch_outcomes import report_run_conditions, run_condition
 from utils.logger import log, warning
 
 # The retry ladder in fetch_data() trades TLS verification for reachability:
@@ -158,16 +159,19 @@ def report_insecure_fetches() -> InsecureFetchStats:
 
 
 def report_fetch_security() -> None:
-    """Print this run's fetch-security figures: what it refused, and what it downgraded.
+    """Print this run's fetch-security figures: refusals, curtailed fetches, downgrades.
 
-    One call site, two reports, kept as separate sections on purpose: a refused
+    One call site, three reports, kept as separate sections on purpose: a refused
     destination is a network condition (the name resolved to an address this pipeline must
-    not connect to), and a downgraded fetch is a reachability trade (the request went out
-    without certificate verification, or in the clear). Neither is evidence that a source
-    is dead — the URL health report is where that is said, and keeping the three apart is
-    what lets an operator reading one run tell which one they are looking at.
+    not connect to), a curtailed fetch is the operator's own policy at work (the attempts
+    that could have reached the source were skipped), and a downgraded fetch is a
+    reachability trade (the request went out without certificate verification, or in the
+    clear). None of the three is evidence that a source is dead — the URL health report is
+    where that is said, and keeping the four apart is what lets an operator reading one run
+    tell which one they are looking at.
     """
     report_destination_refusals()
+    report_run_conditions()
     report_insecure_fetches()
 
 
@@ -649,7 +653,11 @@ def fetch_data(
     Every attempt that skips certificate verification, and every one that goes
     out in the clear, is logged with its host and counted; the run's total is
     printed by report_insecure_fetches(). With `REFUSE_INSECURE_FETCH` set,
-    attempts 2 and 3 are skipped rather than performed.
+    attempts 2 and 3 are skipped rather than performed — and a fetch whose insecure
+    attempts were all skipped is then reported as a condition of the run rather
+    than as a failure of its source: it is counted with its host, named in the
+    end-of-run report, and it does not age the URL toward removal from `URLS.txt`.
+    A safety setting the operator turned on must not delete a curated source.
 
     A destination that resolves into a private, loopback, link-local or
     metadata range is refused before any connection is made, and a response
@@ -751,21 +759,26 @@ def fetch_data(
 
     # The loop can end here only when the insecure attempts it would have made
     # were refused. Report that as the reason when it is the reason, and keep
-    # the transport's own error when there was one — the refusal explains why
-    # nothing further was tried, not why the first attempt failed.
+    # the transport's own error when there was one — the skip explains why
+    # nothing further was tried, not why the first attempt failed. The skip note
+    # comes first because it is the marker: what this outcome means for the URL
+    # is decided from the beginning of the text (`utils/fetch_outcomes`), so a
+    # message that led with the transport error would age the source on the
+    # strength of the operator's own setting.
     if refused_attempts:
-        refused_note = f"{refused_attempts} insecure attempt(s) skipped by REFUSE_INSECURE_FETCH"
-        return FetchResult(
-            text="",
-            status_code=0,
-            error=f"{last_error}; {refused_note}" if last_error else refused_note,
-            success=False,
-        )
+        skipped = f"{refused_attempts} insecure attempt(s) skipped by REFUSE_INSECURE_FETCH"
+        reason = f"{skipped}; the verified attempt failed: {last_error}" if last_error else skipped
+        return FetchResult(text="", status_code=0, error=run_condition(host, reason), success=False)
 
     # max_attempts <= 0 never enters the loop. Report a failure rather than
     # returning None: the declared contract is a FetchResult that callers
     # inspect through `.success`, so None turns a bad argument into an
-    # AttributeError at the call site.
+    # AttributeError at the call site. It carries the run-condition marker too —
+    # nothing was attempted, so this is a fact about the call rather than about
+    # the source, and a URL must not be aged for a caller's mistake either.
     return FetchResult(
-        text="", status_code=0, error="max_attempts must be at least 1", success=False
+        text="",
+        status_code=0,
+        error=run_condition(host, "the fetch was called with max_attempts below 1"),
+        success=False,
     )

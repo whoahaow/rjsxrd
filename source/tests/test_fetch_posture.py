@@ -165,6 +165,32 @@ class TestARefusalIsAnOutcomeOfItsOwn:
         assert result.error.startswith(DESTINATION_REFUSAL_PREFIX)
         assert is_destination_refusal(result.error) is True
 
+    def test_the_marker_is_only_a_refusal_where_the_marker_starts(self) -> None:
+        """A refusal is the prefix at position 0, not the phrase somewhere in the text.
+
+        The predicate decides whether a curated URL may be deleted from `URLS.txt`, so its
+        strictness is a contract rather than an implementation accident: a transport error
+        that happens to quote a refusal must not buy its source a reprieve, and a reason that
+        merely mentions one must not read as one. Loosening the check to a substring test
+        (`PREFIX in error`) is the mutation this catches — the whole suite stayed green under
+        it, which is what made the strictness unpinned rather than load-bearing.
+        """
+        assert is_destination_refusal(f"boom: {DESTINATION_REFUSAL_PREFIX}example") is False
+        assert is_destination_refusal(f" {DESTINATION_REFUSAL_PREFIX}example") is False
+
+    def test_the_marker_alone_is_a_refusal(self) -> None:
+        """The other end of the same pin: the bare prefix is still the guard's own text."""
+        assert is_destination_refusal(DESTINATION_REFUSAL_PREFIX) is True
+
+    def test_an_absent_reason_is_not_a_refusal(self) -> None:
+        """An empty error is the absence of a reason, which is what the docstring claims.
+
+        `record_fetch` is called with an empty error for a bare failure, and a bare failure
+        ages the URL: reading the empty string as a refusal would turn every error-less
+        failure into a source the purge could never remove.
+        """
+        assert is_destination_refusal("") is False
+
     def test_a_transport_failure_is_not_a_refusal(self) -> None:
         """The other direction of the same pin: a failed fetch is not a refusal."""
         result = fetch_data(SOURCE_URL, session=_failing_session())

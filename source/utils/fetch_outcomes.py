@@ -11,6 +11,14 @@ Both sides import the marker from here rather than agreeing on a string, so what
 recognize cannot drift from what the guard produces: the guard builds its message from
 `DESTINATION_REFUSAL_PREFIX` and nothing else produces that prefix. It lives in `utils/`
 because both modules need it and neither imports the other.
+
+Why a marker rather than a field on the fetch result. The text is what the history persists
+and what a run's report prints, so a `FetchResult.refused` flag would be a second channel for
+a fact the guard's own message already carries — and two channels can disagree. What holds
+the two ends together is a test that pins the prefix at position 0
+(`source/tests/test_fetch_posture.py::TestARefusalIsAnOutcomeOfItsOwn`): a substring test
+over the same text is the defect the guard exists for, and a flag would have left that
+looseness reachable through the history path anyway.
 """
 
 from __future__ import annotations

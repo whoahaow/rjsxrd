@@ -50,7 +50,7 @@ main.py                          # Точка входа, CLI, оркестра�
   │   ├── proxy_monitor.py       #   Мониторинг цепочек
   │   ├── resource_monitor.py    #   Мониторинг CPU/RAM/сети
   │   ├── download_xray.py       #   Установщик Xray-core
-  │   ├── url_stats.py           #   Статистика URL (typed dataclass)
+  │   ├── url_stats.py           #   Статистика URL (JSON-хранилище)
   │   ├── health_check.py        #   Health check перед запуском
   │   ├── _sni_worker.py         # SNI/CIDR worker (внутренний)
   │   ├── system_specs.py        # SystemSpecs — автодетект ресурсов

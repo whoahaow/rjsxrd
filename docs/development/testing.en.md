@@ -91,20 +91,20 @@ start; it has a denominator of its own.
 
 | Command | Scope | Coverage |
 |---------|-------|----------|
-| `pytest --cov=fetchers --cov=utils` | two packages | **60.7 %** (5916 statements, 2136 missed, 1970 branches) |
-| `pytest --cov=.` — the full run, as in CI | the code under `source/` | **57.1 %** (7678 statements, 3073 missed, 2520 branches) |
-| `pytest -m "not integration" --cov=.` — the offline floor | the code under `source/` | **56.9 %** (7678 statements, 3089 missed, 2520 branches) |
+| `pytest --cov=fetchers --cov=utils` | two packages | **60.53 %** (5873 statements, 2129 missed, 1970 branches) |
+| `pytest --cov=.` — the full run, as in CI | the code under `source/` | **56.95 %** (7635 statements, 3066 missed, 2520 branches) |
+| `pytest -m "not integration" --cov=.` — the offline floor | the code under `source/` | **56.76 %** (7635 statements, 3082 missed, 2520 branches) |
 
 The figures above are a measurement on branch `main` at commit `46aa6544`, taken with
-the commands in the table's first column and `--cov-config=../pyproject.toml`. They are
-a historical fact rather than a claim about HEAD, and the commit names the revision of
-the code that was measured: it is the last one the measured tree changed at, because
-this commit itself moves only the configuration and this page. The test suite is out of
-the denominator, so a card that moves the suite no longer moves the figures — a card
-that moves the code still does. The figures guard (`source/tests/test_docs_figures.py`)
-holds the anchor, the arithmetic behind each row and the agreement between the two
-languages; it does not re-derive the numbers, which would take a second instrumented
-run inside the suite.
+the commands in the table's first column and `--cov-config=../pyproject.toml`, and a
+re-measurement after the dead typed layer was removed from `utils/url_stats.py` (the
+measured tree went from 7678 statements to 7635). They are a historical fact rather than
+a claim about HEAD, and the commit named above is the revision the first measurement was
+taken at. The test suite is out of the denominator, so a card that moves the suite no
+longer moves the figures — a card that moves the code still does. The figures guard
+(`source/tests/test_docs_figures.py`) holds the anchor, the arithmetic behind each row
+and the agreement between the two languages; it does not re-derive the numbers, which
+would take a second instrumented run inside the suite.
 
 `fail_under = 53` is stated for the CI scope — the code under `source/`, without the
 suite. It is not a per-scope number: the two-package row now sits above the floor, but
@@ -115,7 +115,7 @@ the gate.
 Below the floor, CI fails. The 53 is the offline floor — the last row of the table
 above, a run without the 15 network tests and without the coverage those tests alone
 provide — less the four points this floor has always been set under that measurement;
-rounding to a whole number leaves 3.9 points of headroom. It is not comparable with the
+rounding to a whole number leaves 3.76 points of headroom. It is not comparable with the
 65 it replaces, and the difference is the point: that floor stood over a tree in which
 the tests were measured as code and covered themselves at 98 %, so the same run read
 73.58 % for the tree while the code the tests exist for read 57 %. The offline floor is

@@ -1,7 +1,9 @@
 """Unit tests for URL statistics tracking."""
 
+import json
 import os
 import tempfile
+from pathlib import Path
 
 import pytest
 
@@ -178,6 +180,8 @@ class TestURLStats:
         The marker is the one the guard builds its own message from
         (`utils/fetch_outcomes.py`), so this also holds the two ends of that contract
         together — a refusal recorded here is what keeps a curated source in `URLS.txt`.
+        The class is read back out of the recorded text, which is the only copy of it: the
+        store keeps no derived flag to disagree with.
         """
         stats = URLStats(path=tempfile.mktemp(suffix=".json"))
         refusal = (
@@ -190,7 +194,7 @@ class TestURLStats:
 
         assert stats.get_dead_urls(3) == []
         history = stats.data["https://example.com"]["fetch"]["history"]
-        assert [item["refused"] for item in history] == [True, True, True]
+        assert [is_destination_refusal(item["error"]) for item in history] == [True, True, True]
 
     def test_a_fetch_failure_that_is_not_a_refusal_still_ages_the_url(self):
         """The converse: an error that is not a refusal is a failure, and it counts."""
@@ -201,7 +205,7 @@ class TestURLStats:
 
         assert stats.get_dead_urls(3) == [("https://example.com", 3)]
         history = stats.data["https://example.com"]["fetch"]["history"]
-        assert [item["refused"] for item in history] == [False, False, False]
+        assert [is_destination_refusal(item["error"]) for item in history] == [False, False, False]
 
 
 class TestWhatCountsAsEvidenceAboutASource:
@@ -256,8 +260,8 @@ class TestARunConditionAndTheURL:
 
         `REFUSE_INSECURE_FETCH` skipping the ladder's downgrades is a fact about the run, and a
         source the operator's own setting left untested must not be deleted from `URLS.txt` for
-        it — the same reason a refusal is not allowed to. The history records it as not a
-        refusal, because it is not one; what it was is in the reason the fetch returned.
+        for it — the same reason a refusal is not allowed to. The history keeps the reason the
+        fetch returned and the class is read from it, so what it was is in one place.
         """
         stats = URLStats(path=str(tmp_path / "url_stats.json"))
         curtailed = f"{RUN_CONDITION_PREFIX}2 insecure attempt(s) skipped by REFUSE_INSECURE_FETCH"
@@ -267,7 +271,7 @@ class TestARunConditionAndTheURL:
 
         assert stats.get_dead_urls(3) == []
         history = stats.data["https://example.com"]["fetch"]["history"]
-        assert [item["refused"] for item in history] == [False, False, False]
+        assert [is_destination_refusal(item["error"]) for item in history] == [False, False, False]
 
     def test_a_run_condition_neither_ages_nor_clears_the_count(self, tmp_path) -> None:
         """Evidence neither way, like a refusal: two real failures stay two.
@@ -290,3 +294,77 @@ class TestARunConditionAndTheURL:
         stats.record_fetch("https://example.com", False, 0, "connection reset")
 
         assert stats.get_dead_urls(3) == [("https://example.com", 3)]
+
+
+class TestAStoreWrittenBeforeTheDerivedFlagWasDropped:
+    """What an entry written by an earlier version means to this one.
+
+    `record_fetch` used to persist `refused` — a second, derived copy of one fact, written
+    beside the error text it was derived from. It is gone: the text is the single source, and
+    a reader that wants the class asks the text (`utils.fetch_outcomes.is_destination_refusal`).
+    Entries written before that keep the key on disk, and a schema-less JSON store read as
+    plain dicts is exactly where an old key is silently ignored — or crashes a loader that
+    unpacks it into a dataclass. These walk the read paths over a file in the old shape rather
+    than assuming which happened.
+    """
+
+    REFUSAL = f"{DESTINATION_REFUSAL_PREFIX}example.com: it resolves to the non-public address"
+
+    def _store_in_the_old_shape(self, path: Path) -> str:
+        """A stats file holding two entries whose history items carry the dropped key."""
+        path.write_text(
+            json.dumps(
+                {
+                    "https://kept.example/list.txt": {
+                        "fetch": {
+                            "consecutive_failures": 0,
+                            "history": [
+                                {
+                                    "success": False,
+                                    "refused": True,
+                                    "status": 0,
+                                    "error": self.REFUSAL,
+                                    "time": "2026-01-01T00:00:00",
+                                }
+                            ],
+                        }
+                    },
+                    "https://dead.example/list.txt": {
+                        "fetch": {
+                            "consecutive_failures": 3,
+                            "history": [
+                                {
+                                    "success": False,
+                                    "refused": False,
+                                    "status": 0,
+                                    "error": "connection reset",
+                                    "time": "2026-01-01T00:00:00",
+                                }
+                            ],
+                        }
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        return str(path)
+
+    def test_the_old_key_is_ignored_and_the_text_still_decides(self, tmp_path: Path) -> None:
+        """The file loads, the counts stand, and the class comes from the recorded text."""
+        stats = URLStats(path=self._store_in_the_old_shape(tmp_path / "url_stats.json"))
+
+        assert stats.get_dead_urls(3) == [("https://dead.example/list.txt", 3)]
+        kept = stats.data["https://kept.example/list.txt"]["fetch"]["history"][0]
+        assert "refused" in kept
+        assert is_destination_refusal(kept["error"]) is True
+
+    def test_a_new_record_writes_the_text_and_nothing_derived(self, tmp_path: Path) -> None:
+        """The write side keeps one channel too: the reason, and no copy of its class."""
+        stats = URLStats(path=str(tmp_path / "url_stats.json"))
+
+        stats.record_fetch("https://example.com", False, 0, self.REFUSAL)
+
+        recorded = stats.data["https://example.com"]["fetch"]["history"][0]
+        assert recorded["error"] == self.REFUSAL
+        assert "refused" not in recorded
+        assert is_destination_refusal(recorded["error"]) is True

@@ -107,7 +107,11 @@ private, link-local (including the cloud metadata endpoint `169.254.169.254`,
 which matters because this pipeline runs unattended on a VPS), carrier-grade NAT,
 reserved or unspecified space. An allowlist
 (`FETCH_PRIVATE_ALLOWLIST`, empty by default) is the only exception, and it is an
-operator decision, not a bypass.
+operator decision, not a bypass: an IP literal, a CIDR, or `host` / `host:port`, where
+a v6 host is written the way a URL writes it (`[::1]`, `[::1]:1080`) and a
+port-qualified entry covers the port the request will use and no other. An entry that
+covers a whole address family (`0.0.0.0/0`, `::/0`) is refused when the setting is read
+— it does not widen the guard, it switches it off.
 
 Two honest limits:
 
@@ -121,6 +125,45 @@ Two honest limits:
 
 Neither the guard nor anything else in this project validates the *content* of a
 fetched configuration beyond parsing it and checking its insecure settings.
+
+### What the guard covers, and what it does not
+
+The guard is on the fetch path: `fetchers/fetcher.py:fetch_data()`, which is where
+every URL this pipeline fetches from its own input goes — the `URLS.txt` sources, the
+daily-repo fetchers, and the aggregator's output.
+`_destination_refusal(url, FETCH_PRIVATE_ALLOWLIST)` is the decision; it is made before
+the session is built, and again for the address a redirect actually ended at.
+
+It is not on every HTTP call in the tree. The surfaces the audit measured, and why each
+is outside it:
+
+| Surface | What it fetches | Why the guard is not the control |
+|---|---|---|
+| `scripts/purge_stale_urls.py` — `build_github_session()`, `check_rate_limit()`, `get_last_commit_date()` | the GitHub API, for the last commit date of a file behind a `github.com` / `raw.githubusercontent.com` URL | the owner, repo and path come from `URLS.txt`, but the request goes to `api.github.com`, a literal in that module. The untrusted input chooses a path on a host this module fixes, not a destination |
+| `scripts/benchmark_configs.py` — `resolve_path()` | this project's own `githubmirror/bypass/bypass-all.txt` | the URL is a module-level literal on `raw.githubusercontent.com`, and the script takes no URL from its arguments or its environment. The audit recorded this one as an operator-supplied URL; the code has no such input. If that changes, the rule below applies to it |
+| `utils/ip_verifier.py` — `_make_request()` and its callers | the IP-echo providers in `IP_CHECK_URLS` | the destinations are that module's own constants. Its `proxies` argument does come from outside (the operator's `--proxy` / `--proxy-chain`), but the guard judges a *destination*, not a route: a private proxy address is not a URL this guard could refuse, and refusing one would not be the control that helps |
+| `utils/xray_tester.py` — `_get_session()`, called from `utils/xray_batch.py` | the ping URLs in `TEST_PING_URLS`, which are operator-supplied | the request is sent through a SOCKS listener on loopback (`socks5h://127.0.0.1:{port}`), so the URL's host is resolved by the proxy under test and not by this process. The guard's question — what does *this* process resolve the name to — does not arise, and refusing on a local answer would forbid a URL the proxy can reach |
+
+Three more clients in the tree request fixed hosts and are outside for the same reason:
+the Xray release download (`utils/download_xray.py`, `api.github.com` plus the
+`github.com/XTLS/Xray-core` release URLs), the Telegram notifier's POST
+(`utils/telegram_notifier.py`, `api.telegram.org`), and the proxy probe
+(`utils/telegram_proxy_verifier.py`, its own `TEST_URL` through the proxy it is
+checking).
+
+What none of those, and not this guard either, judges is a *route*: a proxy address, a
+SOCKS hop or a bind address that came from a fetched body is a different question from
+the destination a URL names, and this section answers the second.
+
+**The rule for a new fetch site.** If the URL it fetches can be influenced by something
+this project does not control — a fetched body, `URLS.txt`, the operator's arguments or
+environment — it goes through `_destination_refusal(url, FETCH_PRIVATE_ALLOWLIST)`
+before the request is made, and a response that arrived from a different host goes
+through it again. That function is the seam: it is importable, it needs no session and
+no configuration of its own, and for a handful of call sites a wrapper around it would
+be more to maintain than the call. A site that stays outside is added to the table
+above with its reason — which is what keeps this section a statement about this code
+rather than a claim about all of it.
 
 ## Supply chain
 

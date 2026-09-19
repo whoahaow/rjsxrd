@@ -50,7 +50,7 @@ main.py                          # Entry point, CLI, orchestration
   │   ├── proxy_monitor.py       #   Chain monitoring
   │   ├── resource_monitor.py    #   CPU/RAM/network monitoring
   │   ├── download_xray.py       #   Xray-core installer
-  │   ├── url_stats.py           #   URL statistics (typed dataclass)
+  │   ├── url_stats.py           #   URL statistics (JSON store)
   │   ├── health_check.py        #   Health check before running
   │   ├── _sni_worker.py         # SNI/CIDR worker (internal)
   │   ├── system_specs.py        # SystemSpecs — resource auto-detection

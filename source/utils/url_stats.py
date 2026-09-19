@@ -14,7 +14,6 @@ import os
 import shutil
 import tempfile
 import threading
-from dataclasses import dataclass, field
 from datetime import datetime
 
 from utils.fetch_outcomes import is_source_evidence
@@ -25,98 +24,6 @@ STATS_PATH = os.path.join(DATA_DIR, "url_stats.json")
 URLS_TXT_PATH = os.path.join(os.path.dirname(DATA_DIR), "config", "URLS.txt")
 SERVERS_TXT_PATH = os.path.join(os.path.dirname(DATA_DIR), "config", "servers.txt")
 MAX_HISTORY = 3
-
-
-@dataclass
-class FetchHistoryItem:
-    """A single fetch attempt result."""
-
-    success: bool
-    status: int = 0
-    error: str = ""
-    time: str = ""
-
-
-@dataclass
-class FetchStats:
-    """Fetch tracking for a single URL."""
-
-    consecutive_failures: int = 0
-    history: list[FetchHistoryItem] = field(default_factory=list)
-
-
-@dataclass
-class YieldStats:
-    """Config yield tracking for a single URL."""
-
-    raw: int = 0
-    secure: int = 0
-    total_raw: int = 0
-    total_secure: int = 0
-    verified: int = 0
-    verified_total: int = 0
-    last_updated: str = ""
-
-
-@dataclass
-class ConfigVerification:
-    """Per-config verification tracking (for servers.txt)."""
-
-    verifications: list[bool] = field(default_factory=list)
-    consecutive_failures: int = 0
-    preview: str = ""
-
-
-@dataclass
-class URLEntry:
-    """Top-level entry for one URL in the stats database."""
-
-    fetch: FetchStats | None = None
-    yield_: YieldStats | None = None
-    configs: dict[str, ConfigVerification] = field(default_factory=dict)
-
-
-# Dict-key helpers: mapping from dataclass field names to JSON dict keys
-_FETCH_KEY = "fetch"
-_YIELD_KEY = "yield"
-_CONFIGS_KEY = "configs"
-
-
-def _fetch_from_dict(data: dict) -> FetchStats:
-    """Convert a raw dict to a typed FetchStats."""
-    f = data.get(_FETCH_KEY, {}) or {}
-    history = [FetchHistoryItem(**h) for h in f.get("history", [])]
-    return FetchStats(
-        consecutive_failures=f.get("consecutive_failures", 0),
-        history=history,
-    )
-
-
-def _yield_from_dict(data: dict) -> YieldStats:
-    """Convert a raw dict to a typed YieldStats."""
-    y = data.get(_YIELD_KEY, {}) or {}
-    return YieldStats(
-        raw=y.get("raw", 0),
-        secure=y.get("secure", 0),
-        total_raw=y.get("total_raw", 0),
-        total_secure=y.get("total_secure", 0),
-        verified=y.get("verified", 0),
-        verified_total=y.get("verified_total", 0),
-        last_updated=y.get("last_updated", ""),
-    )
-
-
-def _configs_from_dict(data: dict) -> dict[str, ConfigVerification]:
-    """Convert raw config tracking dict to typed dict."""
-    cfgs = data.get(_CONFIGS_KEY, {}) or {}
-    return {
-        k: ConfigVerification(
-            verifications=v.get("verifications", []),
-            consecutive_failures=v.get("consecutive_failures", 0),
-            preview=v.get("preview", ""),
-        )
-        for k, v in cfgs.items()
-    }
 
 
 class URLStats:

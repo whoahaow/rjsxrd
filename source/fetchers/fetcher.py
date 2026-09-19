@@ -24,6 +24,7 @@ from config.settings import (
 )
 from fetchers.destination_guard import (
     _is_blocked_address,
+    _is_destination_allowlisted,
     refusal_reason,
     report_destination_refusals,
 )
@@ -273,52 +274,6 @@ def _resolved_addresses(host: str, port: int | None) -> list[str]:
     """
     infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
     return [str(info[4][0]) for info in infos]
-
-
-def _is_destination_allowlisted(
-    host: str, port: int | None, address: str, allowlist: Sequence[str]
-) -> bool:
-    """Whether an operator entry covers an otherwise-blocked destination.
-
-    Entries are as documented in `config/settings.py`: a CIDR or an IP literal,
-    matched against the address the name resolved to; or `host` / `host:port`,
-    matched against the URL's own host name. An entry that parses as none of
-    those matches nothing — the list is an explicit operator decision, so it is
-    read exactly as written rather than guessed at.
-    """
-    try:
-        resolved = ipaddress.ip_address(address)
-    except ValueError:
-        resolved = None
-
-    for entry in allowlist:
-        entry = entry.strip()
-        if not entry:
-            continue
-        if "/" in entry:
-            try:
-                network = ipaddress.ip_network(entry, strict=False)
-            except ValueError:
-                continue
-            if resolved is not None and resolved in network:
-                return True
-            continue
-        try:
-            literal = ipaddress.ip_address(entry)
-        except ValueError:
-            literal = None
-        if literal is not None:
-            if resolved is not None and literal == resolved:
-                return True
-            continue
-        entry_host, _, entry_port = entry.rpartition(":")
-        if entry_host and entry_port.isdigit():
-            if entry_host.lower() == host.lower() and (port is None or int(entry_port) == port):
-                return True
-            continue
-        if entry.lower() == host.lower():
-            return True
-    return False
 
 
 def _destination_refusal(url: str, allowlist: Sequence[str]) -> str | None:

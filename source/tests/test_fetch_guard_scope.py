@@ -22,15 +22,24 @@ Every check here is offline. The resolver and both HTTP clients are stubbed or a
 nothing in this module opens a socket.
 """
 
+from collections.abc import Iterator
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 
 import config.settings as settings_module
+import fetchers.fetcher as fetcher_module
 from config.settings import _refuse_guard_disabling_allowlist
-from fetchers.fetcher import _is_destination_allowlisted
+from fetchers.destination_guard import DESTINATION_REFUSALS, _is_destination_allowlisted
+from fetchers.fetcher import INSECURE_FETCHES, _port_of, fetch_data
+from utils.fetch_outcomes import RUN_CONDITIONS
 
 pytestmark = pytest.mark.unit
+
+# The answer the suite's stubbed resolver gives. Never dialled: what is under test is
+# what the guard does with an answer, not the answer.
+LOOPBACK_ADDRESS = "127.0.0.1"
 
 
 def load_settings(monkeypatch: pytest.MonkeyPatch, entries: str) -> dict[str, object]:
@@ -54,6 +63,31 @@ def load_settings(monkeypatch: pytest.MonkeyPatch, entries: str) -> dict[str, ob
     }
     exec(compile(path.read_text(encoding="utf-8"), str(path), "exec"), namespace)
     return namespace
+
+
+@pytest.fixture(autouse=True)
+def offline_fetch(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Keep this module off the network, and the run's counters clean.
+
+    The same fixture the two sibling modules carry, for the same reasons: the guard
+    resolves a name before it connects, so without the stub a fetch here would reach a
+    real resolver; and the counters are one object per process, so a test's numbers
+    would otherwise be the next module's starting point — which is how a report test
+    elsewhere starts reading a run it did not make. Cleared on the way in and on the way
+    out: this module is not the only one that reads them. `time.sleep` goes with them,
+    because the retry ladder's one-second wait is not what any test here is about.
+    """
+    monkeypatch.setattr(
+        fetcher_module, "_resolved_addresses", lambda host, port: [LOOPBACK_ADDRESS]
+    )
+    monkeypatch.setattr(fetcher_module.time, "sleep", lambda _seconds: None)
+    DESTINATION_REFUSALS.reset()
+    INSECURE_FETCHES.reset()
+    RUN_CONDITIONS.reset()
+    yield
+    DESTINATION_REFUSALS.reset()
+    INSECURE_FETCHES.reset()
+    RUN_CONDITIONS.reset()
 
 
 class TestAnEntryThatSwitchesTheGuardOff:
@@ -156,3 +190,103 @@ class TestAnEntryThatSwitchesTheGuardOff:
         namespace = load_settings(monkeypatch, "")
 
         assert namespace["FETCH_PRIVATE_ALLOWLIST"] == []
+
+
+class TestThePortAnEntryPins:
+    """F5: a port-qualified entry covers the port the request will use, and no other.
+
+    The condition was `port is None or int(entry_port) == port`, so a URL whose port
+    could not be determined matched a port-qualified entry anyway — a match granted by
+    the absence of the thing the entry exists to check. The open arm was reachable only
+    for a URL that is neither https nor http, or whose port is not a number (`_port_of`
+    defaults the two schemes a fetch uses), which makes it narrow rather than harmless:
+    the entry names a port so that the list cannot admit a destination the operator did
+    not write down, and "nothing to compare" was read as agreement.
+    """
+
+    def test_a_port_qualified_entry_does_not_cover_an_unknown_port(self) -> None:
+        """The fail-open: no port to compare is no match, not every match."""
+        assert (
+            _is_destination_allowlisted(
+                "mirror.example", None, LOOPBACK_ADDRESS, ["mirror.example:8443"]
+            )
+            is False
+        )
+
+    def test_an_entry_covers_the_port_it_names(self) -> None:
+        """The ordinary case the fix must not break: `host:8443` against `:8443`."""
+        assert (
+            _is_destination_allowlisted(
+                "mirror.example", 8443, LOOPBACK_ADDRESS, ["mirror.example:8443"]
+            )
+            is True
+        )
+
+    @pytest.mark.parametrize("port", [443, 80, 1080])
+    def test_an_entry_does_not_cover_another_port(self, port: int) -> None:
+        """A pinned port is one port; the rest of them are not covered by it."""
+        assert (
+            _is_destination_allowlisted(
+                "mirror.example", port, LOOPBACK_ADDRESS, ["mirror.example:8443"]
+            )
+            is False
+        )
+
+    @pytest.mark.parametrize(
+        ("url", "port"),
+        [
+            ("https://mirror.example/list.txt", 443),
+            ("http://mirror.example/list.txt", 80),
+            ("ftp://mirror.example/list.txt", None),
+        ],
+    )
+    def test_the_port_is_the_one_the_request_will_use(self, url: str, port: int | None) -> None:
+        """What "known" means, and where "unknown" comes from.
+
+        The scheme's default rather than "absent from the URL text": a URL that writes no
+        port still goes somewhere, and the entry is compared against where that is. A
+        scheme this module cannot default leaves the port unknown, and that is the only
+        state in which the fix changes the answer.
+        """
+        assert _port_of(url) == port
+
+    def test_a_default_port_entry_covers_a_url_that_leaves_the_port_out(self) -> None:
+        """`https://host/` is 443, so an entry `host:443` covers it — and says so."""
+        assert (
+            _is_destination_allowlisted(
+                "mirror.example", 443, LOOPBACK_ADDRESS, ["mirror.example:443"]
+            )
+            is True
+        )
+
+    @pytest.mark.parametrize("port", [None, 80, 8443])
+    def test_an_entry_that_names_no_port_covers_every_port(self, port: int | None) -> None:
+        """The two halves of the rule: a pinned port is one, an absent port is all."""
+        assert (
+            _is_destination_allowlisted(
+                "mirror.example", port, LOOPBACK_ADDRESS, ["mirror.example"]
+            )
+            is True
+        )
+
+    def test_the_fetch_path_refuses_the_unknown_port_case(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """End to end: the fail-open reached the fetch path, not just the matcher.
+
+        The URL is made up of the two things the exit needs — a scheme `_port_of` cannot
+        default, and a name the stubbed resolver answers with loopback — so nothing is
+        dialled and the refusal is the guard's own.
+        """
+        monkeypatch.setattr(fetcher_module, "FETCH_PRIVATE_ALLOWLIST", ["mirror.example:8443"])
+        monkeypatch.setattr(
+            fetcher_module, "_resolved_addresses", lambda host, port: [LOOPBACK_ADDRESS]
+        )
+        session = MagicMock()
+
+        result = fetch_data("ftp://mirror.example/list.txt", session=session)
+
+        assert result.success is False
+        assert result.text == ""
+        assert LOOPBACK_ADDRESS in result.error
+        assert session.get.call_count == 0

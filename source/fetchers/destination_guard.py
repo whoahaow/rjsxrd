@@ -3,7 +3,8 @@
 `fetchers/fetcher.py` owns the seam this decision reads through — `_resolved_addresses`,
 which the suite replaces with a stub — and the order in which the answers are judged. This
 module owns everything that needs no I/O: the classification of a resolved address, the
-message a refusal is reported with, and the run's refusal figure.
+operator's allowlist against it, the message a refusal is reported with, and the run's
+refusal figure.
 
 The split is where the mode is: the classification is pure and holds no state, and the
 module that spawns requests is the one place in the package where a page of decision logic
@@ -24,6 +25,7 @@ from __future__ import annotations
 
 import ipaddress
 import threading
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from utils.fetch_outcomes import DESTINATION_REFUSAL_PREFIX
@@ -204,6 +206,65 @@ def _embedded_note(address: str) -> str:
     if embedded is None or (embedded.address.is_global and not embedded.address.is_multicast):
         return ""
     return f" (the {embedded.prefix} prefix carries {embedded.address})"
+
+
+def _is_destination_allowlisted(
+    host: str, port: int | None, address: str, allowlist: Sequence[str]
+) -> bool:
+    """Whether an operator entry covers an otherwise-blocked destination.
+
+    Entries are as documented in `config/settings.py`: an IP literal or a CIDR,
+    matched against the address the name resolved to; or `host` / `host:port`,
+    matched against the URL's own host. An entry that parses as none of those
+    matches nothing — the list is an explicit operator decision, so it is read
+    exactly as written rather than guessed at.
+
+    It lives here, beside the classification, because it is the same decision
+    read from the other side: `_is_blocked_address` says an answer must not be
+    reached, and this says the operator has already decided about this one. The
+    fetch module owns the resolver seam this reads through, not the rule.
+
+    A port-qualified entry pins a destination to that port, so it covers the URL
+    only when the URL's port is known and equal — the port the request will use,
+    which `_port_of` defaults to the scheme's. An entry that names no port covers
+    every port. A URL whose port cannot be determined at all (a scheme with no
+    default, a port that is not a number) is covered by no port-qualified entry:
+    the entry exists to make the destination explicit, and "nothing to compare"
+    is not a match.
+    """
+    try:
+        resolved = ipaddress.ip_address(address)
+    except ValueError:
+        resolved = None
+
+    for entry in allowlist:
+        entry = entry.strip()
+        if not entry:
+            continue
+        if "/" in entry:
+            try:
+                network = ipaddress.ip_network(entry, strict=False)
+            except ValueError:
+                continue
+            if resolved is not None and resolved in network:
+                return True
+            continue
+        try:
+            literal = ipaddress.ip_address(entry)
+        except ValueError:
+            literal = None
+        if literal is not None:
+            if resolved is not None and literal == resolved:
+                return True
+            continue
+        entry_host, _, entry_port = entry.rpartition(":")
+        if entry_host and entry_port.isdigit():
+            if entry_host.lower() == host.lower() and int(entry_port) == port:
+                return True
+            continue
+        if entry.lower() == host.lower():
+            return True
+    return False
 
 
 def refusal_reason(host: str, address: str) -> str:

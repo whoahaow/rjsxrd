@@ -72,6 +72,17 @@ def is_source_evidence(error: str) -> bool:
 
     The comparison is on position 0, like the refusal's, and for the same reason: a transport
     error that merely quotes one of these markers is a failure of the fetch.
+
+    The limit this accepts, stated rather than left as an argument: a text that *begins* with
+    a marker is that class whoever wrote it. The fetch stage quotes what a failed attempt
+    raised rather than authoring the text itself, so a quoted message that led with a marker
+    would spare the source it came from. No raiser in this tree composes one — the client and
+    the OS write their own messages — and that is the reason this is accepted rather than
+    closed: closing it means marking every failure the fetch stage reports, which changes the
+    text the history persists and the rule the default path states (a failure the fetch made
+    carries no marker). What it can cost is bounded to the quiet direction: the URL is spared,
+    never wrongly deleted. `source/tests/test_fetch_posture.py` holds the behaviour as a test,
+    so a change to it has to move this record with it.
     """
     return not error.startswith(NOT_SOURCE_EVIDENCE_PREFIXES)
 

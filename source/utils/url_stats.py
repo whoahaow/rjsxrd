@@ -17,7 +17,7 @@ import threading
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from utils.fetch_outcomes import is_destination_refusal, is_source_evidence
+from utils.fetch_outcomes import is_source_evidence
 from utils.logger import log
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
@@ -32,7 +32,6 @@ class FetchHistoryItem:
     """A single fetch attempt result."""
 
     success: bool
-    refused: bool = False
     status: int = 0
     error: str = ""
     time: str = ""
@@ -186,9 +185,13 @@ class URLStats:
         Which outcomes those are comes from the markers in `utils/fetch_outcomes`, which is where
         they are built, so what is recorded here cannot disagree with what the fetch stage
         produced. The reason text is kept in the history, so a reader of the stats file can tell
-        one kind of outcome from another without this module keeping its own copy of the kind.
+        one kind of outcome from another without this module keeping its own copy of the kind —
+        and the text is the only copy of it. A derived `refused` flag used to be persisted
+        beside the text, which is a second channel for one fact and can disagree with the text
+        it was derived from; `utils/fetch_outcomes` refuses that shape for the fetch result
+        itself, and this store keeps one channel for the same reason. A reader that wants the
+        class asks the text, which is what the history is for.
         """
-        refused = not success and is_destination_refusal(error)
         counted = not success and is_source_evidence(error)
         with self.lock:
             entry = self.data.setdefault(url, {})
@@ -200,7 +203,6 @@ class URLStats:
             f["history"].append(
                 {
                     "success": success,
-                    "refused": refused,
                     "status": status_code,
                     "error": error[:200],
                     "time": datetime.now().isoformat(),

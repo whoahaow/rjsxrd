@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 ```
 
 Every test module declares its marker (`pytestmark`), so `-m unit` and
-`-m integration` actually select something: 887 and 15 tests out of 902
+`-m integration` actually select something: 889 and 15 tests out of 904
 (measured with `pytest --collect-only -q` under each marker). Only the two
 modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) carry `integration`. Pure logic needs
@@ -32,7 +32,7 @@ which took the 15 pure-logic tests out of `test_fetcher.py`.
 
 ## Test structure
 
-**902 tests** in 36 files. A full run takes around 70–80 seconds on the
+**904 tests** in 36 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
@@ -66,7 +66,7 @@ load, so measure with `pytest -q` on your own machine.
 | `test_ip_verifier.py` | 35 | env vars, TCP port polling, response validators, chain reads |
 | `test_telegram_proxy_verifier.py` | 14 | MTProto/SOCKS5 proxy verification |
 | `test_ip_checker.py` | 14 | IP check, `_make_request` |
-| `test_url_stats.py` | 21 | `record_fetch`, `get_dead_urls`, persistence; neither a refusal nor a run condition ages a URL |
+| `test_url_stats.py` | 23 | `record_fetch`, `get_dead_urls`, persistence; neither a refusal nor a run condition ages a URL, and one channel per fact — the error text, not a derived flag |
 | `test_scripts_import.py` | 12 | Import smoke tests for the `scripts/` entry points, benchmark loader |
 | `test_progress.py` | 6 | tqdm consolidation |
 | `test_docs_figures.py` | 7 | Docs figures match the collected suite: its totals, the per-file table, the README trees, and the coverage rows with their anchor |

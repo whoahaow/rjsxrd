@@ -119,10 +119,13 @@ rounding to a whole number leaves 3.76 points of headroom. It is not comparable 
 65 it replaces, and the difference is the point: that floor stood over a tree in which
 the tests were measured as code and covered themselves at 98 %, so the same run read
 73.58 % for the tree while the code the tests exist for read 57 %. The offline floor is
-a measurement from the development machine (Windows), while the runner is Linux and
-executes the other side of the `sys.platform` branches in `utils/download_xray.py`,
-`utils/xray_batch.py` and `utils/xray_tester.py`, so the runner's own number has never
-been observed. It will be recorded here the first time CI runs green.
+a measurement from the development machine (Windows), while the runner is Linux, where
+that number has never been observed — the headroom is partly held for that unmeasured
+side. Not for the `sys.platform` branches: their sides swap one for one (what Linux
+would cover is what Windows covers instead), and the only block that exists on the
+non-Windows side alone (`utils/download_xray.py:334-338`, the `os.chmod`) is reached by
+the suite on neither platform — at most ~2 statements of the measured 7635, ~0.03 of a
+point. The runner's number will be recorded here the first time CI runs green.
 
 Every coverage command carries `--cov-config=../pyproject.toml`, the CI step
 included. pytest-cov looks for a `.coveragerc` in the invocation directory

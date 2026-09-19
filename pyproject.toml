@@ -70,16 +70,32 @@ omit = ["tests/*"]
 #
 # 53 is the offline floor — `-m "not integration"`, which deselects the 15 network tests
 # and the coverage those tests alone provide — less the four points this floor has
-# always been set under that measurement. The measurement behind it is 7678 statements,
-# 3089 missed and 2520 branches, 56.87 % printed by that run on the development machine
-# (Windows); the full run of the same scope prints 57.06 %. It is not comparable with the
-# 65 it replaces, and the two numbers differ for a reason worth keeping: that floor stood
-# over a tree in which the suite was measured covering itself at 98 %, so the same run
-# read 73.58 % for the tree while the code the tests exist for read 57 %. The headroom is
-# as deliberate as it was: the runner is Linux and
-# executes the other side of the `sys.platform` branches in utils/download_xray.py,
-# utils/xray_batch.py and utils/xray_tester.py, so the runner's own number has never
-# been observed.
+# always been set under that measurement. That run prints 56.76 % over 7635 statements,
+# 3082 missed and 2520 branches; the full run of the same scope prints 56.95 %. Rounding
+# the floor to a whole number leaves 3.76 points between it and the offline measurement.
+# The record states 56.87 % for the same quantity on the tree of that time, which held
+# 7678 statements: the difference is the dead typed layer removed from
+# utils/url_stats.py, not a re-derivation of the floor.
+#
+# What those 3.76 points are for. Run-to-run variance, first: the 15 network-marked
+# tests execute a different amount of code per invocation, so the full-run figure moves
+# by about a tenth of a point — testing.md states the spread, and the offline floor
+# deselects those tests and does not move with it. And the runner, second: CI is Linux,
+# where the number has never been observed, so the floor is held under a measurement
+# taken on Windows.
+#
+# It is not held for the `sys.platform` branches, and that was this comment's previous
+# error: the two sides of each branch swap one for one (what Linux would cover is what
+# Windows covers instead), and the only block that exists on the non-Windows side alone
+# — utils/download_xray.py:334-338, the `os.chmod` — is reached by the suite on neither
+# platform. At most ~2 statements of the measured 7635, ~0.03 of a point, which is what
+# the comment here used to offer as the reason for a 3.9-point gap.
+#
+# It is a tightening over the 65 it replaces, and the raw headroom understates by how
+# much. 65 stood over a tree in which the suite was measured covering itself at 98 %, so
+# the same run read 73.56 % for the tree while the code the tests exist for read
+# 56.94 %; one point of that tree is 14192/7636 of a point of code, so the 8.56 points
+# of apparent headroom were ~15.9 points of code coverage, against 3.76 now.
 fail_under = 53
 exclude_also = [
     # An abstract method body cannot be reached by construction; the subclass

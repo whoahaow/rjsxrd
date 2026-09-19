@@ -17,7 +17,7 @@ import threading
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from utils.fetch_outcomes import is_destination_refusal
+from utils.fetch_outcomes import is_destination_refusal, is_source_evidence
 from utils.logger import log
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
@@ -172,27 +172,30 @@ class URLStats:
     def record_fetch(self, url: str, success: bool, status_code: int = 0, error: str = "") -> None:
         """Thread-safe fetch result recording. Save happens on flush().
 
-        A destination refusal does not age the URL. Three consecutive refusals used to be
-        indistinguishable from three dead fetches, and `remove_dead_from_urls_txt()`
-        deleted a curated source from `URLS.txt` because a name resolved somewhere private
-        — a DNS blip, or an answer this pipeline must not connect to. A refusal is recorded
-        here (the history says which kind of outcome it was) and reported with its host and
-        address on every run (`fetchers/destination_guard.py`); dropping a line from
-        `URLS.txt` stays a decision for a human. A failure that is not a refusal raises the
-        count exactly as it did, and a success still clears it, so the purge keeps removing
-        the sources it exists for.
+        An outcome that says nothing about the source does not age the URL. Three of those used
+        to be indistinguishable from three dead fetches, and `remove_dead_from_urls_txt()`
+        deleted a curated source from `URLS.txt` twice over: once because a name resolved
+        somewhere private — a DNS blip, or an answer this pipeline must not connect to — and
+        once because the operator had turned `REFUSE_INSECURE_FETCH` on, so the fetch that
+        would have tested the source was never made. Both stay in the file and are named in
+        every run's report (`fetchers/destination_guard.py`, `utils/fetch_outcomes.py`);
+        dropping a line stays a decision for a human. A failure the fetch stage did reach — a
+        transport error, a status the server returned — raises the count exactly as it did, and
+        a success still clears it, so the purge keeps removing the sources it exists for.
 
-        Which kind of outcome this is comes from the marker the guard's own message is
-        built from (`utils/fetch_outcomes.py`), so what is recorded here cannot disagree
-        with what the guard produced.
+        Which outcomes those are comes from the markers in `utils/fetch_outcomes`, which is where
+        they are built, so what is recorded here cannot disagree with what the fetch stage
+        produced. The reason text is kept in the history, so a reader of the stats file can tell
+        one kind of outcome from another without this module keeping its own copy of the kind.
         """
         refused = not success and is_destination_refusal(error)
+        counted = not success and is_source_evidence(error)
         with self.lock:
             entry = self.data.setdefault(url, {})
             f = entry.setdefault("fetch", {"consecutive_failures": 0, "history": []})
             if success:
                 f["consecutive_failures"] = 0
-            elif not refused:
+            elif counted:
                 f["consecutive_failures"] = f.get("consecutive_failures", 0) + 1
             f["history"].append(
                 {
@@ -333,11 +336,12 @@ class URLStats:
     def remove_dead_from_urls_txt(self, path: str = URLS_TXT_PATH, threshold: int = 3) -> None:
         """Remove the URLs the fetch stage proved dead — and only those.
 
-        A destination refusal never reaches this method: `record_fetch` does not age a URL
-        for one, because a refusal is a statement about the network the run is on rather
-        than about the source. So a line can only be deleted here after a real fetch failed
-        to reach that source `threshold` times running; a refused source stays in the file
-        and is named in every run's report instead (`fetchers/destination_guard.py`).
+        A refusal never reaches this method, and neither does any other outcome that says
+        nothing about the source: `record_fetch` does not age a URL for either, because both
+        describe the run — the network it is on, the rules it was started with — rather than the
+        source. So a line can only be deleted here after a real fetch failed to reach that
+        source `threshold` times running; a refused or policy-curtailed source stays in the file
+        and is named in every run's report instead.
         """
         if not os.path.exists(path):
             return

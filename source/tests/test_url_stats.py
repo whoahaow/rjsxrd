@@ -5,7 +5,12 @@ import tempfile
 
 import pytest
 
-from utils.fetch_outcomes import DESTINATION_REFUSAL_PREFIX
+from utils.fetch_outcomes import (
+    DESTINATION_REFUSAL_PREFIX,
+    RUN_CONDITION_PREFIX,
+    is_destination_refusal,
+    is_source_evidence,
+)
 from utils.url_stats import URLStats
 
 pytestmark = pytest.mark.unit
@@ -197,3 +202,91 @@ class TestURLStats:
         assert stats.get_dead_urls(3) == [("https://example.com", 3)]
         history = stats.data["https://example.com"]["fetch"]["history"]
         assert [item["refused"] for item in history] == [False, False, False]
+
+
+class TestWhatCountsAsEvidenceAboutASource:
+    """The predicate a URL's lifetime hangs on, and the class it asks about.
+
+    `record_fetch` raises a URL's failure count from one question: does this outcome say
+    something about the source, or only about the run? A refusal answers no, and so does every
+    other outcome this run's own rules produced — a curtailed fetch, a call that asked for no
+    attempt at all — which is why the question is asked about the class
+    (`utils.fetch_outcomes.is_source_evidence`) rather than one marker at a time.
+    """
+
+    def test_a_refusal_is_not_evidence_about_the_source(self) -> None:
+        refusal = (
+            f"{DESTINATION_REFUSAL_PREFIX}example.com: it resolves to the "
+            "non-public address 127.0.0.1"
+        )
+
+        assert is_source_evidence(refusal) is False
+        assert is_destination_refusal(refusal) is True
+
+    def test_a_run_condition_is_not_evidence_about_the_source(self) -> None:
+        curtailed = f"{RUN_CONDITION_PREFIX}2 insecure attempt(s) skipped by REFUSE_INSECURE_FETCH"
+
+        assert is_source_evidence(curtailed) is False
+        assert is_destination_refusal(curtailed) is False
+
+    def test_a_marker_that_is_not_at_position_zero_is_evidence(self) -> None:
+        """The class predicate is as strict as the refusal's, and for the same reason.
+
+        A transport error that quotes one of these markers is a failure of the fetch: reading a
+        marker anywhere in the text would let a source be kept alive by an error that merely
+        mentions the policy, and it would do it for every member of the class at once.
+        """
+        assert is_source_evidence(f"boom: {DESTINATION_REFUSAL_PREFIX}x") is True
+        assert is_source_evidence(f"boom: {RUN_CONDITION_PREFIX}x") is True
+
+    def test_an_absent_reason_is_evidence(self) -> None:
+        """An empty error is a bare failure, and a bare failure ages the URL.
+
+        The other direction would make one permanent: `record_fetch` is called with an empty
+        error for a failure the transport reported without a message.
+        """
+        assert is_source_evidence("") is True
+
+
+class TestARunConditionAndTheURL:
+    """What a run condition means for a URL's life, at the seam the pipeline calls."""
+
+    def test_three_curtailed_fetches_leave_the_url_alone(self, tmp_path) -> None:
+        """A run condition ages nothing, which is the whole point of the class.
+
+        `REFUSE_INSECURE_FETCH` skipping the ladder's downgrades is a fact about the run, and a
+        source the operator's own setting left untested must not be deleted from `URLS.txt` for
+        it — the same reason a refusal is not allowed to. The history records it as not a
+        refusal, because it is not one; what it was is in the reason the fetch returned.
+        """
+        stats = URLStats(path=str(tmp_path / "url_stats.json"))
+        curtailed = f"{RUN_CONDITION_PREFIX}2 insecure attempt(s) skipped by REFUSE_INSECURE_FETCH"
+
+        for _ in range(3):
+            stats.record_fetch("https://example.com", False, 0, curtailed)
+
+        assert stats.get_dead_urls(3) == []
+        history = stats.data["https://example.com"]["fetch"]["history"]
+        assert [item["refused"] for item in history] == [False, False, False]
+
+    def test_a_run_condition_neither_ages_nor_clears_the_count(self, tmp_path) -> None:
+        """Evidence neither way, like a refusal: two real failures stay two.
+
+        Clearing the count would let a run in which the safety setting was engaged mask a
+        source that is genuinely dead; raising it is the defect this class fixes.
+        """
+        stats = URLStats(path=str(tmp_path / "url_stats.json"))
+        curtailed = f"{RUN_CONDITION_PREFIX}the fetch was called with max_attempts below 1"
+
+        stats.record_fetch("https://example.com", False, 0, "connection reset")
+        stats.record_fetch("https://example.com", False, 0, "connection reset")
+        assert stats.data["https://example.com"]["fetch"]["consecutive_failures"] == 2
+
+        stats.record_fetch("https://example.com", False, 0, curtailed)
+
+        assert stats.data["https://example.com"]["fetch"]["consecutive_failures"] == 2
+        assert stats.get_dead_urls(3) == []
+
+        stats.record_fetch("https://example.com", False, 0, "connection reset")
+
+        assert stats.get_dead_urls(3) == [("https://example.com", 3)]

@@ -100,7 +100,7 @@ All variables can be set via the `.env` file in the project root (see `.env.exam
 | `MAX_WORKERS` | 50 | Number of threads for downloads |
 | `FETCH_TIMEOUT` | 5 | HTTP request timeout (s) |
 | `FETCH_MAX_ATTEMPTS` | 3 | Number of URL fetch attempts |
-| `REFUSE_INSECURE_FETCH` | 0 | Skips fetch attempts 2 and 3 (no certificate check, and over HTTP) — at the cost of fetch yield |
+| `REFUSE_INSECURE_FETCH` | 0 | Skips fetch attempts 2 and 3 (no certificate check, and over HTTP) — at the cost of fetch yield. A skipped fetch does not age a URL: the outcome is named in the run's report, not counted against the source |
 | `FETCH_PRIVATE_ALLOWLIST` | — | Permitted private destinations, comma-separated: an IP, a CIDR, `host` or `host:port` |
 | `VALIDATION_TCP_CONCURRENCY` | 300 | TCP ping concurrency |
 | `VALIDATION_HTTP_CONCURRENCY` | 20 | HTTP check concurrency |

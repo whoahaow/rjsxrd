@@ -79,7 +79,11 @@ every downgrade with the host and the attempt, counts them, and prints the run's
 total — attempts and distinct hosts — in the end-of-run report next to the URL
 health report. An operator who would rather lose the sources than take the
 downgrade sets `REFUSE_INSECURE_FETCH=1`, which skips attempts 2 and 3; the cost
-is fetch yield, and that cost is the reason it is off by default.
+is fetch yield, and that cost is the reason it is off by default. What it must
+never cost is a source: a fetch whose insecure attempts were skipped is reported
+as a condition of the run — counted, named with its host, and printed in the
+end-of-run report — and it does not age a URL toward removal from `URLS.txt`,
+because the operator's own setting is not evidence about the source.
 
 ### Raw output is not published
 

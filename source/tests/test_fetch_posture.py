@@ -13,7 +13,9 @@ removal from `URLS.txt` as if it were the first.
 
 The other half of the posture has its own class here: which hosts may carry the GitHub
 token, which is a set of hostnames rather than a test on the URL text, and the API fallback
-that would have been de-authenticated silently by the obvious tightening.
+that would have been de-authenticated silently by the obvious tightening. The set is held
+against a literal list and against `SECURITY.md`, which is the published statement of the
+same policy: a host added to one of them and not the other is the drift both exist to catch.
 
 The classification itself is pinned here too, because `is_global` answers about the prefix
 rather than about the address inside it: a NAT64 or 6to4 address is only as public as the
@@ -23,6 +25,7 @@ reads it out.
 
 import base64
 import ipaddress
+import re
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -51,6 +54,48 @@ LOOPBACK_ADDRESS = "127.0.0.1"
 SOURCE_URL = "https://subscriptions.example/list.txt"
 SOURCE_HOST = "subscriptions.example"
 REDIRECT_HOST = "elsewhere.example"
+
+# The hosts the credential may be sent to, written out rather than derived from the constant
+# under test. The parametrization below used to come from `GITHUB_TOKEN_HOSTS` itself, so a
+# fourth host added to the set produced a fourth passing case instead of a failure: the suite
+# agreed with whatever the policy happened to say.
+TOKEN_HOSTS = ("github.com", "raw.githubusercontent.com", "api.github.com")
+
+# The published statement of that same policy, and the bullet in it that lists the hosts. The
+# list is read from the clause before the bullet's parenthetical: the rest of the bullet names
+# `GITHUB_TOKEN_HOSTS`, the module that defines it and `URLS.txt`, and reading those as hosts
+# would make the guard fail on prose instead of on the contract.
+SECURITY_DOC = Path(__file__).resolve().parents[2] / "SECURITY.md"
+TOKEN_POLICY_BULLET = "The token is sent only to an explicit set of GitHub hosts"
+BACKTICKED = re.compile(r"`([^`]+)`")
+DNS_NAME = re.compile(r"^[a-z0-9-]+(?:\.[a-z0-9-]+)+$")
+
+
+def security_doc_hosts() -> set[str]:
+    """The hostnames SECURITY.md's token bullet names, read out of the document itself.
+
+    The bullet is located by its first line and read to its end — a markdown bullet continues
+    on indented lines and ends at the next one — and the host list is everything backticked
+    before the first parenthesis, so the file names and identifiers named later in the same
+    bullet are not hosts. Emphasis is stripped first, because a pattern describes the figure
+    and not its formatting.
+    """
+    lines = SECURITY_DOC.read_text(encoding="utf-8").splitlines()
+    start = next((number for number, line in enumerate(lines) if TOKEN_POLICY_BULLET in line), None)
+    assert start is not None, (
+        f"{SECURITY_DOC.name}: no line states {TOKEN_POLICY_BULLET!r}. This guard reads the "
+        "token host list out of that bullet, so a reworded sentence has to move this anchor "
+        "with it rather than leave the guard checking nothing."
+    )
+
+    bullet: list[str] = []
+    for line in lines[start:]:
+        if bullet and (line.startswith("* ") or not line.strip()):
+            break
+        bullet.append(line.replace("**", ""))
+
+    clause = " ".join(bullet).split("(", 1)[0]
+    return {token.strip() for token in BACKTICKED.findall(clause) if DNS_NAME.match(token.strip())}
 
 
 @pytest.fixture(autouse=True)
@@ -415,9 +460,44 @@ class TestTheGithubTokenScope:
         """The headers of the first request the session was asked to make."""
         return session.get.call_args.kwargs.get("headers") or {}
 
-    @pytest.mark.parametrize("host", sorted(fetcher_module.GITHUB_TOKEN_HOSTS))
+    def test_the_set_is_exactly_the_hosts_the_policy_names(self) -> None:
+        """The constant, against a literal: a fourth host is an edit to this line as well.
+
+        The comparison is against a written-out list rather than another derivation from the
+        set, because a derivation is what let `attacker.test` into the policy with 50 tests
+        passing — the set was both the subject of those tests and the source of what they
+        expected. Adding a host now fails here until someone writes it in `TOKEN_HOSTS` too,
+        which is the deliberate edit the assertion is for.
+
+        What it does not catch is behaviour: a host written into both this literal and the
+        constant is admitted by every case in this class, because the credential still goes
+        only to the parsed hostname of the request — which is what the cases below pin.
+        """
+        assert set(fetcher_module.GITHUB_TOKEN_HOSTS) == set(TOKEN_HOSTS)
+
+    def test_security_md_names_exactly_the_hosts_in_the_set(self) -> None:
+        """The document and the constant are one contract with two copies of the list.
+
+        SECURITY.md is what a reader trusts about where the credential goes; the constant is
+        what the code does. Either can be edited alone — the published policy tightening while
+        the code keeps sending, or a host added to the code while the document still reads as
+        a promise it no longer keeps — so a change to one fails until the other moves with it.
+
+        What it does not catch: the same list restated in `docs/development/modules.md` and
+        its English copy is not read here, only the clause before the parenthetical is, and a
+        host named in SECURITY.md in prose without backticks is invisible to it. What it does
+        catch is the drift it was written for: one copy of the list moving without the other.
+        """
+        assert security_doc_hosts() == set(fetcher_module.GITHUB_TOKEN_HOSTS)
+
+    @pytest.mark.parametrize("host", TOKEN_HOSTS)
     def test_a_host_in_the_set_receives_the_token(self, host: str) -> None:
-        """Every host the policy names is one the credential may go to."""
+        """Every host the policy names is one the credential may go to.
+
+        Driven by the literal above rather than by the constant, for the reason that
+        assertion states: a case generated from the set under test cannot fail when the set
+        grows, so it would have gone on passing for a host nobody meant to admit.
+        """
         session = self._session()
 
         result = fetch_data(

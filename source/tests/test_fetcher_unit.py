@@ -26,10 +26,8 @@ is stubbed for the whole module (the guard resolves before it connects) and the
 client is a mock.
 """
 
-import ast
 import os
 import warnings
-from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -575,34 +573,12 @@ class TestRefuseInsecureFetch:
 
 
 class TestTlsWarningScope:
-    """The one warning filter this module installs, and how far it reaches."""
+    """What the one warning filter this module installs silences, and how far.
 
-    def test_no_warning_filter_is_installed_at_import(self):
-        """The regression guard for the defect this replaced.
-
-        The ignore used to sit at the module's top level, where it applied to
-        every warning of that shape for the rest of the process. A test cannot
-        see that by reading `warnings.filters` at run time: pytest wraps each
-        test in its own warning context and restores the list, so the runtime
-        answer is the same whether or not the module installed anything. The
-        module's top level is read instead -- a filter installed by a statement
-        there is the defect, and the two tests below pin what the scoped call
-        does and does not silence.
-        """
-        tree = ast.parse(Path(fetcher_module.__file__).read_text(encoding="utf-8"))
-
-        installed_at_import = [
-            f"warnings.{node.value.func.attr}"
-            for node in tree.body
-            if isinstance(node, ast.Expr)
-            and isinstance(node.value, ast.Call)
-            and isinstance(node.value.func, ast.Attribute)
-            and isinstance(node.value.func.value, ast.Name)
-            and node.value.func.value.id == "warnings"
-            and node.value.func.attr in ("filterwarnings", "simplefilter")
-        ]
-
-        assert installed_at_import == []
+    The import-time install — the defect this replaced — is guarded in
+    `test_fetch_guard_scope.py`, whose walk reads the shapes the old one missed. These
+    two tests pin what the scoped call does and does not silence.
+    """
 
     def test_the_client_warning_is_silenced_inside_the_call_and_seen_outside_it(self):
         """The same message is suppressed in the call and reported after it."""

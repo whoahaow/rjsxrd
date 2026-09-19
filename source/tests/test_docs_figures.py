@@ -27,13 +27,22 @@ What it guards, and where each expectation comes from:
   up, that both shares follow from them, that the commands printed below it
   reproduce the same three figures at the same commit, and that both languages
   state the same measurement. Those figures moved ``6872/172`` → ``6894/194``
-  across two cards with nothing checking them, this sprint's own work included.
+  across two cards with nothing checking them, this sprint's own work included;
+* the coverage rows in ``testing.md`` / ``testing.en.md`` — that the table still
+  names the commit it was measured at, that both languages name the same one and
+  state the same three rows, that each row's percentage follows from the counters
+  beside it within the band branch mode allows, and that the two rows measuring
+  all of ``source/`` agree about the tree with the offline floor the lower of the
+  two. Those rows went stale three times by hand before they were anchored.
 
 What it does NOT guard, so nobody assumes otherwise:
 
-* the coverage percentages. Re-deriving those means a second instrumented run
-  inside the suite; they stay a hand-measured figure, and a doc that states one
-  names the command that produced it;
+* the coverage figures against a run. Their anchor, the arithmetic behind each
+  row, the relations between the rows and the agreement between the two languages
+  are held; the numbers themselves are not re-derived, because that means a second
+  instrumented run inside the suite. A row whose four figures moved together and
+  stayed inside the band its counters allow would pass here, and only a
+  re-measurement would say otherwise;
 * the warning counts, for the same reason;
 * the prose around the figures. This test reads numbers, not claims;
 * the churn figures against ``git``. The anchor makes them a historical
@@ -106,6 +115,22 @@ EN_CHURN = re.compile(
 CHURN_COMMAND = re.compile(
     r"^git (?:rev-list|log)\b[^#]*?(?P<sha>[0-9a-f]{7,40})[^#]*#\s*(?P<value>\d+)\s*$"
 )
+# The sentence that anchors the coverage table to the commit it was measured at. One site per
+# language, because an anchor is a claim about a commit and two languages disagreeing about it
+# is the drift this holds up.
+RU_COVERAGE_ANCHOR = re.compile(r"замер на ветке `main` в коммите `(?P<sha>[0-9a-f]{7,40})`")
+EN_COVERAGE_ANCHOR = re.compile(
+    r"a measurement on branch `main` at commit `(?P<sha>[0-9a-f]{7,40})`"
+)
+# A row of the coverage table: "| `pytest --cov=.` — the full run, as in CI | all of `source/` |
+# **74 %** (14138 statements, 3159 missed, 2972 branches) |". Emphasis is stripped by `find`
+# before matching, so the percentage is read without its asterisks. The counters are captured
+# with the words around them in either language — the unit nouns differ, the shape does not.
+COVERAGE_ROW = re.compile(
+    r"^\|\s*`(?P<command>[^`]+)`[^|]*\|[^|]*\|\s*"
+    r"(?P<percent>\d+(?:[.,]\d+)?)\s*%\s*"
+    r"\((?P<statements>\d+)\s+\w+,\s*(?P<missed>\d+)\s+[^,]+,\s*(?P<branches>\d+)\s+[^)]+\)"
+)
 # A row of the per-file table: "| `test_progress.py` | 6 | tqdm consolidation |".
 TABLE_ROW = re.compile(r"^\|\s*`(test_[a-z0-9_]+\.py)`\s*\|\s*(?P<count>\d+)\s*\|")
 # A test module inside a README's file tree: " │   ├─ test_progress.py".
@@ -147,6 +172,21 @@ CHURN_SITES: tuple[tuple[str, re.Pattern[str], int], ...] = (
     ("docs/development/modules.md", RU_CHURN, 1),
     ("docs/development/modules.en.md", EN_CHURN, 1),
 )
+
+# The coverage table's anchor, one site per language. The count is a contract here for the same
+# reason it is above: a reworded sentence that no longer matches has to fail loudly rather than
+# leaving the page looking guarded by nothing.
+COVERAGE_ANCHOR_SITES: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("docs/development/testing.md", RU_COVERAGE_ANCHOR),
+    ("docs/development/testing.en.md", EN_COVERAGE_ANCHOR),
+)
+
+# The two tables that state the measured coverage, and how many rows each of them must state.
+COVERAGE_TABLE_SITES: tuple[str, ...] = (
+    "docs/development/testing.md",
+    "docs/development/testing.en.md",
+)
+COVERAGE_ROWS = 3
 
 # Every per-file table, in both languages.
 TABLE_SITES: tuple[str, ...] = (
@@ -563,3 +603,189 @@ class TestDocumentedChurn:
                 )
 
         report(problems, "the documented churn measurement disagrees with itself:")
+
+
+def coverage_row_problems(
+    path: str,
+    line: int,
+    command: str,
+    statements: int,
+    missed: int,
+    branches: int,
+    percent: float,
+) -> list[str]:
+    """Whether a row's percentage can follow from the counters stated beside it.
+
+    Branch mode, so the percentage is covered statements plus covered branches over statements
+    plus branches — and the table states how many branches there are, never how many of them were
+    taken. The answer is a band rather than an equality: the covered branches lie somewhere
+    between none of them and all of them, and what is checked is that the stated figure sits
+    inside it. That band is the limit of this guard, and the module docstring states it: a row
+    whose four figures moved together and stayed inside the band passes here, and only a
+    re-measurement would say otherwise.
+    """
+    problems: list[str] = []
+    if missed > statements:
+        problems.append(
+            f"{path}:{line}: {command} is stated with {missed} missed of {statements} statements — "
+            "more missed than there are"
+        )
+
+    total = statements + branches
+    if total <= 0:
+        problems.append(f"{path}:{line}: {command} is stated with no statements and no branches")
+        return problems
+
+    low = (statements - missed) / total * 100
+    high = (statements - missed + branches) / total * 100
+    if not low - 0.5 <= percent <= high + 0.5:
+        problems.append(
+            f"{path}:{line}: {command} states {percent:g} %, and {statements} statements with "
+            f"{missed} missed and {branches} branches can only give between {low:.1f} % and "
+            f"{high:.1f} %"
+        )
+    return problems
+
+
+def coverage_scope_problems(
+    path: str,
+    rows: Sequence[tuple[int, re.Match[str]]],
+    stated: Sequence[tuple[int, int, int, float]],
+) -> list[str]:
+    """The relations between the rows that measure the same tree.
+
+    Two of the three rows cover all of ``source/``, so they have to agree about the tree they
+    measured — the same statements and the same branches — and the one that deselects the 15
+    network tests can only be the worse of the two: dropping tests cannot execute more code. The
+    two-package row is deliberately not compared with them, and the page says why — two packages
+    and a tree have different denominators.
+    """
+    whole_tree = [
+        (row.group("command"), figures)
+        for (_, row), figures in zip(rows, stated, strict=True)
+        if "--cov=." in row.group("command")
+    ]
+    if len(whole_tree) != 2:
+        return [
+            f"{path}: {len(whole_tree)} rows measure all of `source/` (`--cov=.`), expected 2 — "
+            "the relations here are between exactly those two"
+        ]
+
+    full = next((entry for entry in whole_tree if "not integration" not in entry[0]), None)
+    offline = next((entry for entry in whole_tree if "not integration" in entry[0]), None)
+    if full is None or offline is None:
+        return [
+            f"{path}: the rows measuring all of `source/` are not one full run and one offline "
+            "floor — the floor is the command that deselects the integration marker"
+        ]
+
+    full_statements, full_missed, full_branches, full_percent = full[1]
+    floor_statements, floor_missed, floor_branches, floor_percent = offline[1]
+    problems: list[str] = []
+    if (full_statements, full_branches) != (floor_statements, floor_branches):
+        problems.append(
+            f"{path}: the full run and the offline floor measure the same tree, so they must state "
+            f"the same statements and the same branches — {full[0]} states {full_statements} "
+            f"statements and {full_branches} branches, {offline[0]} states {floor_statements} and "
+            f"{floor_branches}"
+        )
+    if floor_missed < full_missed:
+        problems.append(
+            f"{path}: the offline floor skips the 15 network tests and reports {floor_missed} "
+            f"missed, fewer than the full run's {full_missed} — deselecting tests cannot cover more"
+        )
+    if floor_percent > full_percent:
+        problems.append(
+            f"{path}: the offline floor is stated at {floor_percent:g} %, above the full run's "
+            f"{full_percent:g} % — the same direction the missed counts run in"
+        )
+    return problems
+
+
+class TestDocumentedCoverage:
+    """The coverage figures, against the commit they say they were measured at.
+
+    These rows went stale three times with nothing checking them: two cards re-measured them by
+    hand, each a few commits late, and the third time the modules this sprint added moved them
+    again. They name a commit now, which makes them a historical measurement rather than a claim
+    about HEAD, and this class holds the anchor, the arithmetic and both languages in place.
+
+    Every branch here was shown failing on a scratch copy before this landed: a percentage
+    outside the band its own counters allow, a row disagreeing with the other row that measures
+    the same tree, an anchor that differs between the two languages, a table stated differently
+    in the two languages, counters that are all zero, and an offline floor that beats the full
+    run on either the missed count or the percentage.
+    """
+
+    def test_the_coverage_rows_are_anchored_and_add_up(self) -> None:
+        """Each row is measured once and stated twice, and the two statements have to agree.
+
+        One commit across both languages; every row's percentage inside the band its own counters
+        allow; the two rows measuring all of ``source/`` agreeing about the tree, with the offline
+        floor the worse of the two; and the same three rows in both languages. Every mismatch is
+        reported in one failure with ``path:line``, so the next drift is corrected in one pass.
+        """
+        problems: list[str] = []
+        anchors: dict[str, str] = {}
+        measurements: dict[str, list[tuple[int, int, int, float]]] = {}
+
+        for path, anchor_pattern in COVERAGE_ANCHOR_SITES:
+            found = find(path, anchor_pattern)
+            if len(found) != 1:
+                problems.append(
+                    site_count_problem(path, anchor_pattern, 1, len(found), "COVERAGE_ANCHOR_SITES")
+                )
+                continue
+            anchors[path] = found[0][1].group("sha")
+
+        for path in COVERAGE_TABLE_SITES:
+            rows = find(path, COVERAGE_ROW)
+            if len(rows) != COVERAGE_ROWS:
+                problems.append(
+                    f"{path}: {len(rows)} coverage rows, expected {COVERAGE_ROWS} — a row that was "
+                    "reworded has to fail here rather than leave the table looking guarded"
+                )
+                continue
+
+            stated = [
+                (
+                    int(row.group("statements")),
+                    int(row.group("missed")),
+                    int(row.group("branches")),
+                    float(row.group("percent").replace(",", ".")),
+                )
+                for _, row in rows
+            ]
+            measurements[path] = stated
+
+            for (line, row), figures in zip(rows, stated, strict=True):
+                problems.extend(
+                    coverage_row_problems(
+                        path,
+                        line,
+                        row.group("command"),
+                        figures[0],
+                        figures[1],
+                        figures[2],
+                        figures[3],
+                    )
+                )
+            problems.extend(coverage_scope_problems(path, rows, stated))
+
+        if len(anchors) == len(COVERAGE_ANCHOR_SITES) and len(measurements) == len(
+            COVERAGE_TABLE_SITES
+        ):
+            if len(set(anchors.values())) != 1:
+                problems.append(
+                    "the two languages anchor the coverage measurement to different commits: "
+                    + ", ".join(f"{path} names {sha}" for path, sha in sorted(anchors.items()))
+                )
+            if len({tuple(sorted(rows)) for rows in measurements.values()}) != 1:
+                problems.append(
+                    "the two languages state different coverage rows: "
+                    + ", ".join(
+                        f"{path} states {rows}" for path, rows in sorted(measurements.items())
+                    )
+                )
+
+        report(problems, "the documented coverage measurement disagrees with itself:")

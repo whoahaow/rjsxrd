@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 ```
 
 Every test module declares its marker (`pytestmark`), so `-m unit` and
-`-m integration` actually select something: 885 and 15 tests out of 900
+`-m integration` actually select something: 886 and 15 tests out of 901
 (measured with `pytest --collect-only -q` under each marker). Only the two
 modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) carry `integration`. Pure logic needs
@@ -32,7 +32,7 @@ which took the 15 pure-logic tests out of `test_fetcher.py`.
 
 ## Test structure
 
-**900 tests** in 36 files. A full run takes around 70–80 seconds on the
+**901 tests** in 36 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
@@ -69,7 +69,7 @@ load, so measure with `pytest -q` on your own machine.
 | `test_url_stats.py` | 21 | `record_fetch`, `get_dead_urls`, persistence; neither a refusal nor a run condition ages a URL |
 | `test_scripts_import.py` | 12 | Import smoke tests for the `scripts/` entry points, benchmark loader |
 | `test_progress.py` | 6 | tqdm consolidation |
-| `test_docs_figures.py` | 6 | Docs figures match the collected suite |
+| `test_docs_figures.py` | 7 | Docs figures match the collected suite: its totals, the per-file table, the README trees, and the coverage rows with their anchor |
 | `test_module_size.py` | 4 | Module ceiling and the debt budget: the ceiling covers the whole tree, a budget only shrinks |
 | `test_main.py` | 6 | Upload-path guards and the deferred SDK import in the entry point |
 | `test_telegram_proxy_processor.py` | 3 | Writing MTProto/SOCKS5 proxies to files |
@@ -83,26 +83,35 @@ this pipeline's crashes have lived.
 
 | Command | Scope | Coverage |
 |---------|-------|----------|
-| `pytest --cov=fetchers --cov=utils` | two packages | **58 %** (5595 statements, 2156 missed, 1884 branches) |
-| `pytest --cov=.` — the full run, as in CI | all of `source/` | **72 %** (13609 statements, 3187 missed, 2924 branches) |
-| `pytest -m "not integration" --cov=.` — the offline floor | all of `source/` | **71 %** (13609 statements, 3325 missed, 2924 branches) |
+| `pytest --cov=fetchers --cov=utils` | two packages | **61 %** (5918 statements, 2136 missed, 1970 branches) |
+| `pytest --cov=.` — the full run, as in CI | all of `source/` | **74 %** (14138 statements, 3159 missed, 2972 branches) |
+| `pytest -m "not integration" --cov=.` — the offline floor | all of `source/` | **73 %** (14138 statements, 3297 missed, 2972 branches) |
+
+The figures above are a measurement on branch `main` at commit `f0692e2e`, taken
+with the commands in the table's first column and `--cov-config=../pyproject.toml`.
+That makes them a historical fact rather than a claim about HEAD: every card that
+moves the suite moves them, which is why a figure stated without an anchor goes
+stale one commit later — and these three did, three times. The figures guard
+(`source/tests/test_docs_figures.py`) holds the anchor, the arithmetic behind each
+row and the agreement between the two languages; it does not re-derive the
+numbers, which would take a second instrumented run inside the suite.
 
 `fail_under = 65` is stated for the CI scope — the whole `source/` tree. It is not
-a per-scope number: `pytest --cov=fetchers --cov=utils` reports 58 % and does not
-pass the floor, because two packages and the tree have different denominators.
-That run illustrates that coverage depends on scope; it is not the gate.
+a per-scope number: the two-package row above sits below the floor and does not
+pass it, because two packages and the tree have different denominators. That run
+illustrates that coverage depends on scope; it is not the gate.
 
 Below the floor, CI fails. The floor sits below the offline floor — a run without
-the 15 network tests and without the coverage those tests alone provide, 71 % at
-the current measurement, which leaves about 6.5 points and roughly 880 statements
-of headroom. It was set four points under the offline measurement as it stood
-then, and it does not move with a new one: that figure is a measurement from the
-development machine (Windows), while the runner is Linux and executes the other
-side of the `sys.platform` branches in `utils/download_xray.py`,
-`utils/xray_batch.py` and `utils/xray_tester.py`, so the runner's own number has
-never been observed. It will be recorded here the first time CI runs green; until
-then the floor rests on a Windows measurement and does not move — changing it now
-would be calibrating against something unmeasured.
+the 15 network tests and without the coverage those tests alone provide, which is
+the last row of the table above; the points between that row and the floor are the
+headroom a runner without network has. The floor was set four points under the
+offline measurement as it stood then, and it does not move with a new one: that
+measurement is from the development machine (Windows), while the runner is Linux
+and executes the other side of the `sys.platform` branches in
+`utils/download_xray.py`, `utils/xray_batch.py` and `utils/xray_tester.py`, so the
+runner's own number has never been observed. It will be recorded here the first
+time CI runs green; until then the floor rests on a Windows measurement and does
+not move — changing it now would be calibrating against something unmeasured.
 
 Every coverage command carries `--cov-config=../pyproject.toml`, the CI step
 included. pytest-cov looks for a `.coveragerc` in the invocation directory

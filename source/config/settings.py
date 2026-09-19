@@ -1,5 +1,6 @@
 """Configuration settings for VPN config generator."""
 
+import ipaddress
 import os
 import re
 from pathlib import Path
@@ -257,18 +258,70 @@ GITHUB_API_FALLBACK = os.environ.get("GITHUB_API_FALLBACK", "1") not in ("0", "f
 # left. Default off — today's behaviour, with a log line per downgrade.
 REFUSE_INSECURE_FETCH = os.environ.get("REFUSE_INSECURE_FETCH", "0").lower() in ("1", "true", "yes")
 
+
 # Destinations a fetch may still reach, comma-separated. An entry is an IP
-# literal or a CIDR (matched against the address the name resolved to), or a
-# `host` / `host:port` (matched against the URL's own host). Empty — the
-# default — refuses every loopback, private, link-local and metadata
+# literal (`127.0.0.1`) or a CIDR (`192.168.1.5/32`), matched against the
+# address the name resolved to; or a `host` / `host:port` (matched against the
+# URL's own host), where a v6 host is bracketed as a URL writes it (`[::1]`,
+# `[::1]:1080`) — a bare v6 address with a port is not expressible, because
+# `::1:1080` parses as an address in its own right. Empty — the default —
+# refuses every loopback, private, link-local and metadata
 # destination, which is what the guard in fetchers/fetcher.py enforces. The
 # list exists for a local mirror or a loopback proxy during development; an
 # entry is an explicit decision by the operator, and there is no other bypass.
-FETCH_PRIVATE_ALLOWLIST = [
-    entry.strip()
-    for entry in os.environ.get("FETCH_PRIVATE_ALLOWLIST", "").split(",")
-    if entry.strip()
-]
+#
+# The one decision this list cannot express, because it is not a decision about
+# destinations: an entry that covers a whole address family (`0.0.0.0/0`,
+# `::/0`, or any other spelling of a zero prefix length) does not widen the
+# exceptions, it switches the guard off. That is refused at load — see
+# `_refuse_guard_disabling_allowlist` below — so no run can begin with a
+# disabled guard and nothing but a log line to say so.
+def _refuse_guard_disabling_allowlist(entries: list[str]) -> list[str]:
+    """The allowlist as written, unless an entry switches the guard off.
+
+    `FETCH_PRIVATE_ALLOWLIST` is written as a list of destinations, and one
+    entry can be far more than that: a network whose prefix length is zero
+    contains every address of its family, so as the sole entry it does not add
+    an exception, it deletes the guard. What that buys is a run with no
+    destination guard at all, whose only trace would be a line in output nobody
+    has to read — which is why the entry is refused here instead of honoured,
+    and why the refusal is a raise rather than a warning: a warning leaves the
+    run that matters running unguarded, and the operator's own list cannot
+    express "guard nothing" as a destination.
+
+    The rule is the parsed network's prefix length, not a list of known-bad
+    strings. `ip_network(..., strict=False)` normalises every spelling of it
+    (`0.0.0.0/0`, `1.2.3.4/0`, `::/0`, `2001:db8::/0`) to the same zero-length
+    prefix, so a new way of writing the same range cannot arrive as a new case
+    nobody thought of. A range that is wide but not universal (`10.0.0.0/8`) is
+    an operator's decision about a range and is left exactly as written; an
+    entry that is not a network at all is left to the guard, which reads it as
+    an entry that matches nothing.
+    """
+    for entry in entries:
+        if "/" not in entry:
+            continue
+        try:
+            network = ipaddress.ip_network(entry, strict=False)
+        except ValueError:
+            continue
+        if network.prefixlen == 0:
+            raise ValueError(
+                f"FETCH_PRIVATE_ALLOWLIST contains {entry!r}, which covers every "
+                f"IPv{network.version} address: it does not extend the fetch guard's "
+                "exceptions, it switches the guard off. Remove it, or list the "
+                "destinations the run may reach."
+            )
+    return entries
+
+
+FETCH_PRIVATE_ALLOWLIST = _refuse_guard_disabling_allowlist(
+    [
+        entry.strip()
+        for entry in os.environ.get("FETCH_PRIVATE_ALLOWLIST", "").split(",")
+        if entry.strip()
+    ]
+)
 
 # Validation concurrency settings
 VALIDATION_TCP_CONCURRENCY = _validate_int_env("VALIDATION_TCP_CONCURRENCY", 300, 10, 500)

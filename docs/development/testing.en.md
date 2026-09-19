@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 ```
 
 Every test module declares its marker (`pytestmark`), so `-m unit` and
-`-m integration` actually select something: 891 and 15 tests out of 906
+`-m integration` actually select something: 914 and 15 tests out of 929
 (measured with `pytest --collect-only -q` under each marker). Only the two
 modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) carry `integration`. Pure logic needs
@@ -32,7 +32,7 @@ which took the 15 pure-logic tests out of `test_fetcher.py`.
 
 ## Test structure
 
-**906 tests** in 36 files. A full run takes around 70–80 seconds on the
+**929 tests** in 37 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
@@ -61,6 +61,7 @@ load, so measure with `pytest -q` on your own machine.
 | `test_fetcher_unit.py` | 84 | Env proxy, session shape, retry loop, error mapping, TLS downgrades, private-range guard (no network) |
 | `test_fetch_posture.py` | 55 | Destination refusals (counter, report, the strictness of the marker, a URL's life in `URLS.txt`, and the limit the classifier accepts), the GitHub token's hosts held against a literal and against `SECURITY.md`, and the addresses translation prefixes carry (no network) |
 | `test_fetch_run_conditions.py` | 7 | A fetch the run's own rules curtailed: the marker, the counter and the report, and a URL that must not age for one (no network) |
+| `test_fetch_guard_scope.py` | 23 | The fetch guard's written scope: the allowlist entry that switches the guard off, refused at load, and the entry forms `config/settings.py` promises an operator (no network) |
 | `test_executor_cache.py` | 17 | Thread pool, shutdown, WSL detection |
 | `test_managed_process.py` | 15 | ManagedProcess lifecycle |
 | `test_ip_verifier.py` | 35 | env vars, TCP port polling, response validators, chain reads |

@@ -43,7 +43,9 @@ What it does NOT guard, so nobody assumes otherwise:
   are held; the numbers themselves are not re-derived, because that means a second
   instrumented run inside the suite. A row whose four figures moved together and
   stayed inside the band its counters allow would pass here, and only a
-  re-measurement would say otherwise;
+  re-measurement would say otherwise. Nor is the anchor checked against ``git``,
+  for the reason the churn bullet below gives: nothing here runs it, so a coverage
+  anchor naming a commit that does not exist passes as well;
 * the warning counts, for the same reason;
 * the prose around the figures. This test reads numbers, not claims;
 * the churn figures against ``git``. The anchor makes them a historical

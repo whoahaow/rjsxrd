@@ -53,15 +53,34 @@ warn_unused_ignores = true
 # hand-written package list would be a list a new package can fall off.
 branch = true
 
+# The test suite is not measured. It used to be — `--cov=.` from `source/` counted the
+# tests as code — and at the time this changed they were 6556 of the tree's 14234
+# statements, covered at 98 % against the code's 57 %. The published percentage was
+# therefore mostly a statement about the suite, and every card that touched the suite
+# moved the rows the documentation states: they went stale three times for exactly that
+# reason. Measuring the code the suite exists for makes the number say what the page
+# implies, and takes the suite's churn out of the denominator entirely. The floor below
+# is re-derived from this scope rather than carried over — the two are different
+# denominators and only look comparable.
+omit = ["tests/*"]
+
 [tool.coverage.report]
-# The floor, not the measured value. The Tests step runs the full suite; the
-# number sits below the offline floor (`-m "not integration"` deselects the 15
-# network tests, and the coverage they alone provide with them), so a runner
-# without network still passes it. The headroom is deliberate: the development
-# machine and the Linux runner execute opposite sides of the `sys.platform`
-# branches in utils/download_xray.py, utils/xray_batch.py and
-# utils/xray_tester.py.
-fail_under = 65
+# The floor, not the measured value. It is stated for the scope the `omit` above
+# defines: the project's code, with the test suite not measured.
+#
+# 53 is the offline floor — `-m "not integration"`, which deselects the 15 network tests
+# and the coverage those tests alone provide — less the four points this floor has
+# always been set under that measurement. The measurement behind it is 7678 statements,
+# 3089 missed and 2520 branches, 56.87 % printed by that run on the development machine
+# (Windows); the full run of the same scope prints 57.06 %. It is not comparable with the
+# 65 it replaces, and the two numbers differ for a reason worth keeping: that floor stood
+# over a tree in which the suite was measured covering itself at 98 %, so the same run
+# read 73.58 % for the tree while the code the tests exist for read 57 %. The headroom is
+# as deliberate as it was: the runner is Linux and
+# executes the other side of the `sys.platform` branches in utils/download_xray.py,
+# utils/xray_batch.py and utils/xray_tester.py, so the runner's own number has never
+# been observed.
+fail_under = 53
 exclude_also = [
     # An abstract method body cannot be reached by construction; the subclass
     # that implements it is what the tests drive.

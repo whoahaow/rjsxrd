@@ -96,6 +96,45 @@ def _validate_github_token(token: str) -> str:
     return token
 
 
+def _refuse_guard_disabling_allowlist(entries: list[str]) -> list[str]:
+    """The allowlist as written, unless an entry switches the guard off.
+
+    `FETCH_PRIVATE_ALLOWLIST` is written as a list of destinations, and one
+    entry can be far more than that: a network whose prefix length is zero
+    contains every address of its family, so as the sole entry it does not add
+    an exception, it deletes the guard. What that buys is a run with no
+    destination guard at all, whose only trace would be a line in output nobody
+    has to read — which is why the entry is refused here instead of honoured,
+    and why the refusal is a raise rather than a warning: a warning leaves the
+    run that matters running unguarded, and the operator's own list cannot
+    express "guard nothing" as a destination.
+
+    The rule is the parsed network's prefix length, not a list of known-bad
+    strings. `ip_network(..., strict=False)` normalises every spelling of it
+    (`0.0.0.0/0`, `1.2.3.4/0`, `::/0`, `2001:db8::/0`) to the same zero-length
+    prefix, so a new way of writing the same range cannot arrive as a new case
+    nobody thought of. A range that is wide but not universal (`10.0.0.0/8`) is
+    an operator's decision about a range and is left exactly as written; an
+    entry that is not a network at all is left to the guard, which reads it as
+    an entry that matches nothing.
+    """
+    for entry in entries:
+        if "/" not in entry:
+            continue
+        try:
+            network = ipaddress.ip_network(entry, strict=False)
+        except ValueError:
+            continue
+        if network.prefixlen == 0:
+            raise ValueError(
+                f"FETCH_PRIVATE_ALLOWLIST contains {entry!r}, which covers every "
+                f"IPv{network.version} address: it does not extend the fetch guard's "
+                "exceptions, it switches the guard off. Remove it, or list the "
+                "destinations the run may reach."
+            )
+    return entries
+
+
 # Repository settings
 GITHUB_TOKEN = _validate_github_token(
     os.environ.get("MY_TOKEN", "") or os.environ.get("GITHUB_TOKEN", "")
@@ -273,48 +312,9 @@ REFUSE_INSECURE_FETCH = os.environ.get("REFUSE_INSECURE_FETCH", "0").lower() in 
 # The one decision this list cannot express, because it is not a decision about
 # destinations: an entry that covers a whole address family (`0.0.0.0/0`,
 # `::/0`, or any other spelling of a zero prefix length) does not widen the
-# exceptions, it switches the guard off. That is refused at load — see
-# `_refuse_guard_disabling_allowlist` below — so no run can begin with a
+# exceptions, it switches the guard off. That is refused at load —
+# `_refuse_guard_disabling_allowlist`, above — so no run can begin with a
 # disabled guard and nothing but a log line to say so.
-def _refuse_guard_disabling_allowlist(entries: list[str]) -> list[str]:
-    """The allowlist as written, unless an entry switches the guard off.
-
-    `FETCH_PRIVATE_ALLOWLIST` is written as a list of destinations, and one
-    entry can be far more than that: a network whose prefix length is zero
-    contains every address of its family, so as the sole entry it does not add
-    an exception, it deletes the guard. What that buys is a run with no
-    destination guard at all, whose only trace would be a line in output nobody
-    has to read — which is why the entry is refused here instead of honoured,
-    and why the refusal is a raise rather than a warning: a warning leaves the
-    run that matters running unguarded, and the operator's own list cannot
-    express "guard nothing" as a destination.
-
-    The rule is the parsed network's prefix length, not a list of known-bad
-    strings. `ip_network(..., strict=False)` normalises every spelling of it
-    (`0.0.0.0/0`, `1.2.3.4/0`, `::/0`, `2001:db8::/0`) to the same zero-length
-    prefix, so a new way of writing the same range cannot arrive as a new case
-    nobody thought of. A range that is wide but not universal (`10.0.0.0/8`) is
-    an operator's decision about a range and is left exactly as written; an
-    entry that is not a network at all is left to the guard, which reads it as
-    an entry that matches nothing.
-    """
-    for entry in entries:
-        if "/" not in entry:
-            continue
-        try:
-            network = ipaddress.ip_network(entry, strict=False)
-        except ValueError:
-            continue
-        if network.prefixlen == 0:
-            raise ValueError(
-                f"FETCH_PRIVATE_ALLOWLIST contains {entry!r}, which covers every "
-                f"IPv{network.version} address: it does not extend the fetch guard's "
-                "exceptions, it switches the guard off. Remove it, or list the "
-                "destinations the run may reach."
-            )
-    return entries
-
-
 FETCH_PRIVATE_ALLOWLIST = _refuse_guard_disabling_allowlist(
     [
         entry.strip()

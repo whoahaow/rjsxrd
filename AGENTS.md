@@ -47,6 +47,7 @@ rjsxrd/
 │   │   └── cidrwhitelist.txt      # CIDR IPs for bypass
 │   ├── fetchers/
 │   │   ├── fetcher.py             # HTTP fetcher (curl_cffi)
+│   │   ├── destination_guard.py   # Destination guard: public-address check, NAT64/6to4 unwrapping, the allowlist
 │   │   ├── daily_repo_fetcher.py  # Daily-updated repo scraper
 │   │   ├── yaml_converter.py      # Clash/Surge YAML → VPN URLs
 │   │   ├── telegram_proxy_scraper.py  # MTProto/SOCKS5 extractor
@@ -74,6 +75,7 @@ rjsxrd/
 │   │   ├── logger.py              # Thread-safe logging
 │   │   ├── progress.py            # Consolidated tqdm import (single try/except)
 │   │   ├── executor_cache.py      # ThreadPoolExecutor pooling with WSL-aware sizing
+│   │   ├── fetch_outcomes.py      # Shared fetch-outcome vocabulary (the refusal and run-condition markers)
 │   │   ├── bypass_builder.py       # Bypass config verification pipeline
 │   │   ├── file_writer.py          # Config file writing helpers
 │   │   ├── xray_batch.py           # BatchRunner for concurrent Xray testing
@@ -98,37 +100,48 @@ rjsxrd/
 │   │   └── setup-vps.sh           # VPS setup script
 │   ├── tests/
 │   │   ├── conftest.py            # Pytest fixtures
-│   │   ├── test_config_processor.py # 78 processor tests
-│   │   ├── test_config_tagger.py  # 17 ConfigTagger tests
-│   │   ├── test_executor_cache.py # 15 ExecutorCache tests
-│   │   ├── test_fetcher.py        # 15 fetcher tests
-│   │   ├── test_file_utils.py     # 70 file utils tests
-│   │   ├── test_git_auto_cleaner.py # 24 auto-commit cleaner tests
-│   │   ├── test_git_updater.py    # 26 GitUpdater workflow tests
-│   │   ├── test_github_handler.py # 22 GitHub handler tests (adapter pattern)
-│   │   ├── test_health_check.py  # 21 health check tests (DNS fallback, disk, memory)
-│   │   ├── test_ip_checker.py     # 14 IP checker tests
-│   │   ├── test_ip_verifier.py    # 6 IP verifier tests
-│   │   ├── test_logger.py         # 30 logger tests
-│   │   ├── test_managed_process.py # 15 ManagedProcess lifecycle tests
-│   │   ├── test_process_registry.py # 25 ProcessRegistry tests
-│   │   ├── test_progress.py       # 6 progress bar tests
-│   │   ├── test_proxy_monitor.py  # 19 proxy monitor tests
-│   │   ├── test_security_filter.py # 35 security filter tests
-│   │   ├── test_simple_tester.py  # 25 TCP ping tests
-│   │   ├── test_smart_eta.py      # 27 SmartETA tests
-│   │   ├── test_telegram_proxy_scraper.py # 21 Telegram tests
-│   │   ├── test_telegram_proxy_verifier.py # 12 Telegram proxy verifier tests
-│   │   ├── test_url_stats.py      # 11 URL stats tests
-│   │   ├── test_vpn_config.py     # 35 VPNConfig typed dataclass tests
-│   │   ├── test_xray_batch.py     # 18 BatchRunner tests
-│   │   ├── test_xray_tester.py    # 44 Xray tester + security edge case tests
-│   │   └── test_yaml_converter.py # 28 YAML converter tests
+│   │   ├── test_config_processor.py
+│   │   ├── test_config_tagger.py
+│   │   ├── test_docs_figures.py
+│   │   ├── test_executor_cache.py
+│   │   ├── test_fetch_guard_scope.py
+│   │   ├── test_fetch_posture.py
+│   │   ├── test_fetch_run_conditions.py
+│   │   ├── test_fetcher.py
+│   │   ├── test_fetcher_unit.py
+│   │   ├── test_file_utils.py
+│   │   ├── test_git_auto_cleaner.py
+│   │   ├── test_git_updater.py
+│   │   ├── test_github_handler.py
+│   │   ├── test_health_check.py
+│   │   ├── test_ip_checker.py
+│   │   ├── test_ip_verifier.py
+│   │   ├── test_logger.py
+│   │   ├── test_main.py
+│   │   ├── test_managed_process.py
+│   │   ├── test_module_size.py
+│   │   ├── test_pipeline_e2e.py
+│   │   ├── test_process_registry.py
+│   │   ├── test_progress.py
+│   │   ├── test_proxy_monitor.py
+│   │   ├── test_purge_stale_urls.py
+│   │   ├── test_scripts_import.py
+│   │   ├── test_security_filter.py
+│   │   ├── test_simple_tester.py
+│   │   ├── test_smart_eta.py
+│   │   ├── test_telegram_proxy_processor.py
+│   │   ├── test_telegram_proxy_scraper.py
+│   │   ├── test_telegram_proxy_verifier.py
+│   │   ├── test_url_stats.py
+│   │   ├── test_vpn_config.py
+│   │   ├── test_xray_batch.py
+│   │   ├── test_xray_tester.py
+│   │   └── test_yaml_converter.py
 │   └── requirements.txt
 ├── docs/                   # Documentation (user, operation, development — see docs/readme.md)
 ├── .github/workflows/
 │   └── frequent_update.yml # GitHub Actions (every 2 days)
-├── pyproject.toml          # Project config (ruff, mypy, black, pytest)
+├── pyproject.toml          # Project config (ruff, mypy, pytest)
 ├── README.md
 └── AGENTS.md              # This file
 ```
@@ -176,7 +189,7 @@ rjsxrd/
    └─ Users see partial results within seconds, not minutes
 
 7. VERIFICATION + PROGRESSIVE UPLOAD
-   ├─ _verify_config_file() → Xray-core verification (batches of 300)
+   ├─ verify_config_file() → Xray-core verification (batches of 300)
    ├─ Every 300 working configs:
    │   ├─ Write bypass-N.txt (bypass-1.txt, bypass-2.txt, ...)
    │   ├─ Upload immediately to GitHub
@@ -532,9 +545,9 @@ Feature flag overrides (override config/settings.py values for this run):
 ### Run Tests
 ```bash
 cd source
-pip install pytest pytest-cov pytest-asyncio pytest-xdist pytest-mock
+uv pip install -r requirements-dev.txt
 
-pytest                              # Run all tests (uses pytest.ini for markers/config)
+pytest                              # Run all tests (config lives in pyproject.toml)
 pytest -v                           # Verbose output
 pytest --cov=fetchers --cov=utils   # With coverage report
 pytest -m unit                      # Unit tests only (fast, no network)
@@ -542,37 +555,48 @@ pytest -m integration               # Integration tests (require network)
 pytest -n auto                      # Parallel execution
 ```
 
-**Pytest config** (`source/pytest.ini`): markers (`unit`, `integration`, `slow`), test paths, warning filters.
+**Pytest config** (`pyproject.toml` `[tool.pytest.ini_options]`): markers (`unit`, `integration`), test paths, warning filters.
 **Fixtures** (`source/tests/conftest.py`): sample VLESS/VMess/Trojan/SS configs, MTProto/SOCKS5 proxies, temp files, mock logger.
 
 ### Test Coverage
-- **658 tests** across 26 test files (full suite in ~40s)
-- `test_config_processor.py` - 78 processor tests
+Measured at `5165416c`: **975 tests** across 37 test files (full suite in ~70s). `docs/development/testing.md` holds the authoritative per-module counts and the figures guard keeps them in step; the list below is a snapshot for orientation.
+- `test_config_processor.py` - 86 processor tests
+- `test_fetcher_unit.py` - 83 fetcher unit tests
 - `test_file_utils.py` - 70 file utils tests
-- `test_xray_tester.py` - 44 Xray tester + security edge case tests
-- `test_security_filter.py` - 35 security filter tests
+- `test_fetch_guard_scope.py` - 70 destination-guard tests (refused ranges, the allowlist, the warning-filter walk)
+- `test_fetch_posture.py` - 55 fetch-security tests (refusals, the token host set, the run conditions)
+- `test_xray_tester.py` - 45 Xray tester + security edge case tests
 - `test_vpn_config.py` - 35 VPNConfig typed dataclass tests
+- `test_security_filter.py` - 35 security filter tests
+- `test_ip_verifier.py` - 35 IP verifier tests
 - `test_logger.py` - 30 logger tests
 - `test_yaml_converter.py` - 28 YAML converter tests
 - `test_smart_eta.py` - 27 SmartETA tests
 - `test_git_updater.py` - 26 GitUpdater tests (init, pull, commit, push, retry)
+- `test_url_stats.py` - 25 URL stats tests
 - `test_simple_tester.py` - 25 TCP ping tests (extract_host_port + SimpleTester)
 - `test_process_registry.py` - 25 ProcessRegistry tests
 - `test_git_auto_cleaner.py` - 24 auto-commit cleaner tests
+- `test_health_check.py` - 22 health check tests (DNS fallback, disk, memory)
 - `test_github_handler.py` - 22 GitHub handler tests (adapter pattern)
-- `test_health_check.py` - 21 health check tests (DNS fallback, disk, memory, GitHub token)
+- `test_xray_batch.py` - 21 BatchRunner tests
 - `test_telegram_proxy_scraper.py` - 21 Telegram proxy scraper tests
 - `test_proxy_monitor.py` - 19 proxy monitor tests
-- `test_xray_batch.py` - 18 BatchRunner tests
-- `test_config_tagger.py` - 17 ConfigTagger tests
-- `test_fetcher.py` - 15 fetcher tests
-- `test_executor_cache.py` - 15 ExecutorCache tests
+- `test_pipeline_e2e.py` - 19 offline pipeline harness tests
+- `test_config_tagger.py` - 18 ConfigTagger tests
+- `test_executor_cache.py` - 17 ExecutorCache tests
 - `test_managed_process.py` - 15 ManagedProcess lifecycle tests
+- `test_telegram_proxy_verifier.py` - 14 Telegram proxy verifier tests
 - `test_ip_checker.py` - 14 IP checker tests
-- `test_telegram_proxy_verifier.py` - 12 Telegram proxy verifier tests
-- `test_url_stats.py` - 11 URL stats tests
-- `test_ip_verifier.py` - 6 IP verifier tests
+- `test_scripts_import.py` - 12 script-import smoke tests
+- `test_fetch_run_conditions.py` - 7 run-condition / non-evidence-outcome tests
+- `test_docs_figures.py` - 7 documentation-drift guard tests
 - `test_progress.py` - 6 progress bar tests
+- `test_main.py` - 6 main entry point tests
+- `test_module_size.py` - 4 module-size gate tests
+- `test_telegram_proxy_processor.py` - 3 Telegram proxy processor tests
+- `test_purge_stale_urls.py` - 3 purge script tests
+- `test_fetcher.py` - 1 fetcher test
 
 ### Utility Scripts
 ```bash
@@ -624,7 +648,7 @@ Pipeline runs on a VPS via cron every hour.
 
 **Requirements:**
 - Ubuntu/Debian VPS
-- Git, Python 3.8+, Xray-core (auto-downloaded)
+- Git, Python 3.11+, Xray-core (auto-downloaded)
 - GitHub token with repo access in `.env`
 
 **Setup:**
@@ -815,7 +839,10 @@ on:
 
 ## Performance Benchmarks
 
-### Typical Run Times (Ubuntu, ~10k configs)
+### Typical Run Times (Ubuntu)
+
+> Measured on a ~10k-config corpus. The current corpus is far larger — the URL statistics recorded ~410 000 raw configs across 315 sources — so read these figures as indicative of the *shape* of a run, not as a current measurement.
+
 - **Fetch URLs:** 10-30s (parallel, 50 workers)
 - **Create all.txt:** 5-10s (deduplication)
 - **SNI/CIDR filter:** 5-15s (parallel, up to 32 chunks)

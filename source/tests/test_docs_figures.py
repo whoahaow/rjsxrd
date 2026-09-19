@@ -125,10 +125,13 @@ RU_COVERAGE_ANCHOR = re.compile(r"замер на ветке `main` в комм�
 EN_COVERAGE_ANCHOR = re.compile(
     r"a measurement on branch `main` at commit `(?P<sha>[0-9a-f]{7,40})`"
 )
-# A row of the coverage table: "| `pytest --cov=.` — the full run, as in CI | all of `source/` |
-# **74 %** (14138 statements, 3159 missed, 2972 branches) |". Emphasis is stripped by `find`
-# before matching, so the percentage is read without its asterisks. The counters are captured
-# with the words around them in either language — the unit nouns differ, the shape does not.
+# A row of the coverage table: "| `pytest --cov=.` — the full run, as in CI | the code under
+# `source/` | **<percent> %** (<statements> statements, <missed> missed, <branches> branches) |".
+# The shape of a row, not a figure copied from the page: the values the pattern is matched
+# against are the measurement's own, stated in `testing.md` / `testing.en.md` and re-measured
+# with the tree. Emphasis is stripped by `find` before matching, so the percentage is read
+# without its asterisks. The counters are captured with the words around them in either
+# language — the unit nouns differ, the shape does not.
 COVERAGE_ROW = re.compile(
     r"^\|\s*`(?P<command>[^`]+)`[^|]*\|[^|]*\|\s*"
     r"(?P<percent>\d+(?:[.,]\d+)?)\s*%\s*"
@@ -726,9 +729,9 @@ class TestDocumentedCoverage:
         """Each row is measured once and stated twice, and the two statements have to agree.
 
         One commit across both languages; every row's percentage inside the band its own counters
-        allow; the two rows measuring all of ``source/`` agreeing about the tree, with the offline
-        floor the worse of the two; and the same three rows in both languages. Every mismatch is
-        reported in one failure with ``path:line``, so the next drift is corrected in one pass.
+        allow; the two rows measuring the same tree agreeing about it, with the offline floor the
+        worse of the two; and the same three rows in both languages. Every mismatch is reported in
+        one failure with ``path:line``, so the next drift is corrected in one pass.
         """
         problems: list[str] = []
         anchors: dict[str, str] = {}

@@ -43,7 +43,11 @@ from fetchers.destination_guard import (
     report_destination_refusals,
 )
 from fetchers.fetcher import INSECURE_FETCHES, fetch_data, report_fetch_security
-from utils.fetch_outcomes import DESTINATION_REFUSAL_PREFIX, is_destination_refusal
+from utils.fetch_outcomes import (
+    DESTINATION_REFUSAL_PREFIX,
+    is_destination_refusal,
+    is_source_evidence,
+)
 from utils.logger import LOGS_BY_FILE
 from utils.url_stats import URLStats
 
@@ -245,6 +249,45 @@ class TestARefusalIsAnOutcomeOfItsOwn:
 
         assert result.success is False
         assert is_destination_refusal(result.error) is False
+
+    def test_a_transport_error_that_begins_with_a_marker_spares_its_source(
+        self, tmp_path: Path
+    ) -> None:
+        """The residual this classifier accepts, held as a fact rather than an argument.
+
+        `is_source_evidence` reads the first characters of a text the pipeline did not write:
+        the fetch stage quotes what a failed attempt raised, so a quoted message that *begins*
+        with a marker is that class. Nothing in this tree raises one — the client and the OS
+        compose their own messages — so the exposure sits at the interface, and it is accepted
+        rather than closed: closing it means marking every failure the fetch stage reports,
+        which changes the text the history persists and the rule the default path states (a
+        failure the fetch made carries no marker). The consequence is bounded to the quiet
+        direction — the source is spared, never wrongly deleted. This test is the record of
+        that decision, so the day the transport path is marked it fails and takes the stated
+        limit with it, instead of the limit silently ceasing to describe the code.
+        """
+        urls_txt = _source_file(tmp_path)
+        stats = URLStats(path=str(tmp_path / "url_stats.json"))
+        # A transport failure whose own message begins with the guard's marker. Recorded
+        # verbatim by the fetch stage, which is the whole of the exposure.
+        marker_led = (
+            f"{DESTINATION_REFUSAL_PREFIX}{SOURCE_HOST}: it resolves to the "
+            f"non-public address {LOOPBACK_ADDRESS}"
+        )
+        session = MagicMock()
+        session.get.side_effect = ConnectionError(marker_led)
+
+        for _ in range(3):
+            result = fetch_data(SOURCE_URL, session=session)
+            assert result.error == marker_led
+            _record(stats, SOURCE_URL, result)
+
+        assert is_source_evidence(marker_led) is False
+        assert stats.get_dead_urls(3) == []
+
+        stats.remove_dead_from_urls_txt(path=str(urls_txt))
+
+        assert SOURCE_URL in urls_txt.read_text(encoding="utf-8")
 
     def test_the_run_counts_refusals_by_host_and_address(
         self, monkeypatch: pytest.MonkeyPatch

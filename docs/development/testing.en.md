@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 ```
 
 Every test module declares its marker (`pytestmark`), so `-m unit` and
-`-m integration` actually select something: 886 and 15 tests out of 901
+`-m integration` actually select something: 887 and 15 tests out of 902
 (measured with `pytest --collect-only -q` under each marker). Only the two
 modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) carry `integration`. Pure logic needs
@@ -32,7 +32,7 @@ which took the 15 pure-logic tests out of `test_fetcher.py`.
 
 ## Test structure
 
-**901 tests** in 36 files. A full run takes around 70–80 seconds on the
+**902 tests** in 36 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
@@ -59,7 +59,7 @@ load, so measure with `pytest -q` on your own machine.
 | `test_config_tagger.py` | 18 | ConfigTagger: source+protocol tagging; `utils/__init__.py` declares no imports |
 | `test_fetcher.py` | 1 | `fetch_data` against a real URL; self-skips without network |
 | `test_fetcher_unit.py` | 84 | Env proxy, session shape, retry loop, error mapping, TLS downgrades, private-range guard (no network) |
-| `test_fetch_posture.py` | 54 | Destination refusals (counter, report, the strictness of the marker, a URL's life in `URLS.txt`), the GitHub token's hosts held against a literal and against `SECURITY.md`, and the addresses translation prefixes carry (no network) |
+| `test_fetch_posture.py` | 55 | Destination refusals (counter, report, the strictness of the marker, a URL's life in `URLS.txt`, and the limit the classifier accepts), the GitHub token's hosts held against a literal and against `SECURITY.md`, and the addresses translation prefixes carry (no network) |
 | `test_fetch_run_conditions.py` | 7 | A fetch the run's own rules curtailed: the marker, the counter and the report, and a URL that must not age for one (no network) |
 | `test_executor_cache.py` | 17 | Thread pool, shutdown, WSL detection |
 | `test_managed_process.py` | 15 | ManagedProcess lifecycle |

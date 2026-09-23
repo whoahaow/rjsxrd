@@ -32,8 +32,9 @@ from utils.fetch_outcomes import report_run_conditions, run_condition
 from utils.logger import log, warning
 
 # The retry ladder in fetch_data() retries a failed fetch as the same verified
-# request: no attempt skips certificate verification and none goes out over
-# plaintext HTTP, which is the default since the downgrades were turned off.
+# request: no attempt turns certificate verification off, and no https URL is
+# rewritten down to plaintext HTTP (an http URL is sent as written — it was
+# never encrypted). That is the default since the downgrades were turned off.
 # They still exist behind ALLOW_TLS_DOWNGRADE, because this pipeline runs on a
 # network that interferes with TLS and the ladder reaches sources the verified
 # retries do not. A downgraded attempt is the point where an attacker on the

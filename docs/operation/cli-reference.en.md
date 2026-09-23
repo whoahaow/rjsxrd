@@ -100,7 +100,7 @@ All variables can be set via the `.env` file in the project root (see `.env.exam
 | `MAX_WORKERS` | 50 | Number of threads for downloads |
 | `FETCH_TIMEOUT` | 5 | HTTP request timeout (s) |
 | `FETCH_MAX_ATTEMPTS` | 3 | Number of URL fetch attempts |
-| `ALLOW_TLS_DOWNGRADE` | 0 | Restores the old downgrade ladder: attempt 2 without the certificate check, attempt 3 over plaintext HTTP. Off by default — every attempt is the same request over verified TLS, and a source reachable only without verification is lost and ages out like any unreachable one |
+| `ALLOW_TLS_DOWNGRADE` | 0 | Restores the old downgrade ladder: attempt 2 without the certificate check, attempt 3 over plaintext HTTP. Off by default — every attempt sends the URL as it is spelled, with the certificate checked when it is https, and a source reachable only without verification is lost and ages out like any unreachable one |
 | `FETCH_PRIVATE_ALLOWLIST` | — | Permitted private destinations, comma-separated: an IP literal, a CIDR, a bracketed v6 address (`[::1]`, `[::1]:1080`), `host` or `host:port`. An entry that covers a whole address family (`0.0.0.0/0`, `::/0`) is refused at load with the entry named — it does not extend the guard, it switches it off |
 | `VALIDATION_TCP_CONCURRENCY` | 300 | TCP ping concurrency |
 | `VALIDATION_HTTP_CONCURRENCY` | 20 | HTTP check concurrency |

@@ -281,21 +281,23 @@ FETCH_MAX_ATTEMPTS = _validate_int_env("FETCH_MAX_ATTEMPTS", 3, 1, 5)
 GITHUB_API_FALLBACK = os.environ.get("GITHUB_API_FALLBACK", "1") not in ("0", "false", "no")
 
 # === Fetch security posture ===
-# fetchers/fetcher.py retries a failed fetch in an order that trades TLS
-# verification for reachability: attempt 2 skips certificate verification and
-# attempt 3 re-sends the request in the clear. That ladder is deliberate — this
-# pipeline runs on a network that actively interferes with TLS, and without
-# those two attempts a large share of the sources is simply unreachable. What
-# is not acceptable is that it used to be silent: the fetcher now logs every
-# downgrade with its host and counts them (see SECURITY.md). These two settings
-# are the operator's side of that posture.
+# The retries the fetcher makes are verified ones: the same URL, over TLS, with
+# the certificate checked. The ladder this replaces traded verification for
+# reachability — attempt 2 skipped the certificate check and attempt 3 re-sent
+# the request in the clear — and on a network that actively interferes with TLS
+# those two attempts do reach sources a verified request does not. What they
+# cost is not just yield: anyone able to break TLS on the path decides what this
+# pipeline fetches, and therefore what it publishes. The downgrades are off by
+# default, so a source that answers only to an unverified or plaintext request
+# is lost, ages out of URLS.txt like any unreachable one, and the run says
+# nothing about it beyond the ordinary failure.
 #
-# REFUSE_INSECURE_FETCH=1 skips attempts 2 and 3 entirely, so no request leaves
-# the process without certificate validation and none goes out in the clear.
-# What it costs: fetch yield. Every source the network breaks TLS for (rather
-# than blocks outright) is lost, because the verified attempt is the only one
-# left. Default off — today's behaviour, with a log line per downgrade.
-REFUSE_INSECURE_FETCH = os.environ.get("REFUSE_INSECURE_FETCH", "0").lower() in ("1", "true", "yes")
+# ALLOW_TLS_DOWNGRADE=1 restores the old ladder and its reach. The threat, what
+# each attempt sends and what it costs are in SECURITY.md. Either way the
+# downgrades that remain are loud: every one is logged with its host, counted,
+# and printed in the end-of-run report. Silence is the outcome that is never
+# acceptable, and it is what the settings below exist to prevent.
+ALLOW_TLS_DOWNGRADE = os.environ.get("ALLOW_TLS_DOWNGRADE", "0").lower() in ("1", "true", "yes")
 
 
 # Destinations a fetch may still reach, comma-separated. An entry is an IP

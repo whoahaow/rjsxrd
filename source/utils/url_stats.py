@@ -78,16 +78,18 @@ class URLStats:
     def record_fetch(self, url: str, success: bool, status_code: int = 0, error: str = "") -> None:
         """Thread-safe fetch result recording. Save happens on flush().
 
-        An outcome that says nothing about the source does not age the URL. Three of those used
+        An outcome that says nothing about the source does not age the URL. Two of those used
         to be indistinguishable from three dead fetches, and `remove_dead_from_urls_txt()`
-        deleted a curated source from `URLS.txt` twice over: once because a name resolved
-        somewhere private — a DNS blip, or an answer this pipeline must not connect to — and
-        once because the operator had turned `REFUSE_INSECURE_FETCH` on, so the fetch that
-        would have tested the source was never made. Both stay in the file and are named in
-        every run's report (`fetchers/destination_guard.py`, `utils/fetch_outcomes.py`);
-        dropping a line stays a decision for a human. A failure the fetch stage did reach — a
-        transport error, a status the server returned — raises the count exactly as it did, and
-        a success still clears it, so the purge keeps removing the sources it exists for.
+        deleted a curated source from `URLS.txt` for reasons that were not the source's: once
+        because a name resolved somewhere private — a DNS blip, or an answer this pipeline must
+        not connect to — and once because the run had declined to make the attempt at all. Both
+        stay in the file and are named in every run's report (`fetchers/destination_guard.py`,
+        `utils/fetch_outcomes.py`); dropping a line stays a decision for a human. A failure the
+        fetch stage did reach — a transport error, a status the server returned — raises the
+        count exactly as it did, and a success still clears it, so the purge keeps removing the
+        sources it exists for. That includes a source the verified retries could not reach: the
+        attempts are verified unless `ALLOW_TLS_DOWNGRADE` restores the downgrades, and a source
+        reachable only without verification is unreachable on purpose.
 
         Which outcomes those are comes from the markers in `utils/fetch_outcomes`, which is where
         they are built, so what is recorded here cannot disagree with what the fetch stage

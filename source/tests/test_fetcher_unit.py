@@ -78,6 +78,17 @@ def offline_fetch(monkeypatch: pytest.MonkeyPatch) -> None:
     INSECURE_FETCHES.reset()
 
 
+@pytest.fixture
+def downgrade_ladder(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The historical ladder, for the tests that pin what it does.
+
+    The downgrades are off by default now, so a test that asserts one happened
+    has to say it asked. `TestVerifiedRetries` pins what the same loop does
+    without this fixture.
+    """
+    monkeypatch.setattr(fetcher_module, "ALLOW_TLS_DOWNGRADE", True)
+
+
 def _response(text: str = "content", url: str = CONFIG_URL) -> MagicMock:
     """A successful response, as the client hands one back.
 
@@ -354,17 +365,19 @@ class TestFetchViaApiBody:
 
 
 class TestRetryLadder:
-    """The three attempts, as the security posture left them.
+    """The three attempts of the opt-in ladder, as it leaves them.
 
-    The ladder is load-bearing: it exists because the network this pipeline runs
-    on interferes with TLS, and tightening it by accident is the one change that
-    would break the product. These pin the order, the URL each attempt uses and
-    which of them skips verification, so a future edit that looks like a
-    simplification fails here instead of in production.
+    The ladder is load-bearing when it is on: it exists because the network this
+    pipeline runs on interferes with TLS, and tightening it by accident is the
+    one change that would break the product. These pin the order, the URL each
+    attempt uses and which of them skips verification, so a future edit that
+    looks like a simplification fails here instead of in production. What the
+    same loop does by default — retries with no relaxation — is
+    `TestVerifiedRetries`.
     """
 
-    def test_the_second_attempt_skips_certificate_verification(self):
-        """Attempt 2 keeps the URL and drops `verify` — as it always did."""
+    def test_the_second_attempt_skips_certificate_verification(self, downgrade_ladder):
+        """Attempt 2 keeps the URL and drops `verify`."""
         session = _session(ConnectionError("blocked"), _response())
 
         result = fetch_data(CONFIG_URL, session=session)
@@ -375,8 +388,8 @@ class TestRetryLadder:
         assert second.kwargs["verify"] is False
         assert second.args[0] == CONFIG_URL
 
-    def test_the_third_attempt_goes_plaintext_when_the_url_is_https(self):
-        """Attempt 3 rewrites https to http — the DPI workaround, unchanged."""
+    def test_the_third_attempt_goes_plaintext_when_the_url_is_https(self, downgrade_ladder):
+        """Attempt 3 rewrites https to http — the DPI workaround."""
         session = _session(
             ConnectionError("blocked"),
             ConnectionError("blocked"),
@@ -390,7 +403,7 @@ class TestRetryLadder:
         assert third.args[0] == PLAINTEXT_CONFIG_URL
         assert third.kwargs["verify"] is False
 
-    def test_the_third_attempt_keeps_a_plaintext_url_as_it_is(self):
+    def test_the_third_attempt_keeps_a_plaintext_url_as_it_is(self, downgrade_ladder):
         """An http URL has no scheme to downgrade; the attempt is just attempt 2."""
         session = _session(
             ConnectionError("blocked"),
@@ -403,7 +416,7 @@ class TestRetryLadder:
         assert result.success is True
         assert session.get.call_args_list[2].args[0] == PLAINTEXT_CONFIG_URL
 
-    def test_an_attempt_past_the_third_is_verified_again(self):
+    def test_an_attempt_past_the_third_is_verified_again(self, downgrade_ladder):
         """The loop resets `verify` per attempt; a fourth try is not insecure."""
         session = _session(
             ConnectionError("blocked"),
@@ -425,16 +438,22 @@ class TestAttemptModes:
 
     def test_the_third_attempt_is_only_a_downgrade_for_an_https_url(self):
         """An http URL is not "downgraded" by attempt 3 — it was never encrypted."""
-        assert _attempt_mode(2, CONFIG_URL) == "unverified"
-        assert _attempt_mode(2, PLAINTEXT_CONFIG_URL) == "unverified"
-        assert _attempt_mode(3, CONFIG_URL) == "plaintext"
-        assert _attempt_mode(3, PLAINTEXT_CONFIG_URL) == "unverified"
+        assert _attempt_mode(2, CONFIG_URL, allow_downgrade=True) == "unverified"
+        assert _attempt_mode(2, PLAINTEXT_CONFIG_URL, allow_downgrade=True) == "unverified"
+        assert _attempt_mode(3, CONFIG_URL, allow_downgrade=True) == "plaintext"
+        assert _attempt_mode(3, PLAINTEXT_CONFIG_URL, allow_downgrade=True) == "unverified"
 
     def test_later_attempts_are_verified_again(self):
-        """`max_attempts` can go to 5; only 2 and 3 are insecure."""
-        assert _attempt_mode(1, CONFIG_URL) == "verified"
-        assert _attempt_mode(4, CONFIG_URL) == "verified"
-        assert _attempt_mode(5, CONFIG_URL) == "verified"
+        """`max_attempts` can go to 5; only 2 and 3 are insecure, and only on the ladder."""
+        assert _attempt_mode(1, CONFIG_URL, allow_downgrade=True) == "verified"
+        assert _attempt_mode(4, CONFIG_URL, allow_downgrade=True) == "verified"
+        assert _attempt_mode(5, CONFIG_URL, allow_downgrade=True) == "verified"
+
+    def test_no_attempt_is_insecure_when_the_downgrades_are_refused(self):
+        """The whole ladder collapses to one mode, so no call site can pick a bad one."""
+        for attempt in range(1, 6):
+            assert _attempt_mode(attempt, CONFIG_URL, allow_downgrade=False) == "verified"
+            assert _attempt_mode(attempt, PLAINTEXT_CONFIG_URL, allow_downgrade=False) == "verified"
 
 
 class TestDowngradeObservability:
@@ -446,7 +465,7 @@ class TestDowngradeObservability:
     clean one.
     """
 
-    def test_the_unverified_attempt_is_logged_with_its_host_and_attempt(self):
+    def test_the_unverified_attempt_is_logged_with_its_host_and_attempt(self, downgrade_ladder):
         """The line names the host and the attempt, not just the condition."""
         session = _session(ConnectionError("blocked"), _response())
 
@@ -462,7 +481,7 @@ class TestDowngradeObservability:
             for message in messages
         ), messages
 
-    def test_the_plaintext_attempt_is_logged_as_plaintext(self):
+    def test_the_plaintext_attempt_is_logged_as_plaintext(self, downgrade_ladder):
         """Attempt 3 says what it is: the same request, in the clear."""
         session = _session(
             ConnectionError("blocked"),
@@ -490,7 +509,7 @@ class TestDowngradeObservability:
         assert logged.call_args_list == []
         assert INSECURE_FETCHES.snapshot().attempts == 0
 
-    def test_the_counter_tracks_attempts_and_hosts_separately(self):
+    def test_the_counter_tracks_attempts_and_hosts_separately(self, downgrade_ladder):
         """Two hosts, three downgraded attempts: the report needs both numbers."""
         fetch_data("https://a.example/config.txt", session=_failing_session(), max_attempts=3)
         fetch_data("https://b.example/config.txt", session=_failing_session(), max_attempts=2)
@@ -504,7 +523,7 @@ class TestDowngradeObservability:
         assert stats.unverified_hosts == ("a.example", "b.example")
         assert stats.plaintext_hosts == ("a.example",)
 
-    def test_the_end_of_run_report_states_the_totals_and_names_the_hosts(self):
+    def test_the_end_of_run_report_states_the_totals_and_names_the_hosts(self, downgrade_ladder):
         """The count reaches the log through the same channel as the other stats."""
         fetch_data("https://a.example/config.txt", session=_failing_session(), max_attempts=3)
         fetch_data("https://b.example/config.txt", session=_failing_session(), max_attempts=3)
@@ -532,44 +551,41 @@ class TestDowngradeObservability:
         )
 
 
-class TestRefuseInsecureFetch:
-    """The setting an operator turns on to refuse the downgrades outright."""
+class TestVerifiedRetries:
+    """The default posture: a failed fetch is retried, never relaxed."""
 
-    def test_the_setting_is_off_by_default(self):
-        """Today's behaviour is the default; the refusal is opt-in."""
-        assert fetcher_module.REFUSE_INSECURE_FETCH is False
+    def test_the_downgrades_are_off_by_default(self):
+        """No request leaves with its certificate unchecked unless asked."""
+        assert fetcher_module.ALLOW_TLS_DOWNGRADE is False
 
-    def test_refusing_skips_both_downgrades_and_reports_why(self):
-        """Only the verified attempt is made, and the refusal is the reason."""
+    def test_every_attempt_keeps_the_url_and_the_certificate_check(self):
+        """Three attempts, one URL, three verified handshakes.
+
+        The retry count and the wait between attempts are unchanged — only the
+        relaxation is gone, so a source that fails here was given its retries
+        over a verified connection and the failure is about the source.
+        """
         session = _failing_session()
 
-        with (
-            patch.object(fetcher_module, "REFUSE_INSECURE_FETCH", True),
-            patch.object(fetcher_module, "warning") as logged,
-        ):
+        with patch.object(fetcher_module, "warning") as logged:
             result = fetch_data(CONFIG_URL, session=session)
 
-        assert session.get.call_count == 1
         assert result.success is False
-        assert result.text == ""
-        assert "blocked" in result.error  # the transport error is kept
-        assert "REFUSE_INSECURE_FETCH" in result.error
+        assert [call.args[0] for call in session.get.call_args_list] == [CONFIG_URL] * 3
+        assert [call.kwargs["verify"] for call in session.get.call_args_list] == [True] * 3
         assert INSECURE_FETCHES.snapshot().attempts == 0
-        assert any("REFUSE_INSECURE_FETCH" in call.args[0] for call in logged.call_args_list), [
-            call.args[0] for call in logged.call_args_list
-        ]
+        messages = [call.args[0] for call in logged.call_args_list]
+        assert not any("TLS certificate verification" in message for message in messages), messages
 
-    def test_refusing_does_not_touch_a_verified_attempt_that_works(self):
-        """The setting removes the fallbacks, not the fetch."""
-        session = _session(_response(text="payload"))
+    def test_the_end_of_run_report_names_the_posture_that_ran(self):
+        """'Nothing was downgraded' and 'downgrading is refused' are different facts."""
+        LOGS_BY_FILE.clear()
 
-        with patch.object(fetcher_module, "REFUSE_INSECURE_FETCH", True):
-            result = fetch_data(CONFIG_URL, session=session)
+        report_insecure_fetches()
 
-        assert result.success is True
-        assert result.text == "payload"
-        assert session.get.call_count == 1
-        assert session.get.call_args.kwargs["verify"] is True
+        assert any(
+            "TLS downgrades are refused (the default)" in line for line in LOGS_BY_FILE[0]
+        ), LOGS_BY_FILE[0]
 
 
 class TestTlsWarningScope:
@@ -580,7 +596,9 @@ class TestTlsWarningScope:
     two tests pin what the scoped call does and does not silence.
     """
 
-    def test_the_client_warning_is_silenced_inside_the_call_and_seen_outside_it(self):
+    def test_the_client_warning_is_silenced_inside_the_call_and_seen_outside_it(
+        self, downgrade_ladder
+    ):
         """The same message is suppressed in the call and reported after it."""
         calls = {"n": 0}
 

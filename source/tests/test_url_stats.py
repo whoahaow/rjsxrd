@@ -228,7 +228,7 @@ class TestWhatCountsAsEvidenceAboutASource:
         assert is_destination_refusal(refusal) is True
 
     def test_a_run_condition_is_not_evidence_about_the_source(self) -> None:
-        curtailed = f"{RUN_CONDITION_PREFIX}2 insecure attempt(s) skipped by REFUSE_INSECURE_FETCH"
+        curtailed = f"{RUN_CONDITION_PREFIX}the fetch was called with max_attempts below 1"
 
         assert is_source_evidence(curtailed) is False
         assert is_destination_refusal(curtailed) is False
@@ -258,13 +258,13 @@ class TestARunConditionAndTheURL:
     def test_three_curtailed_fetches_leave_the_url_alone(self, tmp_path) -> None:
         """A run condition ages nothing, which is the whole point of the class.
 
-        `REFUSE_INSECURE_FETCH` skipping the ladder's downgrades is a fact about the run, and a
-        source the operator's own setting left untested must not be deleted from `URLS.txt` for
-        for it — the same reason a refusal is not allowed to. The history keeps the reason the
-        fetch returned and the class is read from it, so what it was is in one place.
+        A call that asked for no attempt is a fact about the run, and a source the fetch stage
+        never reached must not be deleted from `URLS.txt` for it — the same reason a refusal is
+        not allowed to. The history keeps the reason the fetch returned and the class is read
+        from it, so what it was is in one place.
         """
         stats = URLStats(path=str(tmp_path / "url_stats.json"))
-        curtailed = f"{RUN_CONDITION_PREFIX}2 insecure attempt(s) skipped by REFUSE_INSECURE_FETCH"
+        curtailed = f"{RUN_CONDITION_PREFIX}the fetch was called with max_attempts below 1"
 
         for _ in range(3):
             stats.record_fetch("https://example.com", False, 0, curtailed)

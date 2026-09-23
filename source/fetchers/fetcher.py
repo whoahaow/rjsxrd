@@ -17,10 +17,10 @@ import requests
 from curl_cffi.requests import Session
 
 from config.settings import (
+    ALLOW_TLS_DOWNGRADE,
     CHROME_UA,
     FETCH_PRIVATE_ALLOWLIST,
     GITHUB_API_FALLBACK,
-    REFUSE_INSECURE_FETCH,
 )
 from fetchers.destination_guard import (
     _is_blocked_address,
@@ -31,16 +31,15 @@ from fetchers.destination_guard import (
 from utils.fetch_outcomes import report_run_conditions, run_condition
 from utils.logger import log, warning
 
-# The retry ladder in fetch_data() trades TLS verification for reachability:
-# attempt 2 skips certificate verification and attempt 3 re-sends the request
-# in the clear. That is deliberate — this pipeline runs on a network that
-# interferes with TLS — but it is also the point where an attacker on the path
-# can influence what gets fetched, and therefore what gets published. It used
-# to be invisible: a process-wide warning filter installed at import time hid
-# the client's own signal, and nothing counted how often a fetch took the
-# downgrade. Every downgrade is now logged with its host, counted, and printed
-# by report_insecure_fetches() at the end of a run. SECURITY.md records the
-# threat; REFUSE_INSECURE_FETCH refuses the downgrades outright.
+# The retry ladder in fetch_data() retries a failed fetch as the same verified
+# request: no attempt skips certificate verification and none goes out over
+# plaintext HTTP, which is the default since the downgrades were turned off.
+# They still exist behind ALLOW_TLS_DOWNGRADE, because this pipeline runs on a
+# network that interferes with TLS and the ladder reaches sources the verified
+# retries do not. A downgraded attempt is the point where an attacker on the
+# path can influence what gets fetched, and therefore what gets published, so
+# every one is logged with its host, counted, and printed by
+# report_insecure_fetches() at the end of a run. SECURITY.md records the threat.
 
 # The modes the ladder can use on an attempt.
 _MODE_VERIFIED = "verified"
@@ -144,7 +143,14 @@ def report_insecure_fetches() -> InsecureFetchStats:
     """
     stats = INSECURE_FETCHES.snapshot()
     if stats.attempts == 0:
-        log("[fetch-security] no fetch skipped TLS verification and none went out in the clear")
+        # The posture belongs in the line: with the downgrades refused a run has
+        # nothing to report here, and "nothing to report" reads the same as a
+        # clean run on the old ladder unless the line says which rule applied.
+        posture = "allowed" if ALLOW_TLS_DOWNGRADE else "refused (the default)"
+        log(
+            "[fetch-security] no fetch skipped TLS verification and none went out in the "
+            f"clear — TLS downgrades are {posture}"
+        )
         return stats
 
     warning(
@@ -160,16 +166,16 @@ def report_insecure_fetches() -> InsecureFetchStats:
 
 
 def report_fetch_security() -> None:
-    """Print this run's fetch-security figures: refusals, curtailed fetches, downgrades.
+    """Print this run's fetch-security figures: refusals, curtailed calls, downgrades.
 
     One call site, three reports, kept as separate sections on purpose: a refused
     destination is a network condition (the name resolved to an address this pipeline must
-    not connect to), a curtailed fetch is the operator's own policy at work (the attempts
-    that could have reached the source were skipped), and a downgraded fetch is a
-    reachability trade (the request went out without certificate verification, or in the
-    clear). None of the three is evidence that a source is dead — the URL health report is
-    where that is said, and keeping the four apart is what lets an operator reading one run
-    tell which one they are looking at.
+    not connect to), a curtailed call is the run's own setup (no attempt was made at all),
+    and a downgraded fetch is a reachability trade (the request went out without certificate
+    verification, or in the clear — which the default policy does not allow, so this section
+    also names the policy that ran). None of the three is evidence that a source is dead —
+    the URL health report is where that is said, and keeping the four apart is what lets an
+    operator reading one run tell which one they are looking at.
     """
     report_destination_refusals()
     report_run_conditions()
@@ -344,21 +350,27 @@ def _redirect_refusal(requested_url: str, response, allowlist: Sequence[str]) ->
     return _destination_refusal(final_url, allowlist)
 
 
-def _attempt_mode(attempt: int, url: str) -> str:
+def _attempt_mode(attempt: int, url: str, *, allow_downgrade: bool) -> str:
     """Which mode the ladder uses on a given attempt for this URL.
 
-    attempt 1: TLS with certificate verification
-    attempt 2: TLS with verification skipped
-    attempt 3: the same request over plaintext HTTP, verification skipped
-    attempt 4 and beyond: verified TLS again, as the loop's previous
+    With `allow_downgrade` off — the default — every attempt is the same
+    verified request: a failure is retried rather than relaxed, so the retries
+    cost time and no request leaves with its certificate unchecked.
+
+    With it on, the historical ladder:
+        attempt 1: TLS with certificate verification
+        attempt 2: TLS with verification skipped
+        attempt 3: the same request over plaintext HTTP, verification skipped
+        attempt 4 and beyond: verified TLS again, as the loop's previous
     `verify = True` default did for every attempt it did not rewrite
 
     The third attempt is only a downgrade when the URL is https; for an
     http URL it repeats the second, and the log says which of the two happened
-    rather than claiming a downgrade that did not. Callers must not reorder
-    these or drop the third — the order is what keeps the fetch yield up on a
-    network that interferes with TLS (SECURITY.md).
+    rather than claiming a downgrade that did not. When the ladder is on its
+    order must not be reordered — SECURITY.md states what it buys and costs.
     """
+    if not allow_downgrade:
+        return _MODE_VERIFIED
     if attempt == 2:
         return _MODE_UNVERIFIED
     if attempt == 3:
@@ -598,21 +610,20 @@ def fetch_data(
                (github.com, raw.githubusercontent.com, api.github.com) — never to a host
                that merely appears in the URL text.
 
-    Retry strategy — the order and the count are load-bearing, not tunable
-    here (SECURITY.md states what they cost):
+    Retry strategy — every attempt is the same request over verified TLS, and
+    that is the point (SECURITY.md states what the alternative costs):
         attempt 1: normal with verify=True
-        attempt 2: verify=False (skip SSL cert check)
-        attempt 3: downgrade HTTPS to HTTP (for DPI/workaround)
+        attempt 2: the same request again with verify=True
+        attempt 3: the same request again with verify=True
         attempt 4: GitHub API fallback (for raw.githubusercontent.com IP blocks)
 
-    Every attempt that skips certificate verification, and every one that goes
-    out in the clear, is logged with its host and counted; the run's total is
-    printed by report_insecure_fetches(). With `REFUSE_INSECURE_FETCH` set,
-    attempts 2 and 3 are skipped rather than performed — and a fetch whose insecure
-    attempts were all skipped is then reported as a condition of the run rather
-    than as a failure of its source: it is counted with its host, named in the
-    end-of-run report, and it does not age the URL toward removal from `URLS.txt`.
-    A safety setting the operator turned on must not delete a curated source.
+    The retries are plain retries, not relaxations: a failure is given another
+    chance rather than a weaker connection. `ALLOW_TLS_DOWNGRADE=1` restores the
+    ladder this replaced, where attempt 2 skipped certificate verification and
+    attempt 3 re-sent the request over plaintext HTTP. Every attempt that does
+    skip verification, and every one that goes out in the clear, is logged with
+    its host and counted; the run's total is printed by
+    report_insecure_fetches(), which also states which of the two postures ran.
 
     A destination that resolves into a private, loopback, link-local or
     metadata range is refused before any connection is made, and a response
@@ -665,18 +676,10 @@ def fetch_data(
         # API also failed — fall through to normal retry loop as last resort
 
     host = _host_of(url)
-    refused_attempts = 0
     last_error = ""
 
     for attempt in range(1, max_attempts + 1):
-        mode = _attempt_mode(attempt, url)
-        if mode in _INSECURE_MODES and REFUSE_INSECURE_FETCH:
-            refused_attempts += 1
-            warning(
-                f"[fetch-security] attempt {attempt} for {host} skipped: "
-                "REFUSE_INSECURE_FETCH refuses the TLS downgrades"
-            )
-            continue
+        mode = _attempt_mode(attempt, url, allow_downgrade=ALLOW_TLS_DOWNGRADE)
         try:
             modified_url = url
             if mode == _MODE_PLAINTEXT:
@@ -712,25 +715,14 @@ def fetch_data(
                 text="", status_code=_extract_status(exc), error=last_error, success=False
             )
 
-    # The loop can end here only when the insecure attempts it would have made
-    # were refused. Report that as the reason when it is the reason, and keep
-    # the transport's own error when there was one — the skip explains why
-    # nothing further was tried, not why the first attempt failed. The skip note
-    # comes first because it is the marker: what this outcome means for the URL
-    # is decided from the beginning of the text (`utils/fetch_outcomes`), so a
-    # message that led with the transport error would age the source on the
-    # strength of the operator's own setting.
-    if refused_attempts:
-        skipped = f"{refused_attempts} insecure attempt(s) skipped by REFUSE_INSECURE_FETCH"
-        reason = f"{skipped}; the verified attempt failed: {last_error}" if last_error else skipped
-        return FetchResult(text="", status_code=0, error=run_condition(host, reason), success=False)
-
-    # max_attempts <= 0 never enters the loop. Report a failure rather than
-    # returning None: the declared contract is a FetchResult that callers
-    # inspect through `.success`, so None turns a bad argument into an
-    # AttributeError at the call site. It carries the run-condition marker too —
-    # nothing was attempted, so this is a fact about the call rather than about
-    # the source, and a URL must not be aged for a caller's mistake either.
+    # Every attempt inside the loop returns — on success, or on the last
+    # failure — so the only way to reach here is `max_attempts <= 0`, a loop that
+    # never ran. Report a failure rather than returning None: the declared
+    # contract is a FetchResult callers inspect through `.success`, so None turns
+    # a bad argument into an AttributeError at the call site. It carries the
+    # run-condition marker because nothing was attempted: this is a fact about
+    # the call, not about the source, and a URL must not be aged for a caller's
+    # mistake.
     return FetchResult(
         text="",
         status_code=0,

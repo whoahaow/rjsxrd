@@ -56,34 +56,41 @@ described below.
 Each of these is a known trade, recorded here so it is a decision rather than a
 surprise.
 
-### The TLS retry ladder
+### The fetch retry policy
 
-`fetchers/fetcher.py` retries a failed fetch in this order. The order and the
-retry count are load-bearing: this pipeline runs on a network that actively
-interferes with TLS, and without the middle attempts a large share of the sources
-is simply unreachable.
+`fetchers/fetcher.py` retries a failed fetch as the same verified request: every
+attempt sends the request over TLS with the certificate checked, one second
+apart. Nothing leaves this process unverified or in the clear unless the operator
+asks for that.
 
 | Attempt | What it sends | What it costs |
 |---|---|---|
-| 1 | the request over TLS, certificate verified | nothing |
-| 2 | the same request with certificate verification **off** | a forged or intercepted certificate is accepted |
-| 3 | the same request over **plaintext HTTP**, when the URL is https | anything on the path can read and rewrite it |
-| — | GitHub API fallback (`api.github.com`), verified TLS, token sent only to GitHub hosts | runs first for GitHub raw/blob URLs when `GITHUB_API_FALLBACK` is on (the default); the ladder runs if it fails |
+| 1-3 | the same request over TLS, certificate verified | a source reachable only without verification is lost |
+| — | GitHub API fallback (`api.github.com`), verified TLS, token sent only to GitHub hosts | runs first for GitHub raw/blob URLs when `GITHUB_API_FALLBACK` is on (the default); the retries run if it fails |
 
-**The honest consequence:** an attacker who can break or block TLS can influence
-the fetched configurations and therefore the published list. What they cannot do
-is execute anything: the body is parsed as configuration text.
+**The honest consequence:** a source whose TLS the network breaks or intercepts
+is not fetched. It fails like any unreachable source, ages out of `URLS.txt`
+after three runs and disappears. This pipeline runs on a network that actively
+interferes with TLS, so that is a real loss of yield, taken on purpose: the
+alternative lets anyone who can break TLS on the path decide which
+configurations get fetched and therefore published. They cannot execute anything
+— the body is parsed as configuration text — but they can put their own server
+into the list, and a subscription list is trusted by the clients that import it.
 
-What is not acceptable is silence, and that is what changed. The fetcher logs
-every downgrade with the host and the attempt, counts them, and prints the run's
-total — attempts and distinct hosts — in the end-of-run report next to the URL
-health report. An operator who would rather lose the sources than take the
-downgrade sets `REFUSE_INSECURE_FETCH=1`, which skips attempts 2 and 3; the cost
-is fetch yield, and that cost is the reason it is off by default. What it must
-never cost is a source: a fetch whose insecure attempts were skipped is reported
-as a condition of the run — counted, named with its host, and printed in the
-end-of-run report — and it does not age a URL toward removal from `URLS.txt`,
-because the operator's own setting is not evidence about the source.
+`ALLOW_TLS_DOWNGRADE=1` restores the ladder this replaced, where attempt 2
+skipped certificate verification and attempt 3 re-sent the request over plaintext
+HTTP. It is a reach setting, and what it buys is exactly what it risks.
+
+Silence is still the one outcome that is not acceptable. Every downgrade that
+does happen is logged with its host and the attempt number, counted, and printed
+in the end-of-run report next to the URL health report, which also states which
+of the two policies ran.
+
+A failure is evidence about its source under either policy, so it ages the URL.
+The outcomes that say nothing about a source are the ones where no request left
+the process — a destination refused before the request or after a redirect, and a
+call that asked for no attempt — and those are named in the run's report instead
+of counted against the source (`utils/fetch_outcomes.py`).
 
 ### Raw output is not published
 

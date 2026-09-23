@@ -58,9 +58,9 @@ load, so measure with `pytest -q` on your own machine.
 | `test_pipeline_e2e.py` | 19 | Full offline pipeline run with every seam stubbed |
 | `test_config_tagger.py` | 18 | ConfigTagger: source+protocol tagging; `utils/__init__.py` declares no imports |
 | `test_fetcher.py` | 1 | `fetch_data` against a real URL; self-skips without network |
-| `test_fetcher_unit.py` | 83 | Env proxy, session shape, retry loop, error mapping, TLS downgrades, private-range guard (no network) |
+| `test_fetcher_unit.py` | 84 | Env proxy, session shape, verified retries and the opt-in TLS downgrades, error mapping, private-range guard (no network) |
 | `test_fetch_posture.py` | 55 | Destination refusals (counter, report, the strictness of the marker, a URL's life in `URLS.txt`, and the limit the classifier accepts), the GitHub token's hosts held against a literal and against `SECURITY.md`, and the addresses translation prefixes carry (no network) |
-| `test_fetch_run_conditions.py` | 7 | A fetch the run's own rules curtailed: the marker, the counter and the report, and a URL that must not age for one (no network) |
+| `test_fetch_run_conditions.py` | 6 | An outcome of the run rather than the source: the marker, the counter and the report, and that a verified failure still ages a URL (no network) |
 | `test_fetch_guard_scope.py` | 70 | The fetch guard's written scope: the allowlist entry that switches the guard off, refused at load; the entry forms `config/settings.py` promises, held against the matcher; which port a qualified entry pins; the warning-filter walk, and what it still cannot see (no network) |
 | `test_executor_cache.py` | 17 | Thread pool, shutdown, WSL detection |
 | `test_managed_process.py` | 15 | ManagedProcess lifecycle |

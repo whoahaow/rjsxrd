@@ -59,13 +59,14 @@ surprise.
 ### The fetch retry policy
 
 `fetchers/fetcher.py` retries a failed fetch as the same verified request: every
-attempt sends the request over TLS with the certificate checked, one second
-apart. Nothing leaves this process unverified or in the clear unless the operator
-asks for that.
+attempt sends the request exactly as the URL spells it, over TLS with the
+certificate checked when the URL is https, one second apart. Nothing leaves this
+process with verification turned off, or over plaintext that its URL did not ask
+for, unless the operator asks for that.
 
 | Attempt | What it sends | What it costs |
 |---|---|---|
-| 1-3 | the same request over TLS, certificate verified | a source reachable only without verification is lost |
+| 1-3 | the same request as the URL spells it, certificate verified when it is https | a source reachable only without verification is lost |
 | — | GitHub API fallback (`api.github.com`), verified TLS, token sent only to GitHub hosts | runs first for GitHub raw/blob URLs when `GITHUB_API_FALLBACK` is on (the default); the retries run if it fails |
 
 **The honest consequence:** a source whose TLS the network breaks or intercepts

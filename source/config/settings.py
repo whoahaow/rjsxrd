@@ -281,11 +281,12 @@ FETCH_MAX_ATTEMPTS = _validate_int_env("FETCH_MAX_ATTEMPTS", 3, 1, 5)
 GITHUB_API_FALLBACK = os.environ.get("GITHUB_API_FALLBACK", "1") not in ("0", "false", "no")
 
 # === Fetch security posture ===
-# The retries the fetcher makes are verified ones: the same URL, over TLS, with
-# the certificate checked. The ladder this replaces traded verification for
-# reachability — attempt 2 skipped the certificate check and attempt 3 re-sent
-# the request in the clear — and on a network that actively interferes with TLS
-# those two attempts do reach sources a verified request does not. What they
+# The retries the fetcher makes are verified ones: the same URL, sent as it is
+# spelled, with the certificate checked when it is https. The ladder this
+# replaces traded verification for reachability — attempt 2 skipped the
+# certificate check and attempt 3 re-sent an https request in the clear — and on
+# a network that actively interferes with TLS those two attempts do reach
+# sources a verified request does not. What they
 # cost is not just yield: anyone able to break TLS on the path decides what this
 # pipeline fetches, and therefore what it publishes. The downgrades are off by
 # default, so a source that answers only to an unverified or plaintext request

@@ -738,6 +738,7 @@ Edit `source/config/settings.py` or use env vars:
 - `ASYNC_CONCURRENCY_LINUX` - Linux Xray concurrency (default: 300)
 - `FETCH_TIMEOUT` - HTTP request timeout (default: 5s, env overridable)
 - `FETCH_MAX_ATTEMPTS` - Retry attempts per URL (default: 3, env overridable)
+- `ALLOW_TLS_DOWNGRADE` - Restores the historical ladder where attempt 2 skipped certificate verification and attempt 3 went over plaintext HTTP (default: off — every attempt is the same request over verified TLS)
 - `VALIDATION_TCP_TIMEOUT` - TCP ping timeout (default: 3s)
 - `VALIDATION_HTTP_TIMEOUT` - Xray HTTP test timeout (default: 5s)
 - `TEST_PING_URLS` - Test URL(s) for Xray ping (default: gstatic/generate_204, comma-separated)
@@ -831,7 +832,7 @@ on:
 
 ### Network Security
 - Remote DNS via `socks5h://` (prevent DNS leaks)
-- TLS verification enabled by default
+- TLS verification on every fetch attempt — the retry ladder no longer relaxes it (`ALLOW_TLS_DOWNGRADE=1` restores the old downgraded attempts, and SECURITY.md states what that risks)
 - Insecure configs filtered from secure outputs
 - Proxy chain validation (transport compatibility)
 

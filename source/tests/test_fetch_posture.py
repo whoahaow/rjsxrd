@@ -45,6 +45,7 @@ from fetchers.destination_guard import (
 from fetchers.fetcher import INSECURE_FETCHES, fetch_data, report_fetch_security
 from utils.fetch_outcomes import (
     DESTINATION_REFUSAL_PREFIX,
+    RUN_CONDITIONS,
     is_destination_refusal,
     is_source_evidence,
 )
@@ -114,11 +115,16 @@ def offline_fetch(monkeypatch: pytest.MonkeyPatch) -> None:
     test's numbers would otherwise be the next test's starting point. `time.sleep` is
     stubbed with them: the failing-transport cases below would otherwise pay the ladder's
     one-second wait per attempt for something none of these tests are about.
+
+    All three counters are reset here, not only the two this module writes: the run's report
+    is asserted as a whole, and the suite runs in whatever order the parallel runner picks,
+    so a module that reads a figure it does not own cannot assume who ran before it.
     """
     monkeypatch.setattr(fetcher_module, "_resolved_addresses", lambda host, port: [PUBLIC_ADDRESS])
     monkeypatch.setattr(fetcher_module.time, "sleep", lambda _seconds: None)
     DESTINATION_REFUSALS.reset()
     INSECURE_FETCHES.reset()
+    RUN_CONDITIONS.reset()
 
 
 def _answer_with(monkeypatch: pytest.MonkeyPatch, address: str) -> None:

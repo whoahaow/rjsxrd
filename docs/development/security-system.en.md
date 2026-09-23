@@ -133,7 +133,7 @@ Each config is tested on a unique port, which excludes mutual influence.
 Automatic report at the end of each run:
 
 - URLs with 3+ consecutive fetch errors are removed from `URLS.txt`
-- A refusal of a private address, and every other outcome that says nothing about its source, is not part of that count and never removes a line: neither raises the failure count (`utils/fetch_outcomes.py`, `utils/url_stats.py`). A refusal is named separately — with its host and address — in the run's report (`fetchers/destination_guard.py`); a fetch curtailed by `REFUSE_INSECURE_FETCH`, or by a call that asked for no attempt, is named with its host and its reason (`run_condition()` / `report_run_conditions()`), and it does not age the URL either: it is a fact about the run, not about the source
+- A refusal of a private address, and a call that asked for no attempt at all, are not part of that count and never remove a line: no request left the process, so neither says anything about the source (`utils/fetch_outcomes.py`, `utils/url_stats.py`). Each is named in the run's report — a refusal with its host and address (`fetchers/destination_guard.py`), a curtailed call with its host and reason (`run_condition()` / `report_run_conditions()`). A fetch that made all of its verified attempts and got through none is the source's own failure, and it ages: the TLS downgrades are off by default, so reach is not bought with the credential
 - Configs from `servers.txt` with 3+ verification failures are removed
 - Top sources by number of working configs
 - Statistics are stored in `data/url_stats.json` (gitignored)

@@ -2,11 +2,12 @@
 
 The rule this module exists for: only a failure that says something about the *source* may age
 a URL toward removal from `URLS.txt`. An outcome that says something about *this run* instead —
-a destination whose name resolved somewhere this pipeline must not connect to, a fetch the
-operator's own safety policy curtailed, a call that asked for no attempt at all — is not
-evidence about the source, and `utils/url_stats.py` counts it as nothing. Three of those used
-to be indistinguishable from three dead fetches, and a curated source was deleted by a DNS
-blip; the policy case deleted one because the operator had turned a safety setting *on*.
+a destination whose name resolved somewhere this pipeline must not connect to, and a call that
+asked for no attempt at all — is not evidence about the source, and `utils/url_stats.py` counts
+it as nothing. Both used to be indistinguishable from three dead fetches, and a curated source
+was deleted by a DNS blip. What is not in the class is a fetch the verified retries could not
+reach: the TLS downgrades are off by default, so attempts were made, and a source none of them
+reached is the failure the purge exists for.
 
 The producer marks each such outcome with a prefix from `NOT_SOURCE_EVIDENCE_PREFIXES` and the
 consumer asks one question about the class (`is_source_evidence`), so a new member is a prefix

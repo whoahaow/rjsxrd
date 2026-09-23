@@ -75,7 +75,10 @@ omit = ["tests/*"]
 # the floor to a whole number leaves 3.76 points between it and the offline measurement.
 # The record states 56.87 % for the same quantity on the tree of that time, which held
 # 7678 statements: the difference is the dead typed layer removed from
-# utils/url_stats.py, not a re-derivation of the floor.
+# utils/url_stats.py, not a re-derivation of the floor. On the tree at `5dad902f` the
+# same run prints 56.89 % over 7653 statements and 3081 missed, which leaves 3.89 points;
+# the floor stays 53, because the four-point offset it is derived with is what moved, not
+# the rule.
 #
 # What those 3.76 points are for. Run-to-run variance, first: the 15 network-marked
 # tests execute a different amount of code per invocation, so the full-run figure moves
@@ -95,7 +98,7 @@ omit = ["tests/*"]
 # much. 65 stood over a tree in which the suite was measured covering itself at 98 %, so
 # the same run read 73.56 % for the tree while the code the tests exist for read
 # 56.94 %; one point of that tree is 14192/7636 of a point of code, so the 8.56 points
-# of apparent headroom were ~15.9 points of code coverage, against 3.76 now.
+# of apparent headroom were ~15.9 points of code coverage, against 3.89 now.
 fail_under = 53
 exclude_also = [
     # An abstract method body cannot be reached by construction; the subclass

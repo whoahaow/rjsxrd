@@ -172,8 +172,8 @@
 | Trojan | `_parse_trojan_to_outbound()` | TLS, Reality, WS, gRPC, HTTPUpgrade |
 | Shadowsocks | `_parse_shadowsocks_to_outbound()` | Только AEAD |
 | SSR | `_parse_ssr_to_outbound()` | Конвертация → Shadowsocks |
-| Hysteria v2 | `_parse_hysteria2_to_outbound()` | QUIC, TLS |
-| Hysteria v1 | `_parse_hysteria_to_outbound()` | Ограниченно |
+| Hysteria2 | `parse_hysteria2_to_outbound()` | outbound `hysteria`, `version: 2`, TLS, finalmask |
+| Hysteria v1 | — | парсера нет: xray отвергает `version != 2`, отказ до верификации |
 | TUIC | `_parse_tuic_to_outbound()` | Не поддерживается Xray (возвращает None) |
 
 ### `create_chain_config(proxy_urls, socks_port)`
@@ -237,8 +237,8 @@
 - `parse_vmess_to_outbound()` — TLS, WS, gRPC, h2 (93 строк, base64 JSON)
 - `parse_shadowsocks_to_outbound()` — AEAD only, слабые шифры отвергаются
 - `parse_ssr_to_outbound()` — конвертация → Shadowsocks (использует `_clean_url_part`)
-- `parse_hysteria2_to_outbound()` — QUIC, TLS (43 строки)
-- `parse_hysteria_to_outbound()` — ограниченно (v1)
+- `parse_hysteria2_to_outbound()` — outbound ровно в том виде, в котором его документирует xray: `protocol: "hysteria"`, `version: 2`, TLS, `finalmask.udp` для obfuscation salamander
+- для Hysteria v1 парсера нет вовсе: xray не умеет эту версию, поэтому фильтр совместимости отклоняет такие URL
 - `parse_tuic_to_outbound()` — возвращает None (не поддерживается Xray)
 
 **Shared helpers (извлечены из VLESS/Trojan/SSR для устранения дублирования):**

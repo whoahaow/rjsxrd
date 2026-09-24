@@ -210,19 +210,24 @@ class TestXrayProtocolParsers:
         assert result is not None
         assert result["protocol"] == "hysteria"
 
-    # --- Hysteria v1 ---
+    # --- Hysteria v1 (not supported by xray) ---
 
-    def test_hysteria_v1(self):
-        tester = self._make_tester()
-        url = "hysteria://hysteria.example.com:443?protocol=udp"
-        result = tester._url_to_outbound(url, "proxy")
-        assert result is not None
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "hysteria://hysteria.example.com:443?protocol=udp",
+            "hysteria://hysteria.example.com:443?insecure=1",
+        ],
+    )
+    def test_hysteria_v1_builds_no_outbound(self, url):
+        """xray rejects `version != 2` at config load, so there is nothing to build.
 
-    def test_hysteria_v1_insecure(self):
+        The compat filter refuses these before verification; building an outbound
+        anyway would put a config-load failure in front of a shared batch process.
+        """
         tester = self._make_tester()
-        url = "hysteria://hysteria.example.com:443?insecure=1"
-        result = tester._url_to_outbound(url, "proxy")
-        assert result is not None
+
+        assert tester._url_to_outbound(url, "proxy") is None
 
     # --- TUIC (not supported) ---
 
@@ -458,15 +463,19 @@ class TestXraySecurityEdgeCases:
         result = tester._url_to_outbound(f"ssr://{payload}", "tag")
         assert result is None, "SSR with rc4-md5 should be rejected (weak cipher)"
 
-    def test_hysteria_with_insecure_flag_parsed(self):
-        """SECURITY: Hysteria v1 with insecure=1 should be parsed.
-        A warning is logged but the parser handles it."""
+    def test_hysteria_v1_with_insecure_flag_builds_no_outbound(self):
+        """SECURITY: `insecure=1` is not a reason to build a v1 outbound.
+
+        xray removed `allowInsecure` entirely (pinned certificates replaced it),
+        and its hysteria outbound only speaks version 2 — so a v1 URL has no
+        xray shape at all, warning or not.
+        """
         tester = self._make_tester()
         result = tester._url_to_outbound(
             "hysteria://host.com:443?protocol=udp&insecure=1&auth=test",
             "tag",
         )
-        assert result is not None
+        assert result is None
 
     def test_hysteria2_with_insecure_flag_parsed(self):
         """SECURITY: Hysteria2 with insecure param should be parsed."""

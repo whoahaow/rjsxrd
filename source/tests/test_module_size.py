@@ -106,7 +106,6 @@ BUDGETS: dict[str, int] = {
     "source/tests/test_fetcher_unit.py": 912,
     "source/processors/config_processor.py": 884,
     "source/tests/test_pipeline_e2e.py": 827,
-    "source/utils/protocol_parsers.py": 803,
 }
 
 # How far a budgeted file may fall below its budget before the budget counts as stale and

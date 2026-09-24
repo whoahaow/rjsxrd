@@ -64,8 +64,8 @@ Not supported by Xray-core — the parser returns `None`. The `skip-cert-verify`
 
 ### Hysteria
 
-- Hysteria v2: TLS SNI validation
-- Hysteria v1: warning when `insecure=1`
+- Hysteria2: verified through xray's `hysteria` outbound with `version: 2`, TLS required. A node with `insecure=1` and no `pinSHA256` is refused before verification: xray removed `allowInsecure`, so there is nothing left to check such a config against
+- Hysteria v1: not verified — xray rejects `version != 2` while loading the config, so `utils/xray_compat.py` refuses those URLs with that reason
 
 ### Common checks
 

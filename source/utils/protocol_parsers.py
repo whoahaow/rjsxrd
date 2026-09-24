@@ -10,7 +10,7 @@ Supported protocols:
 - VLESS: Full support (TLS, Reality, WS, gRPC, HTTPUpgrade)
 - VMess: Full support (TLS, WS, gRPC, h2)
 - Trojan: Full support (TLS, Reality, WS, gRPC, HTTPUpgrade)
-- Shadowsocks: Full support (AEAD methods, plugins via streamSettings)
+- Shadowsocks: AEAD methods only; `plugin=` is rejected (xray takes no plugin)
 - ShadowsocksR: Basic support (converted to Shadowsocks, SSR features limited in Xray-core)
 - Hysteria2: Full support — outbound "hysteria" with version 2, TLS, salamander finalmask
 - Hysteria v1: NOT supported by Xray-core (refused before verification, not parsed)

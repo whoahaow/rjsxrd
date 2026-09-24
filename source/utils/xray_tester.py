@@ -1,18 +1,18 @@
 """Xray-core VPN config tester with concurrent testing support.
 
-Tests VPN configs (VLESS, VMess, Trojan, Shadowsocks, Hysteria, TUIC, SSR) using Xray-core.
+Tests VPN configs (VLESS, VMess, Trojan, Shadowsocks, SSR, Hysteria2) using Xray-core.
 
 Supported protocols:
 - VLESS: Full support (TLS, Reality, WS, gRPC, HTTPUpgrade)
 - VMess: Full support (TLS, WS, gRPC, h2)
 - Trojan: Full support (TLS, Reality, WS, gRPC, HTTPUpgrade)
-- Shadowsocks: Full support (AEAD methods, plugins via streamSettings)
-- ShadowsocksR: Basic support (converted to Shadowsocks, SSR features limited in Xray-core)
-- Hysteria v2: Full support (QUIC, TLS)
-- Hysteria v1: Limited support (may not work with all servers)
-- TUIC: Parser included but NOT supported by Xray-core (use sing-box for TUIC)
-
-Note: TUIC is not natively supported by Xray-core. TUIC configs will fail testing.
+- Shadowsocks: AEAD methods only; `plugin=` is rejected (xray takes no plugin)
+- ShadowsocksR: Basic support (converted to Shadowsocks, SSR features lost)
+- Hysteria2: Full support — outbound `hysteria` with `version: 2`, TLS, finalmask
+- Hysteria v1: NOT testable — xray's hysteria outbound rejects `version != 2`, so
+  `utils/xray_compat.py` refuses those URLs before verification
+- TUIC: NOT supported by Xray-core — upstream has no TUIC implementation, so the
+  parser returns None. Use sing-box for TUIC configs.
 """
 
 # Import shared cipher sets from file_utils (single source of truth)

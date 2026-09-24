@@ -298,10 +298,9 @@ rjsxrd/
 - **Security validation**:
   - Cipher sets imported from `security_filter.py` (`SS_SECURE_CIPHERS`, `SS_WEAK_CIPHERS`)
   - Empty password validation (Shadowsocks/SSR)
-  - TLS SNI validation (VMess, Trojan, Hysteria)
-  - Reality publicKey validation (VLESS, Trojan)
-  - Plugin rejection (Shadowsocks)
-  - Insecure TLS warnings (Hysteria)
+  - Plugin rejection (Shadowsocks) — `plugin=` is not supported by xray
+  - Reality rejection when `sni` or `publicKey` is missing (VLESS, Trojan, VMess via the shared helper). Note what this is NOT: an empty TLS `sni` is never rejected — it falls back to the hostname
+  - Insecure TLS is not handled here at all: `security_filter.has_insecure_setting()` routes those configs to the unsecure outputs, and `xray_compat.py` refuses Hysteria2 nodes that need verification off
 - Platform-aware concurrency (Linux: 300, Windows: 50)
 
 #### `utils/xray_batch.py` - BatchRunner

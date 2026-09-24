@@ -35,9 +35,9 @@ Configs are updated **every hour** from a VPS (primary channel) and **once every
   - **Trojan**: checks `allowInsecure`, `insecure` + Reality publicKey/SNI validation
   - **Shadowsocks**: check for weak ciphers (RC4, DES, CFB, Salsa20, Chacha20 non-IETF) + empty passwords are rejected
   - **ShadowsocksR**: check for weak ciphers + conversion to Shadowsocks + empty passwords are rejected
-  - **Hysteria2**: TLS SNI validation
-  - **Hysteria v1**: warning when `insecure=1`
-  - **TUIC**: not supported by Xray-core (returns `None`)
+  - **Hysteria2**: verified through xray's `hysteria` outbound with `version: 2` (TLS required); a node with `insecure=1` and no `pinSHA256` is not testable — xray removed `allowInsecure`, so the compatibility filter refuses that config
+  - **Hysteria v1**: not verified — xray implements `version: 2` only; refused before verification with the reason stated
+  - **TUIC**: not supported by Xray-core (no TUIC implementation upstream; the parser returns `None`)
   - **Common**: checks `verify=0`, `verify=false`, `insecure=1`
 - Dedicated configs for bypassing SNI/CIDR whitelists
 - Insecure configs for bypassing SNI/CIDR

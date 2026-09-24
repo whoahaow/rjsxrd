@@ -35,9 +35,9 @@ ETH: `0x17D7206EBfba1F0b6b65E99ACbd294827D9A79B1`
   - **Trojan**: проверка `allowInsecure`, `insecure` + валидация Reality publicKey/SNI
   - **Shadowsocks**: проверка слабых шифров (RC4, DES, CFB, Salsa20, Chacha20 non-IETF) + отвергаются пустые пароли
   - **ShadowsocksR**: проверка слабых шифров + конвертация в Shadowsocks + отвергаются пустые пароли
-  - **Hysteria2**: валидация TLS SNI
-  - **Hysteria v1**: предупреждение при `insecure=1`
-  - **TUIC**: не поддерживается Xray-core (возвращает `None`)
+  - **Hysteria2**: верифицируется outbound'ом `hysteria` с `version: 2` (TLS обязателен); узел с `insecure=1` без `pinSHA256` не проверяется — xray убрал `allowInsecure`, такой конфиг отклоняется фильтром совместимости
+  - **Hysteria v1**: не верифицируется — xray умеет только `version: 2`, отказ до верификации с явной причиной
+  - **TUIC**: не поддерживается Xray-core (реализации в xray нет; парсер возвращает `None`)
   - **Общие**: проверка `verify=0`, `verify=false`, `insecure=1`
 - Специальные конфиги для обхода SNI/CIDR белых списков
 - Небезопасные конфиги для обхода SNI/CIDR

@@ -64,8 +64,8 @@ chacha20-poly1305, xchacha20-ietf-poly1305,
 
 ### Hysteria
 
-- Hysteria v2: валидация TLS SNI
-- Hysteria v1: предупреждение при `insecure=1`
+- Hysteria2: верифицируется outbound'ом `hysteria` с `version: 2`, TLS обязателен. Узел с `insecure=1` без `pinSHA256` отклоняется до верификации: xray убрал `allowInsecure`, проверять такой конфиг нечем
+- Hysteria v1: не верифицируется — xray отвергает `version != 2` на загрузке конфига, поэтому `utils/xray_compat.py` отклоняет такие URL с этой причиной
 
 ### Общие проверки
 

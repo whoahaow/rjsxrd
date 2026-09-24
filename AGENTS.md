@@ -250,7 +250,7 @@ rjsxrd/
 
 #### `utils/protocol_parsers.py` - Standalone Protocol Parsers
 - Extracted from `utils/xray_tester.py` to reduce god-module size
-- Parsers: `parse_vless_to_outbound()`, `parse_vmess_to_outbound()`, `parse_trojan_to_outbound()`, `parse_shadowsocks_to_outbound()`, `parse_hysteria2_to_outbound()`, `parse_ssr_to_outbound()`, `parse_tuic_to_outbound()` — no hysteria v1 parser, xray cannot load that version
+- Parsers: `parse_vless_to_outbound()`, `parse_vmess_to_outbound()`, `parse_trojan_to_outbound()`, `parse_shadowsocks_to_outbound()`, `parse_hysteria2_to_outbound()`, `parse_ssr_to_outbound()` — no hysteria v1 or TUIC parser: xray cannot load v1 and has no TUIC implementation
 - **Shared helpers**: `_clean_url_part()`, `_split_fragment_query()`, `_parse_user_host_port()`, `_make_stream_settings()`, `_make_tls_settings()`, `_make_reality_settings()`, `_make_ws_settings()`, `_make_grpc_settings()` — extracted to shorten parsers (VLESS 97→33, Trojan 103→32 lines)
 - Imported by xray_tester.py (`_url_to_outbound()` dispatches to these)
 - Uses cipher sets from `security_filter.py` (single source of truth)
@@ -294,7 +294,7 @@ rjsxrd/
   - `parse_shadowsocks_to_outbound()` - Full support (AEAD only, weak ciphers rejected)
   - `parse_ssr_to_outbound()` - Limited (converted to Shadowsocks)
   - `parse_hysteria2_to_outbound()` - Hysteria2, as xray documents it: protocol `hysteria`, `version: 2`, TLS, finalmask obfuscation
-  - `parse_tuic_to_outbound()` - Returns None (not supported by Xray-core)
+  - TUIC: no parser — xray has no TUIC implementation, so the typed `parse_url()` returns None. Use sing-box
 - **Security validation**:
   - Cipher sets imported from `security_filter.py` (`SS_SECURE_CIPHERS`, `SS_WEAK_CIPHERS`)
   - Empty password validation (Shadowsocks/SSR)

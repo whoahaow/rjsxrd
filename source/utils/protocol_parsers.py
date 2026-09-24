@@ -717,15 +717,6 @@ def parse_ssr_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         return None
 
 
-def parse_tuic_to_outbound(url: str, tag: str = "proxy") -> dict | None:
-    """Parse TUIC URL to Xray outbound.
-
-    Note: TUIC is not natively supported by Xray-core. This parser always
-    returns None. For TUIC support, use sing-box instead.
-    """
-    return None
-
-
 def parse_url_to_outbound(url: str, tag: str = "proxy") -> dict | None:
     """Convert URL to outbound based on protocol.
 

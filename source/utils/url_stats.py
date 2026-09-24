@@ -137,9 +137,9 @@ class URLStats:
         `total_raw` and `total_secure` accumulate across calls within this
         process (== this run, since URLStats is constructed once per run).
         If the same URL is fetched twice in one run (e.g. once from URLS and
-        once from URLS_EXTRA_BYPASS), the totals reflect the sum. This fixes
-        the v1 audit bug where repeated fetches in one run silently lost
-        prior counts.
+        once from URLS_EXTRA_BYPASS), the totals reflect the sum. Counting used
+        to overwrite instead of accumulate, so a second fetch in one run silently
+        lost the first one's figures.
         """
         with self.lock:
             entry = self.data.setdefault(url, {})

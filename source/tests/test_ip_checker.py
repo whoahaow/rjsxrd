@@ -16,7 +16,11 @@ pytestmark = pytest.mark.integration
 
 
 class TestMakeRequestImportPath:
-    """Verify the import path actually works (the lesson from 10th pass)."""
+    """Checks the import itself, before anything is asserted through it.
+
+    A test module that reaches the function through the wrong path exercises a
+    different object than the one production code calls, and still passes.
+    """
 
     def test_make_request_is_importable(self):
         """The function is reachable via utils.ip_verifier."""

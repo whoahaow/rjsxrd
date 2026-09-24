@@ -1,10 +1,10 @@
 """The size gate: a ceiling every module obeys, and a debt list that may only shrink.
 
-The audit entered this repository's size problem at four modules -- ``xray_tester``,
+This repository's size problem was first named at four modules -- ``xray_tester``,
 ``xray_batch``, ``config_processor`` and ``protocol_parsers`` -- and measuring the whole
-tree showed the problem is wider than that list: three of the largest test modules are
+tree showed it is wider than that list: three of the largest test modules are
 above the ceiling set below, and the largest file in the repository is one of them. A gate
-covering only the four named modules would repeat the defect the audit kept finding, a
+covering only those four would repeat the defect a named list always carries, a
 rule applied where someone happened to look and not where nobody did. So this gate walks
 every ``.py`` file under ``source/`` -- tests included, subdirectories included -- and
 holds two components whose holes are complementary:
@@ -22,13 +22,13 @@ merely records a size is a stale figure with a test around it. The list alone wo
 gameable by not maintaining it: a file nobody registered is covered by nothing. Each
 component closes the other's hole, which is why neither is optional.
 
-Why the ceiling is 800. The register had already judged four modules too large, and the
+Why the ceiling is 800. Four modules had already been judged too large, and the
 smallest of the four (``source/utils/protocol_parsers.py``, 803 lines) is the top of that
 band, so 800 is the round number at or below it: the gate's line is the line the
 repository has already drawn rather than a second opinion that contradicts it. A ceiling
 of 1000 is the tempting alternative and the weaker one -- three of those four modules
 would sit *under* it, and the gate would be declaring that files the repository called too
-large are fine, while the debt list could no longer state that the register's four are
+large are fine, while the debt list could no longer state that those four are
 what is above the line.
 
 Why the ratchet. A budget nobody lowers quietly becomes a licence: in two years the file
@@ -87,7 +87,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "source"
 
 # The ceiling, in lines, for every `.py` file under `source/` that is not in BUDGETS.
-# Chosen at the top of the band the register already called too large: see the module
+# Chosen at the top of the band already judged too large: see the module
 # docstring. The comment above each check below says which component it is and why the
 # component exists.
 CEILING = 800
@@ -95,7 +95,7 @@ CEILING = 800
 # Component 2: the files that were over the ceiling on the day this gate landed, with the
 # size each was measured at then. Acknowledged debt, not permission -- a file listed here
 # may not grow at all, and its budget may never be raised. Four of these are the modules
-# the audit named; the other three are test modules that the audit's list never reached,
+# named above; the other three are test modules that first list never reached,
 # the largest of them the largest file in the repository. Not one of them has been split:
 # this gate makes the debt visible and forbids it growing, and shrinking them is separate
 # work.

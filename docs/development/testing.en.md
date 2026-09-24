@@ -245,10 +245,10 @@ harmful by themselves, a file whose change cannot be read in one pass is.
 - a file that drops below the ceiling comes off the list: while the entry stands, the
   file's limit is its budget, which sits above the ceiling;
 - the list is closed: it holds the files that were over the ceiling on the day the gate
-  landed, four of which the audit named. A file over the ceiling is a file to split;
+  landed, four of them named before the gate existed. A file over the ceiling is a file to split;
   adding it to the list silences the gate instead of satisfying it.
 
-The debt is still debt. The audit named four modules — `xray_tester`, `xray_batch`,
+The debt is still debt. Four modules started this list — `xray_tester`, `xray_batch`,
 `config_processor` and `protocol_parsers` — and the whole-tree measurement added three test
 files to them, among them the largest file in the repository (`test_config_processor.py`).
 None of them has been split: the gate makes the debt visible and forbids it growing, and

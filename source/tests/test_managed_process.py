@@ -26,7 +26,7 @@ class TestManagedProcessConfigCleanup:
     """
 
     def test_config_file_cleaned_up_when_process_already_exited(self):
-        """THE REGRESSION from 18th pass: stop() must clean up config
+        """The regression this test exists for: stop() must clean up the config
         even if the process already exited before stop() was called.
 
         This is the most common real-world case — xray finishes testing

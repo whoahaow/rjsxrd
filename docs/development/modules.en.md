@@ -174,7 +174,7 @@ Concurrent testing of a batch of configs.
 | SSR | `_parse_ssr_to_outbound()` | Conversion → Shadowsocks |
 | Hysteria2 | `parse_hysteria2_to_outbound()` | outbound `hysteria`, `version: 2`, TLS, finalmask |
 | Hysteria v1 | — | no parser: xray rejects `version != 2`, refused before verification |
-| TUIC | `_parse_tuic_to_outbound()` | Not supported by Xray (returns None) |
+| TUIC | — | no parser: xray has no TUIC implementation (use sing-box) |
 
 ### `create_chain_config(proxy_urls, socks_port)`
 
@@ -262,7 +262,7 @@ Moved out of `utils/xray_tester.py` to reduce the god-module. All 8 parsers live
 - `parse_ssr_to_outbound()` — conversion → Shadowsocks (uses `_clean_url_part`)
 - `parse_hysteria2_to_outbound()` — the outbound xray documents: `protocol: "hysteria"`, `version: 2`, TLS, `finalmask.udp` for salamander obfuscation
 - Hysteria v1 has no parser at all: xray cannot load that version, so the compatibility filter refuses those URLs instead
-- `parse_tuic_to_outbound()` — returns None (not supported by Xray)
+- TUIC has no parser: xray implements no TUIC outbound, so a `tuic://` URL resolves to no config at all
 
 **Shared helpers (extracted from VLESS/Trojan/SSR to eliminate duplication):**
 - `_clean_url_part(url)` — case-insensitive protocol removal

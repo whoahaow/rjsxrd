@@ -229,8 +229,9 @@ class TestTheOlderRules:
     def test_tuic_is_not_a_filter_concern(self) -> None:
         """TUIC is xray's gap, but this filter refuses by pattern, not by protocol.
 
-        The parser returns None for it, which is the path that handles TUIC; the
-        filter staying silent is deliberate rather than an oversight.
+        The typed parser resolves no outbound for it, which is the path that
+        handles TUIC; the filter staying silent is deliberate rather than an
+        oversight.
         """
         assert _xray_incompatible_reason("tuic://uuid:pass@h.example.com:443") == ""
 

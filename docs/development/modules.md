@@ -174,7 +174,7 @@
 | SSR | `_parse_ssr_to_outbound()` | Конвертация → Shadowsocks |
 | Hysteria2 | `parse_hysteria2_to_outbound()` | outbound `hysteria`, `version: 2`, TLS, finalmask |
 | Hysteria v1 | — | парсера нет: xray отвергает `version != 2`, отказ до верификации |
-| TUIC | `_parse_tuic_to_outbound()` | Не поддерживается Xray (возвращает None) |
+| TUIC | — | парсера нет: в xray нет реализации TUIC (используйте sing-box) |
 
 ### `create_chain_config(proxy_urls, socks_port)`
 
@@ -263,7 +263,7 @@ Hysteria v1, Hysteria2 с `insecure=1` без `pinSHA256`, Reality с пробе
 - `parse_ssr_to_outbound()` — конвертация → Shadowsocks (использует `_clean_url_part`)
 - `parse_hysteria2_to_outbound()` — outbound ровно в том виде, в котором его документирует xray: `protocol: "hysteria"`, `version: 2`, TLS, `finalmask.udp` для obfuscation salamander
 - для Hysteria v1 парсера нет вовсе: xray не умеет эту версию, поэтому фильтр совместимости отклоняет такие URL
-- `parse_tuic_to_outbound()` — возвращает None (не поддерживается Xray)
+- для TUIC парсера нет: xray не реализует исходящий TUIC-протокол, поэтому `tuic://` не даёт никакого конфига вообще
 
 **Shared helpers (извлечены из VLESS/Trojan/SSR для устранения дублирования):**
 - `_clean_url_part(url)` — case-insensitive удаление протокола

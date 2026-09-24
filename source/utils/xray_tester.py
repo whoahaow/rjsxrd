@@ -207,9 +207,9 @@ def _xray_incompatible_reason(cfg: str) -> str:
     cfg_lower = cfg.lower()
 
     # ── Protocol-level rejects ────────────────────────────────────
-    # Hysteria2: removed from xray-core, no longer supported
-    if cfg_lower.startswith(("hysteria2://", "hy2://")):
-        return "hysteria2 unsupported by xray"
+    # Hysteria2 is absent on purpose (xray added it in v26.1.13); v1 is refused:
+    if cfg_lower.startswith(("hysteria://", "hy1://")):
+        return "hysteria v1 unsupported by xray (version != 2)"
 
     # ── UUID validation (vless, vmess) ────────────────────────────
     # Extract UUID: vless://uuid@host

@@ -172,8 +172,8 @@ Concurrent testing of a batch of configs.
 | Trojan | `_parse_trojan_to_outbound()` | TLS, Reality, WS, gRPC, HTTPUpgrade |
 | Shadowsocks | `_parse_shadowsocks_to_outbound()` | AEAD only |
 | SSR | `_parse_ssr_to_outbound()` | Conversion → Shadowsocks |
-| Hysteria v2 | `_parse_hysteria2_to_outbound()` | QUIC, TLS |
-| Hysteria v1 | `_parse_hysteria_to_outbound()` | Limited |
+| Hysteria2 | `parse_hysteria2_to_outbound()` | outbound `hysteria`, `version: 2`, TLS, finalmask |
+| Hysteria v1 | — | no parser: xray rejects `version != 2`, refused before verification |
 | TUIC | `_parse_tuic_to_outbound()` | Not supported by Xray (returns None) |
 
 ### `create_chain_config(proxy_urls, socks_port)`
@@ -237,8 +237,8 @@ Moved out of `utils/xray_tester.py` to reduce the god-module. All 8 parsers live
 - `parse_vmess_to_outbound()` — TLS, WS, gRPC, h2 (93 lines, base64 JSON)
 - `parse_shadowsocks_to_outbound()` — AEAD only, weak ciphers are rejected
 - `parse_ssr_to_outbound()` — conversion → Shadowsocks (uses `_clean_url_part`)
-- `parse_hysteria2_to_outbound()` — QUIC, TLS (43 lines)
-- `parse_hysteria_to_outbound()` — limited (v1)
+- `parse_hysteria2_to_outbound()` — the outbound xray documents: `protocol: "hysteria"`, `version: 2`, TLS, `finalmask.udp` for salamander obfuscation
+- Hysteria v1 has no parser at all: xray cannot load that version, so the compatibility filter refuses those URLs instead
 - `parse_tuic_to_outbound()` — returns None (not supported by Xray)
 
 **Shared helpers (extracted from VLESS/Trojan/SSR to eliminate duplication):**

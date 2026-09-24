@@ -12,11 +12,14 @@ Supported protocols:
 - Trojan: Full support (TLS, Reality, WS, gRPC, HTTPUpgrade)
 - Shadowsocks: Full support (AEAD methods, plugins via streamSettings)
 - ShadowsocksR: Basic support (converted to Shadowsocks, SSR features limited in Xray-core)
-- Hysteria v2: Full support (QUIC, TLS)
-- Hysteria v1: Limited support (may not work with all servers)
-- TUIC: Parser included but NOT supported by Xray-core (use sing-box for TUIC)
+- Hysteria2: Full support — outbound "hysteria" with version 2, TLS, salamander finalmask
+- Hysteria v1: NOT supported by Xray-core (refused before verification, not parsed)
+- TUIC: NOT supported by Xray-core (use sing-box for TUIC)
 
-Note: TUIC is not natively supported by Xray-core. TUIC configs will fail testing.
+Hysteria v1 has no parser here on purpose: xray's hysteria outbound rejects
+`version != 2` when it loads a config, and in batch mode one failed load drops
+every other config sharing the process. `utils/xray_tester.py` refuses those URLs
+with that reason instead.
 """
 
 import base64
@@ -546,20 +549,14 @@ def parse_shadowsocks_to_outbound(url: str, tag: str = "proxy") -> dict | None:
 def parse_hysteria2_to_outbound(url: str, tag: str = "proxy") -> dict | None:
     """Parse a Hysteria2/Hy2 URL into the outbound Xray documents.
 
-    xray has no "hysteria2" outbound: the protocol is "hysteria" and the version
-    is asserted twice — `settings.version` (infra/conf/hysteria.go returns
-    "version != 2" for anything else) and `hysteriaSettings.version`. The address
-    and port belong to `settings`, the password to `hysteriaSettings.auth`, and
-    QUIC camouflage is a finalmask stage rather than a transport, so
-    `obfs=salamander&obfs-password=...` maps onto `finalmask.udp`.
-
-    `insecure=1` is deliberately unmapped: xray removed `allowInsecure` in favour
-    of `pinnedPeerCertSha256`, so a node that needs verification off has no xray
-    representation at all. The compatibility filter refuses those by name rather
-    than letting them fail like a dead server.
-
-    Query keys are matched case-insensitively because the hysteria2 URI spec
-    writes `pinSHA256` while collectors and Clash converters lowercase it.
+    xray has no "hysteria2" outbound: the protocol is "hysteria" and
+    infra/conf/hysteria.go rejects `settings.version != 2`. The password belongs
+    to `hysteriaSettings.auth`, QUIC camouflage is a `finalmask.udp` stage rather
+    than a transport, and `insecure=1` is left unmapped because xray removed
+    `allowInsecure` — a node that needs verification off has no xray shape, so
+    the compatibility filter refuses it by name instead of letting it fail like a
+    dead server. Query keys are matched case-insensitively: the hysteria2 URI
+    spec writes `pinSHA256`, collectors lowercase it.
     """
     try:
         parsed = urlparse(url)
@@ -605,60 +602,6 @@ def parse_hysteria2_to_outbound(url: str, tag: str = "proxy") -> dict | None:
             "protocol": "hysteria",
             "settings": {"version": 2, "address": parsed.hostname, "port": parsed.port},
             "streamSettings": stream_settings,
-        }
-    except (
-        ValueError,
-        IndexError,
-        KeyError,
-        TypeError,
-        json.JSONDecodeError,
-        binascii.Error,
-    ):
-        return None
-
-
-def parse_hysteria_to_outbound(url: str, tag: str = "proxy") -> dict | None:
-    """Parse Hysteria v1 URL to Xray outbound.
-
-    Note: Hysteria v1 has limited support in Xray-core. This parser creates
-    a basic config but may not work with all Hysteria v1 servers.
-    """
-    try:
-        parsed = urlparse(url)
-        params = parse_qs(parsed.query)
-
-        if not parsed.hostname or not parsed.port:
-            return None
-
-        auth = unquote(parsed.username) if parsed.username else params.get("auth", [""])[0]
-        protocol = params.get("protocol", ["udp"])[0]
-        sni = params.get("sni", [parsed.hostname])[0] if params.get("sni") else parsed.hostname
-
-        # Check for insecure TLS setting
-        insecure = params.get("insecure", ["0"])[0] == "1"
-
-        return {
-            "tag": tag,
-            "protocol": "hysteria",
-            "settings": {
-                "servers": [{"address": parsed.hostname, "port": parsed.port, "password": auth}]
-            },
-            "streamSettings": {
-                "network": "hysteria",
-                "security": "tls",
-                "hysteriaSettings": {
-                    "version": 1,
-                    "auth": auth,
-                    "protocol": protocol,
-                    "up_mbps": int(params.get("upmbps", ["100"])[0])
-                    if params.get("upmbps")
-                    else 100,
-                    "down_mbps": int(params.get("downmbps", ["100"])[0])
-                    if params.get("downmbps")
-                    else 100,
-                },
-                "tlsSettings": {"serverName": sni, "insecure": insecure},
-            },
         }
     except (
         ValueError,
@@ -797,9 +740,8 @@ def parse_url_to_outbound(url: str, tag: str = "proxy") -> dict | None:
     - Trojan: Full support (TLS, Reality, WS, gRPC, HTTPUpgrade)
     - Shadowsocks: Full support (AEAD ciphers only, weak ciphers rejected)
     - SSR: Limited (converted to Shadowsocks, protocol/obfs features lost)
-    - Hysteria v2: Full support (QUIC, TLS)
-    - Hysteria v1: Limited (may not work with all servers)
-    - TUIC: Not supported (returns None, use sing-box)
+    - Hysteria2: Full support (see this module's header for the shape)
+    - Hysteria v1 and TUIC: not supported by Xray-core, so no parser is registered
     """
     # Primary path: typed VPNConfig dataclass
     try:
@@ -819,7 +761,6 @@ def parse_url_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         "trojan://": parse_trojan_to_outbound,  # Full support
         "ss://": parse_shadowsocks_to_outbound,  # Full support (AEAD only)
         "ssr://": parse_ssr_to_outbound,  # Limited (converted to SS)
-        "hysteria://": parse_hysteria_to_outbound,  # Limited (v1)
         "hysteria2://": parse_hysteria2_to_outbound,  # Full support (v2)
         "hy2://": parse_hysteria2_to_outbound,  # Alias for hysteria2
     }

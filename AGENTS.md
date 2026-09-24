@@ -249,7 +249,7 @@ rjsxrd/
 
 #### `utils/protocol_parsers.py` - Standalone Protocol Parsers
 - Extracted from `utils/xray_tester.py` to reduce god-module size
-- All 8 parsers: `parse_vless_to_outbound()`, `parse_vmess_to_outbound()`, `parse_trojan_to_outbound()`, `parse_shadowsocks_to_outbound()`, `parse_hysteria2_to_outbound()`, `parse_hysteria_to_outbound()`, `parse_ssr_to_outbound()`, `parse_tuic_to_outbound()`
+- Parsers: `parse_vless_to_outbound()`, `parse_vmess_to_outbound()`, `parse_trojan_to_outbound()`, `parse_shadowsocks_to_outbound()`, `parse_hysteria2_to_outbound()`, `parse_ssr_to_outbound()`, `parse_tuic_to_outbound()` — no hysteria v1 parser, xray cannot load that version
 - **Shared helpers**: `_clean_url_part()`, `_split_fragment_query()`, `_parse_user_host_port()`, `_make_stream_settings()`, `_make_tls_settings()`, `_make_reality_settings()`, `_make_ws_settings()`, `_make_grpc_settings()` — extracted to shorten parsers (VLESS 97→33, Trojan 103→32 lines)
 - Imported by xray_tester.py (`_url_to_outbound()` dispatches to these)
 - Uses cipher sets from `security_filter.py` (single source of truth)
@@ -292,8 +292,7 @@ rjsxrd/
   - `parse_trojan_to_outbound()` - Full support (TLS, Reality, WS, gRPC, HTTPUpgrade)
   - `parse_shadowsocks_to_outbound()` - Full support (AEAD only, weak ciphers rejected)
   - `parse_ssr_to_outbound()` - Limited (converted to Shadowsocks)
-  - `parse_hysteria2_to_outbound()` - Full support (QUIC, TLS)
-  - `parse_hysteria_to_outbound()` - Limited (v1, may not work with all servers)
+  - `parse_hysteria2_to_outbound()` - Hysteria2, as xray documents it: protocol `hysteria`, `version: 2`, TLS, finalmask obfuscation
   - `parse_tuic_to_outbound()` - Returns None (not supported by Xray-core)
 - **Security validation**:
   - Cipher sets imported from `security_filter.py` (`SS_SECURE_CIPHERS`, `SS_WEAK_CIPHERS`)
@@ -393,8 +392,9 @@ rjsxrd/
 - `insecure=1` is unmappable and therefore unverifiable: xray removed `allowInsecure` in favour of `pinnedPeerCertSha256`
 
 ### Hysteria v1
-- Limited support (may not work with all Xray-core versions)
-- **Warning logged** when `insecure=1` detected
+- **NOT supported by Xray-core** — `infra/conf/hysteria.go` returns "version != 2" while building the outbound, so a v1 config fails at xray startup rather than timing out
+- Refused by `filter_xray_compatible()` before verification, and no parser is registered for it: a failed config load in batch mode costs every other config sharing the xray process
+- Still published in the raw and protocol-split files — the filter gates verification, not collection
 
 ### TUIC
 - **NOT supported by Xray-core** (parser returns `None` immediately)
@@ -711,7 +711,6 @@ Configs pass through these filters in order before reaching Xray:
 3. **Security filter** — `has_insecure_setting()` flags insecure configs for unsecure output files
 4. **Xray compatibility filter** 🔒 — `filter_xray_compatible()` in `utils/xray_tester.py`
    Removes configs that would **crash xray at startup** even though they parse successfully:
-   - Hysteria2 protocol (removed from xray-core)
    - Invalid UUIDs (URL-encoded garbage, truncated, non-hex chars)
    - VLESS with garbage encryption values (`encryption=none=@...`)
    - Reality with spaces in password

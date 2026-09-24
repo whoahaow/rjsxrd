@@ -2,6 +2,7 @@
 
 import base64
 from typing import Any
+from urllib.parse import quote
 
 import yaml
 
@@ -348,7 +349,19 @@ def _build_tuic_url(config: dict[str, Any]) -> str:
 
 
 def _build_hysteria_url(config: dict[str, Any]) -> str:
-    """Build Hysteria URL from config."""
+    """Build a Hysteria URL from a Clash proxy dict.
+
+    The version decides the scheme, and it is not cosmetic: Clash's `hysteria`
+    speaks v1 and `hysteria2` speaks v2, while xray only implements v2. Labelling
+    everything `hysteria2://` — which is what this did — sent v1 nodes off as
+    version-2 configs whose parameters would then be ignored, so they failed
+    verification like dead servers. Emitted as `hysteria://` instead, the
+    compatibility filter refuses them with the real reason.
+
+    The auth token goes in the userinfo, where the hysteria2 URI scheme puts it,
+    and only parameters the scheme defines are written: `type=webtransport` was a
+    guess that no parser reads, and the bandwidth parameters belong to v1.
+    """
     try:
         server = config.get("server", "")
         port = config.get("port", "")
@@ -356,35 +369,40 @@ def _build_hysteria_url(config: dict[str, Any]) -> str:
         if not all([server, port]):
             return ""
 
-        # Build query parameters
-        params = []
+        is_v2 = str(config.get("type", "")).lower() in ("hysteria2", "hy2")
+        scheme = "hysteria2" if is_v2 else "hysteria"
 
-        # Authentication
-        if "auth_str" in config:
-            params.append(f"auth={config['auth_str']}")
-        elif "password" in config:
-            params.append(f"auth={config['password']}")
+        auth = config.get("auth_str") or config.get("password") or config.get("obfs-password")
+        # Token in the userinfo for both versions; v1 also accepts auth_str.
+        userinfo = f"{quote(str(auth), safe='')}@" if auth else ""
 
-        # TLS settings
-        if "sni" in config:
-            params.append(f"sni={config['sni']}")
+        params: list[str] = []
+        if is_v2:
+            if "sni" in config:
+                params.append(f"sni={quote(str(config['sni']), safe='')}")
+            if "obfs" in config:
+                params.append(f"obfs={quote(str(config['obfs']), safe='')}")
+            if "obfs-password" in config:
+                params.append(f"obfs-password={quote(str(config['obfs-password']), safe='')}")
+            if config.get("skip-cert-verify"):
+                params.append("insecure=1")
+            if "pinSHA256" in config:
+                params.append(f"pinSHA256={quote(str(config['pinSHA256']), safe='')}")
+        else:
+            if "protocol" in config:
+                params.append(f"protocol={quote(str(config['protocol']), safe='')}")
+            if "sni" in config:
+                params.append(f"sni={quote(str(config['sni']), safe='')}")
+            if config.get("insecure"):
+                params.append("insecure=1")
+            if "up" in config:
+                params.append(f"upmbps={quote(str(config['up']), safe='')}")
+            if "down" in config:
+                params.append(f"downmbps={quote(str(config['down']), safe='')}")
 
-        # Obfs
-        if "obfs" in config:
-            params.append(f"obfs={config['obfs']}")
-
-        # Up/Down bandwidth
-        if "up_mbps" in config:
-            params.append(f"upmbps={config['up_mbps']}")
-        if "down_mbps" in config:
-            params.append(f"downmbps={config['down_mbps']}")
-
-        # Protocol (for hysteria2)
-        if config.get("type", "").lower() in ["hysteria2", "hy2"]:
-            params.append("type=webtransport")  # Default type for hysteria2
-
-        query = "&".join(params)
-        return f"hysteria2://{server}:{port}?{query}#{config.get('name', 'Hysteria Config')}"
+        query = f"?{'&'.join(params)}" if params else ""
+        name = config.get("name", "Hysteria2 Config" if is_v2 else "Hysteria Config")
+        return f"{scheme}://{userinfo}{server}:{port}/{query}#{quote(str(name), safe='')}"
     except (TypeError, ValueError) as e:
         log(f"Error building Hysteria URL: {e}")
         return ""

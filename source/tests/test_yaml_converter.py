@@ -190,7 +190,7 @@ class TestBuildTUIC:
 
 
 class TestBuildHysteria:
-    """Build Hysteria URL from config dict."""
+    """Build a Hysteria URL from a Clash proxy dict."""
 
     def test_basic_hysteria2(self):
         url = _build_hysteria_url(
@@ -201,11 +201,95 @@ class TestBuildHysteria:
                 "type": "hysteria2",
             }
         )
-        assert url.startswith("hysteria2://")
-        assert "auth=token123" in url
+        # The token belongs in the userinfo, where the hysteria2 URI scheme puts
+        # it; `auth=` in the query is what no consumer of this URL reads.
+        assert url == "hysteria2://token123@hy.host:443/#Hysteria2%20Config"
+
+    def test_hysteria2_carries_only_scheme_parameters(self):
+        url = _build_hysteria_url(
+            {
+                "server": "hy.host",
+                "port": 443,
+                "password": "tok",
+                "type": "hysteria2",
+                "sni": "hy.example.com",
+                "obfs": "salamander",
+                "obfs-password": "secret",
+                "skip-cert-verify": True,
+                "name": "node",
+            }
+        )
+        assert url.startswith("hysteria2://tok@hy.host:443/?")
+        assert "sni=hy.example.com" in url
+        assert "obfs=salamander" in url
+        assert "obfs-password=secret" in url
+        assert "insecure=1" in url
+        # `type=webtransport` was invented here and read by nothing.
+        assert "webtransport" not in url
+
+    def test_hysteria_v1_is_not_labelled_as_version_two(self):
+        """xray implements v2 only, so a v1 node must arrive as v1.
+
+        Emitted as `hysteria://`, the compatibility filter refuses it with
+        "version != 2"; emitted as `hysteria2://` it would have been verified as a
+        v2 node whose parameters were dropped, and reported as a dead server.
+        """
+        url = _build_hysteria_url(
+            {
+                "server": "hy1.host",
+                "port": 443,
+                "type": "hysteria",
+                "auth_str": "a1",
+                "protocol": "udp",
+                "up": 100,
+                "down": 200,
+                "name": "v1node",
+            }
+        )
+        assert url.startswith("hysteria://a1@hy1.host:443/?")
+        assert "protocol=udp" in url
+        assert "upmbps=100" in url
+        assert "downmbps=200" in url
+
+    def test_a_built_hysteria2_url_parses_into_an_xray_outbound(self):
+        """The end of this converter is the start of the xray parser."""
+        from utils.protocol_parsers import parse_hysteria2_to_outbound
+
+        url = _build_hysteria_url(
+            {
+                "server": "hy.host",
+                "port": 443,
+                "auth_str": "token123",
+                "type": "hysteria2",
+                "sni": "hy.example.com",
+                "obfs": "salamander",
+                "obfs-password": "secret",
+            }
+        )
+        outbound = parse_hysteria2_to_outbound(url)
+
+        assert outbound is not None
+        assert outbound["protocol"] == "hysteria"
+        assert outbound["settings"] == {"version": 2, "address": "hy.host", "port": 443}
+        assert outbound["streamSettings"]["hysteriaSettings"]["auth"] == "token123"
+        assert outbound["streamSettings"]["tlsSettings"]["serverName"] == "hy.example.com"
+        assert outbound["streamSettings"]["finalmask"]["udp"][0]["type"] == "salamander"
 
     def test_hysteria_missing_server(self):
         assert _build_hysteria_url({"port": 443}) == ""
+
+    def test_special_characters_in_the_token_survive_the_round_trip(self):
+        """A token with `@` or `/` in it must not break the URL's structure."""
+        from urllib.parse import urlparse
+
+        url = _build_hysteria_url(
+            {"server": "hy.host", "port": 443, "auth_str": "a@b/c", "type": "hysteria2"}
+        )
+        parsed = urlparse(url)
+
+        assert parsed.username == "a%40b%2Fc"
+        assert parsed.hostname == "hy.host"
+        assert parsed.port == 443
 
 
 class TestTryConvertToUrl:

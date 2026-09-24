@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # С отчётом о покрытии
 ```
 
 Маркеры проставлены на каждом тестовом модуле (`pytestmark`), поэтому `-m unit`
-и `-m integration` действительно что-то выбирают: 985 и 15 тестов из 1000
+и `-m integration` действительно что-то выбирают: 989 и 15 тестов из 1004
 (замер — `pytest --collect-only -q` с тем и другим маркером). Сеть трогают
 только два модуля (`test_fetcher.py`, `test_ip_checker.py`) — они помечены
 `integration`. Чистая логика сети не требует и лежит в unit-модулях, включая
@@ -31,7 +31,7 @@ pytest --cov=fetchers --cov=utils  # С отчётом о покрытии
 
 ## Структура тестов
 
-Всего **1000 тестов** в 38 файлах. Полный прогон на машине разработки (Windows,
+Всего **1004 теста** в 38 файлах. Полный прогон на машине разработки (Windows,
 Python 3.12) занимает около 70–80 секунд; время зависит от диска и загрузки
 машины, поэтому ориентируйтесь на `pytest -q` у себя.
 
@@ -43,7 +43,7 @@ Python 3.12) занимает около 70–80 секунд; время зав
 | `test_vpn_config.py` | 41 | VPNConfig typed dataclass'ы |
 | `test_security_filter.py` | 35 | `has_insecure_setting`, все протоколы и edge-кейсы, 2022 key length validation |
 | `test_logger.py` | 30 | Логирование, уровни, формат |
-| `test_yaml_converter.py` | 28 | Конвертация Clash/Surge YAML в VPN URL |
+| `test_yaml_converter.py` | 32 | Конвертация Clash/Surge YAML в VPN URL |
 | `test_smart_eta.py` | 27 | SmartETA: 3-way estimate (window, global, EMA) + timeout floor |
 | `test_git_updater.py` | 26 | GitUpdater: init, pull, stage, commit, push, retry |
 | `test_simple_tester.py` | 25 | `extract_host_port` + `SimpleTester` (TCP-пинг) |

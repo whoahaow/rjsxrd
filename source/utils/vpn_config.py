@@ -17,7 +17,7 @@ import base64
 import json
 from dataclasses import dataclass
 from typing import Any
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 from utils.security_filter import SS_WEAK_CIPHERS
 
@@ -205,18 +205,49 @@ class ShadowsocksConfig(VPNConfig):
 class Hysteria2Config(VPNConfig):
     auth: str = ""
     obfs: str = ""
+    obfs_password: str = ""
+    pin_sha256: str = ""
 
     def to_xray_outbound(self, tag: str = "proxy") -> dict[str, Any]:
-        outbound = _make_base_outbound(tag, "hysteria2", is_quic=True)
-        outbound["settings"] = {
-            "host": self.host,
-            "port": self.port,
-            "serverName": self.sni or self.host,
-        }
+        """Build the Hysteria2 outbound, in the shape xray documents.
+
+        Kept identical to `protocol_parsers.parse_hysteria2_to_outbound()`: this
+        is the path `_url_to_outbound()` tries first, so the two producers
+        disagreeing would mean the same URL is tested two different ways.
+        """
+        hysteria_settings: dict[str, Any] = {"version": 2}
         if self.auth:
-            outbound["settings"]["auth"] = self.auth
-        _add_stream_settings(outbound, self)
-        return outbound
+            hysteria_settings["auth"] = self.auth
+
+        from config.settings import TLS_FINGERPRINT
+
+        tls_settings: dict[str, Any] = {
+            "serverName": self.sni or self.host,
+            "fingerprint": TLS_FINGERPRINT,
+        }
+        if self.pin_sha256:
+            tls_settings["pinnedPeerCertSha256"] = self.pin_sha256
+
+        stream: dict[str, Any] = {
+            "network": "hysteria",
+            # xray errors "tls config is nil" without it: hysteria rides on TLS.
+            "security": "tls",
+            "hysteriaSettings": hysteria_settings,
+            "tlsSettings": tls_settings,
+        }
+        if self.obfs == "salamander" and self.obfs_password:
+            stream["finalmask"] = {
+                "udp": [
+                    {"type": "salamander", "settings": {"password": self.obfs_password}},
+                ]
+            }
+
+        return {
+            "tag": tag,
+            "protocol": "hysteria",
+            "settings": {"version": 2, "address": self.host, "port": self.port},
+            "streamSettings": stream,
+        }
 
     def dedup_key(self) -> tuple[Any, ...]:
         return (self.__class__.__name__, self.host, self.port)
@@ -379,35 +410,43 @@ def _parse_shadowsocks(url: str) -> ShadowsocksConfig | None:
 
 
 def _parse_hysteria2(url: str) -> Hysteria2Config | None:
+    """Parse `hysteria2://` / `hy2://`, in the shape the URI scheme defines.
+
+    The auth token belongs in the userinfo (`hysteria2://<token>@host:port`);
+    `auth=` in the query is what Clash-style converters emit, so both are read.
+    Keys are matched case-insensitively: the spec writes `pinSHA256`, and
+    collectors lowercase it.
+    """
     parsed = urlparse(url)
     if not parsed.hostname or not parsed.port:
         return None
-    params = parse_qs(parsed.query)
+    params = {k.lower(): v for k, v in parse_qs(parsed.query).items()}
+
+    def param(name: str, default: str = "") -> str:
+        return params.get(name, [default])[0]
+
     return Hysteria2Config(
         host=parsed.hostname,
         port=parsed.port,
         remark=parsed.fragment or "",
-        auth=params.get("auth", [""])[0],
-        sni=params.get("sni", [""])[0],
-        obfs=params.get("obfs", [""])[0],
+        auth=unquote(parsed.username) if parsed.username else param("auth"),
+        sni=param("sni"),
+        obfs=param("obfs").strip().lower(),
+        obfs_password=unquote(param("obfs-password")),
+        pin_sha256=param("pinsha256").strip(),
     )
 
 
 # ── Shared helpers ──────────────────────────────────────────────────────
 
 
-def _make_base_outbound(tag: str, protocol: str, is_quic: bool = False) -> dict[str, Any]:
+def _make_base_outbound(tag: str, protocol: str) -> dict[str, Any]:
     """Build the base Xray outbound dict shared by all protocols."""
-    outbound: dict[str, Any] = {
+    return {
         "tag": tag,
         "protocol": protocol,
         "settings": {},
     }
-    if is_quic:
-        outbound["streamSettings"] = {
-            "quicSettings": {},
-        }
-    return outbound
 
 
 def _add_stream_settings(

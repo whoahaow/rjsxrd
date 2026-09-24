@@ -510,6 +510,7 @@ source/               - исходный код генератора
  │   ├─ url_stats.py - сбор статистики и авто-очистка мёртвых URL
  │   ├─ vpn_config.py - VPNConfig dataclass иерархия
  │   ├─ xray_batch.py - batch-режим тестирования (shared Xray)
+ │   ├─ xray_compat.py - отбраковка конфигов, которые xray не загрузит
  │   ├─ xray_helpers.py - вспомогательные функции Xray
  │   └─ xray_tester.py - Xray-core тестирование с сортировкой по скорости
  ├─ xray/             - Xray-core бандл (xray, geoip.dat, geosite.dat, LICENSE)

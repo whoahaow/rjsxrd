@@ -45,6 +45,7 @@ main.py                          # Точка входа, CLI, оркестра�
   │   ├── bypass_builder.py      #   Верификация bypass-конфигов
   │   ├── file_writer.py         #   Параллельная запись конфигов
   │   ├── xray_batch.py          #   BatchRunner — конкурентное тестирование + batch-режим (shared Xray, v2rayN-стиль)
+  │   ├── xray_compat.py         #   Отбраковка конфигов, которые xray не загрузит — до верификации
   │   ├── xray_helpers.py        #   Хэлперы Xray (wait_for_port)
   │   ├── proxy_detector.py      #   Авто-детекция прокси
   │   ├── proxy_monitor.py       #   Мониторинг цепочек

@@ -101,7 +101,7 @@ CEILING = 800
 # work.
 BUDGETS: dict[str, int] = {
     "source/tests/test_config_processor.py": 2038,
-    "source/utils/xray_tester.py": 1203,
+    "source/utils/xray_tester.py": 1055,
     "source/utils/xray_batch.py": 952,
     "source/tests/test_fetcher_unit.py": 912,
     "source/processors/config_processor.py": 884,

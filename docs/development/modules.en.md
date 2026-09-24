@@ -191,6 +191,27 @@ Moved out of `xray_tester.py`. Orchestrates concurrent config testing:
 
 Owns ETA tracking, progress bars, and result aggregation.
 
+## xray_compat.py — configs xray cannot load
+
+Extracted from `xray_tester.py`, which sat above the module-size ceiling. Pure
+inspection of URL strings, with two callers: `bypass_builder.verify_config_file()`
+before verification, and `create_multi_config()` while building a batch config.
+
+- `filter_xray_compatible(configs)` — splits the list into (compatible,
+  rejected-with-reason) and logs a per-reason count
+- `_xray_incompatible_reason(cfg)` — one reason per config; an empty string means
+  it is testable
+
+Refused are the configs that parse and then fail when xray loads the JSON: a dead
+UUID, a garbage `encryption=` value, flows xray removed, hysteria v1, Reality with
+a space in the password or an invalid shortId, and Reality over an unsupported
+transport. In batch mode one xray process carries up to `XRAY_BATCH_SIZE` configs,
+so a failed load costs the whole chunk — which is why the check reads the URL
+before anything is built.
+
+Not refused: Hysteria2. xray added that outbound in v26.1.13 and the pipeline runs
+`releases/latest`, so refusing it discards a protocol xray can test.
+
 ## xray_helpers.py — pure Xray helpers
 
 - `wait_for_port(host, port, timeout)` — TCP port wait (used by both xray_tester and ip_verifier)

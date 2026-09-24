@@ -1,11 +1,10 @@
 """The figures the docs state about this suite, re-derived from the suite.
 
-Three cards in a row moved the same numbers and each time the documentation went
-stale behind them: K09 corrected ``682/28`` to ``705/30`` by hand, K09b
-re-measured to ``706``, and K05b then added 18 tests plus a new test module
-without touching a doc. A figure corrected by hand is wrong again by the next
-card, so the correction is paired with this guard: it collects the suite at run
-time and fails when a documented figure disagrees with what was collected.
+Correcting these figures by hand failed three times running: a change fixed one page
+and left another quoting an older count, and the next change to the suite moved the
+truth again. A figure kept by hand is wrong as soon as the suite changes, so the
+correction is paired with this guard: it collects the suite at run time and fails when
+a documented figure disagrees with what was collected.
 
 What it guards, and where each expectation comes from:
 
@@ -27,7 +26,7 @@ What it guards, and where each expectation comes from:
   up, that both shares follow from them, that the commands printed below it
   reproduce the same three figures at the same commit, and that both languages
   state the same measurement. Those figures moved ``6872/172`` → ``6894/194``
-  across two cards with nothing checking them, this sprint's own work included;
+  across two changes with nothing checking them, this guard's own work included;
 * the coverage rows in ``testing.md`` / ``testing.en.md`` — that the table still
   names the commit it was measured at, that both languages name the same one and
   state the same three rows, that each row's percentage follows from the counters
@@ -455,7 +454,7 @@ class TestDocumentedTables:
     ) -> None:
         """Each table row states the count that module actually collects.
 
-        This is the row the last three cards drifted on: a new module, or 18 new
+        This is the row three changes in a row drifted on: a new module, or 18 new
         tests in an existing one, and no change to the doc.
         """
         modules = module_counts(collected(request))
@@ -542,8 +541,8 @@ class TestDocumentedChurn:
     """The churn figures, against the commit they say they were measured at.
 
     These are the figures that drifted unobserved: ``6872`` → ``6894`` and
-    ``172`` → ``194`` across the two cards before this one, this sprint's own
-    work included, because they were stated for HEAD and nothing checked them.
+    ``172`` → ``194`` across the two changes before this guard, its own work included,
+    because they were stated for HEAD and nothing checked them.
     They name a commit now, which makes them a historical measurement, and this
     class holds the anchor and the arithmetic in place.
     """
@@ -713,9 +712,9 @@ def coverage_scope_problems(
 class TestDocumentedCoverage:
     """The coverage figures, against the commit they say they were measured at.
 
-    These rows went stale three times with nothing checking them: two cards re-measured them by
-    hand, each a few commits late, and the third time the modules this sprint added moved them
-    again. They name a commit now, which makes them a historical measurement rather than a claim
+    These rows went stale three times with nothing checking them: two changes re-measured
+    them by hand, each a few commits late, and a third moved them again. They name a commit
+    now, which makes them a historical measurement rather than a claim
     about HEAD, and this class holds the anchor, the arithmetic and both languages in place.
 
     Every branch here was shown failing on a scratch copy before this landed: a percentage

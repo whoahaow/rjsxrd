@@ -56,7 +56,7 @@ branch = true
 # The test suite is not measured. It used to be — `--cov=.` from `source/` counted the
 # tests as code — and at the time this changed they were 6556 of the tree's 14234
 # statements, covered at 98 % against the code's 57 %. The published percentage was
-# therefore mostly a statement about the suite, and every card that touched the suite
+# therefore mostly a statement about the suite, and every change to the suite
 # moved the rows the documentation states: they went stale three times for exactly that
 # reason. Measuring the code the suite exists for makes the number say what the page
 # implies, and takes the suite's churn out of the denominator entirely. The floor below

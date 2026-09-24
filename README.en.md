@@ -510,6 +510,7 @@ source/               - generator source code
  │   ├─ url_stats.py - statistics collection and dead URL auto-cleanup
  │   ├─ vpn_config.py - VPNConfig dataclass hierarchy
  │   ├─ xray_batch.py - batch testing mode (shared Xray)
+ │   ├─ xray_compat.py - configs xray cannot load, refused before verification
  │   ├─ xray_helpers.py - Xray helper functions
  │   └─ xray_tester.py - Xray-core testing sorted by speed
  ├─ xray/             - Xray-core bundle (xray, geoip.dat, geosite.dat, LICENSE)

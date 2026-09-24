@@ -21,7 +21,7 @@ opens a socket, resolves a name or starts xray.
 
 import pytest
 
-from utils.xray_tester import _xray_incompatible_reason, filter_xray_compatible
+from utils.xray_compat import _xray_incompatible_reason, filter_xray_compatible
 
 pytestmark = pytest.mark.unit
 

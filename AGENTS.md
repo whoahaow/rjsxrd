@@ -79,6 +79,7 @@ rjsxrd/
 │   │   ├── bypass_builder.py       # Bypass config verification pipeline
 │   │   ├── file_writer.py          # Config file writing helpers
 │   │   ├── xray_batch.py           # BatchRunner for concurrent Xray testing
+│   │   ├── xray_compat.py          # Configs xray cannot load, refused before verification
 │   │   ├── xray_helpers.py         # Pure helper functions for Xray testing
 │   │   ├── ip_verifier.py         # IP verify + proxy setup (single+chain), merged from ip_checker
 │   │   ├── proxy_detector.py      # Auto-detect active proxies
@@ -709,7 +710,7 @@ Configs pass through these filters in order before reaching Xray:
 1. **Protocol/syntax validation** — `is_valid_vpn_config_url()` rejects malformed URLs
 2. **SNI/CIDR filter** — `apply_sni_cidr_filter()` separates bypass configs
 3. **Security filter** — `has_insecure_setting()` flags insecure configs for unsecure output files
-4. **Xray compatibility filter** 🔒 — `filter_xray_compatible()` in `utils/xray_tester.py`
+4. **Xray compatibility filter** 🔒 — `filter_xray_compatible()` in `utils/xray_compat.py`
    Removes configs that would **crash xray at startup** even though they parse successfully:
    - Invalid UUIDs (URL-encoded garbage, truncated, non-hex chars)
    - VLESS with garbage encryption values (`encryption=none=@...`)

@@ -219,7 +219,8 @@ def verify_config_file(
         else:
             verifier = None
             try:
-                from utils.xray_tester import XrayTester, filter_xray_compatible
+                from utils.xray_compat import filter_xray_compatible
+                from utils.xray_tester import XrayTester
 
                 verifier = XrayTester()
                 if verifier.xray_path and os.path.isfile(verifier.xray_path):

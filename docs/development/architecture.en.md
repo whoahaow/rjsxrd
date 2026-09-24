@@ -45,6 +45,7 @@ main.py                          # Entry point, CLI, orchestration
   │   ├── bypass_builder.py      #   Bypass config verification
   │   ├── file_writer.py         #   Parallel config writing
   │   ├── xray_batch.py          #   BatchRunner — concurrent testing + batch mode (shared Xray, v2rayN-style)
+  │   ├── xray_compat.py         #   Configs xray cannot load, refused before verification
   │   ├── xray_helpers.py        #   Xray helpers (wait_for_port)
   │   ├── proxy_detector.py      #   Auto-detection of proxies
   │   ├── proxy_monitor.py       #   Chain monitoring

@@ -80,6 +80,39 @@ class TestHysteriaV1IsRefused:
         assert [url for url, _ in rejected] == ["hysteria://hy1.example.com:443?protocol=udp"]
 
 
+class TestAHysteria2NodeNeedingNoVerification:
+    """`insecure=1` is not a setting xray has any more, so it cannot be tested.
+
+    xray removed `allowInsecure` and replaced it with `pinnedPeerCertSha256`,
+    which is what `pinSHA256=` in a hysteria2 URL maps onto. A node that asks for
+    verification to be switched off with nothing to check instead has no config
+    shape: it is refused by name, because the alternative is that it fails like a
+    dead server and gets aged out of `URLS.txt` for a security property.
+    """
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "hy2://token@hy2.example.com:443?insecure=1",
+            "hysteria2://token@hy2.example.com:443?insecure=true&sni=hy2.example.com",
+        ],
+    )
+    def test_insecure_without_a_pin_is_refused(self, url: str) -> None:
+        reason = _xray_incompatible_reason(url)
+
+        assert "allowInsecure" in reason
+
+    def test_the_same_node_with_a_pin_is_testable(self) -> None:
+        """A pinned hash verifies the peer; it is not `allowInsecure`."""
+        url = "hy2://token@hy2.example.com:443?insecure=1&pinSHA256=deadbeef"
+
+        assert _xray_incompatible_reason(url) == ""
+
+    def test_a_verified_hysteria2_node_is_unaffected(self) -> None:
+        """The rule reads the parameter, not the scheme."""
+        assert _xray_incompatible_reason(HY2_URL) == ""
+
+
 class TestTheRulesThatStay:
     """The refusals that are real — pinned so a hy2 fix cannot take them too.
 

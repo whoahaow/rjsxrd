@@ -712,6 +712,8 @@ Configs pass through these filters in order before reaching Xray:
 3. **Security filter** — `has_insecure_setting()` flags insecure configs for unsecure output files
 4. **Xray compatibility filter** 🔒 — `filter_xray_compatible()` in `utils/xray_compat.py`
    Removes configs that would **crash xray at startup** even though they parse successfully:
+   - Hysteria v1 (`hysteria://`, `hy1://`) — xray's hysteria outbound rejects `version != 2`
+   - Hysteria2 with `insecure=1` and no `pinSHA256` — xray removed `allowInsecure`, so such a node has no config shape
    - Invalid UUIDs (URL-encoded garbage, truncated, non-hex chars)
    - VLESS with garbage encryption values (`encryption=none=@...`)
    - Reality with spaces in password

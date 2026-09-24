@@ -68,7 +68,7 @@ from utils.psutil_available import HAS_PSUTIL as PSUTIL_AVAILABLE
 # tqdm progress bar. Single source of truth is utils/progress.py.
 from utils.psutil_available import psutil
 from utils.xray_batch import BatchRunner
-from utils.xray_compat import filter_xray_compatible
+from utils.xray_compat import _xray_incompatible_reason, filter_xray_compatible
 from utils.xray_helpers import wait_for_port
 
 # ── Xray error logging ──────────────────────────────────────────────
@@ -859,6 +859,12 @@ class XrayTester:
             return False, "Empty URL"
         if "://" not in url:
             return False, "No protocol"
+        # The compatibility filter's verdict, asked here as well: batch mode
+        # applies it while building the shared config, and without this the same
+        # URL is refused in one mode and reported as a parse failure in the other.
+        refusal = _xray_incompatible_reason(url)
+        if refusal:
+            return False, refusal
         # Let Xray validate the rest
         return True, ""
 

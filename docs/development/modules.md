@@ -194,8 +194,10 @@
 ## xray_compat.py — отбраковка несовместимых с Xray конфигов
 
 Вынесена из `xray_tester.py` (тот модуль был поверх потолка размера). Чистая
-проверка строк URL, два вызывающих: `bypass_builder.verify_config_file()` перед
-верификацией и `create_multi_config()` при сборке batch-конфига.
+проверка строк URL, три вызывающих: `bypass_builder.verify_config_file()` перед
+верификацией, `create_multi_config()` при сборке batch-конфига и
+`XrayTester._quick_validate_url()` — чтобы одиночный режим отклонял те же URL по
+той же причине, а не выдавал «не удалось разобрать конфиг».
 
 - `filter_xray_compatible(configs)` — делит список на (совместимые,
   отклонённые с причиной) и пишет в лог счётчик по причинам

@@ -27,6 +27,8 @@ pytestmark = pytest.mark.unit
 
 HY2_URL = "hysteria2://token@hy2.example.com:443?sni=hy2.example.com"
 HY2_ALIAS_URL = "hy2://token@hy2.example.com:443"
+HY1_URL = "hysteria://hy1.example.com:443?protocol=udp"
+HY2_INSECURE_URL = "hy2://token@hy2.example.com:443?insecure=1"
 VLESS_OK = "vless://12345678-1234-1234-1234-123456789012@v.example.com:443?security=tls"
 VLESS_BAD_UUID = "vless://not-a-uuid@v.example.com:443?security=tls"
 VLESS_DEAD_FLOW = (
@@ -111,6 +113,44 @@ class TestAHysteria2NodeNeedingNoVerification:
     def test_a_verified_hysteria2_node_is_unaffected(self) -> None:
         """The rule reads the parameter, not the scheme."""
         assert _xray_incompatible_reason(HY2_URL) == ""
+
+
+class TestBothModesRefuseTheSameConfig:
+    """Batch and single verification must reach the same verdict for one URL.
+
+    Batch mode applies the filter while building the shared xray config; single
+    mode never gets there, so it asks through `_quick_validate_url()`. Without
+    that second call site a URL is refused in one mode and reported to the error
+    stats as a parse failure in the other, and which one you see depends on a
+    setting that has nothing to do with the config.
+    """
+
+    @staticmethod
+    def _tester():
+        """An XrayTester with no xray binary: the validator is pure string work."""
+        import threading
+
+        from utils.xray_tester import XrayTester
+
+        tester = XrayTester.__new__(XrayTester)
+        tester.xray_path = None
+        tester._error_stats = {}
+        tester._lock = threading.Lock()
+        return tester
+
+    @pytest.mark.parametrize("url", [HY1_URL, HY2_INSECURE_URL])
+    def test_single_mode_refuses_what_the_filter_refuses(self, url: str) -> None:
+        tester = self._tester()
+        valid, error = tester._quick_validate_url(url)
+
+        assert valid is False
+        assert error == _xray_incompatible_reason(url)
+
+    def test_single_mode_still_accepts_a_testable_config(self) -> None:
+        tester = self._tester()
+
+        assert tester._quick_validate_url(VLESS_OK) == (True, "")
+        assert tester._quick_validate_url(HY2_URL) == (True, "")
 
 
 class TestTheRulesThatStay:

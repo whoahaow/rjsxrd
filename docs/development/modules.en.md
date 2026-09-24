@@ -194,8 +194,10 @@ Owns ETA tracking, progress bars, and result aggregation.
 ## xray_compat.py — configs xray cannot load
 
 Extracted from `xray_tester.py`, which sat above the module-size ceiling. Pure
-inspection of URL strings, with two callers: `bypass_builder.verify_config_file()`
-before verification, and `create_multi_config()` while building a batch config.
+inspection of URL strings, with three callers: `bypass_builder.verify_config_file()`
+before verification, `create_multi_config()` while building a batch config, and
+`XrayTester._quick_validate_url()` so the single-config path refuses the same URLs
+for the same reason instead of reporting a parse failure.
 
 - `filter_xray_compatible(configs)` — splits the list into (compatible,
   rejected-with-reason) and logs a per-reason count

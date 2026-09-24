@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 ```
 
 Every test module declares its marker (`pytestmark`), so `-m unit` and
-`-m integration` actually select something: 985 and 15 tests out of 1000
+`-m integration` actually select something: 989 and 15 tests out of 1004
 (measured with `pytest --collect-only -q` under each marker). Only the two
 modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) carry `integration`. Pure logic needs
@@ -32,7 +32,7 @@ which took the 15 pure-logic tests out of `test_fetcher.py`.
 
 ## Test structure
 
-**1000 tests** in 38 files. A full run takes around 70–80 seconds on the
+**1004 tests** in 38 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
@@ -44,7 +44,7 @@ load, so measure with `pytest -q` on your own machine.
 | `test_vpn_config.py` | 41 | VPNConfig typed dataclasses |
 | `test_security_filter.py` | 35 | `has_insecure_setting`, all protocols and edge cases, 2022 key length validation |
 | `test_logger.py` | 30 | Logging, levels, format |
-| `test_yaml_converter.py` | 28 | Clash/Surge YAML to VPN URL conversion |
+| `test_yaml_converter.py` | 32 | Clash/Surge YAML to VPN URL conversion |
 | `test_smart_eta.py` | 27 | SmartETA: 3-way estimate (window, global, EMA) + timeout floor |
 | `test_git_updater.py` | 26 | GitUpdater: init, pull, stage, commit, push, retry |
 | `test_simple_tester.py` | 25 | `extract_host_port` + `SimpleTester` (TCP ping) |

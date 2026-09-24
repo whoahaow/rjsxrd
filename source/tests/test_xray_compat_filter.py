@@ -153,6 +153,88 @@ class TestBothModesRefuseTheSameConfig:
         assert tester._quick_validate_url(HY2_URL) == (True, "")
 
 
+class TestTheOlderRules:
+    """The rules that predate this module, now pinned one case at a time.
+
+    Each of these was written against a config observed to make xray fail at
+    startup and none had a test, so "the filter catches it" was a claim about a
+    string pattern nobody re-checked. The expected reason strings are copied from
+    what the function actually returns, so a change here is a deliberate change of
+    verdict and not a regression.
+    """
+
+    @pytest.mark.parametrize(
+        ("url", "expected"),
+        [
+            (
+                "vless://12345678-1234-1234-1234-123456789012@h.example.com:443?encryption=none=@x",
+                "garbage encryption value",
+            ),
+            (
+                "vless://12%2540345678-1234-1234-1234-123456789012@h.example.com:443",
+                "invalid UUID (url-encoded garbage)",
+            ),
+            (
+                "vless://readable-text-not-a-uuid@h.example.com:443",
+                "invalid UUID (not a valid format)",
+            ),
+            ("vless://1234@h.example.com:443", "invalid UUID (bad format)"),
+            (
+                "trojan://pass@h.example.com:443?security=reality&pbk=abc%20def",
+                "reality pbk contains space",
+            ),
+            (
+                "vless://12345678-1234-1234-1234-123456789012@h.example.com:443?security=reality&sid=a",
+                "reality shortId too short",
+            ),
+            (
+                "vless://12345678-1234-1234-1234-123456789012@h.example.com:443?security=reality&sid="
+                + "a" * 34,
+                "reality shortId too long",
+            ),
+            (
+                "vless://12345678-1234-1234-1234-123456789012@h.example.com:443?security=reality&sid=zz",
+                "reality shortId invalid chars",
+            ),
+            (
+                "vless://12345678-1234-1234-1234-123456789012@h.example.com:443?flow=xtls-rprx-direct-udp443",
+                "unsupported flow: xtls-rprx-direct-udp443",
+            ),
+            (
+                "vless://12345678-1234-1234-1234-123456789012@h.example.com:443?security=reality&type=ws",
+                "reality with unsupported transport: ws",
+            ),
+        ],
+    )
+    def test_a_broken_config_is_refused_with_its_reason(self, url: str, expected: str) -> None:
+        assert _xray_incompatible_reason(url) == expected
+
+    def test_a_complete_reality_config_is_testable(self) -> None:
+        """The rules reject the broken field, not the whole protocol."""
+        url = (
+            "vless://12345678-1234-1234-1234-123456789012@h.example.com:443"
+            "?security=reality&type=raw&pbk=key&sid=ab&sni=h.example.com"
+        )
+
+        assert _xray_incompatible_reason(url) == ""
+
+    def test_the_uuid_rule_is_scoped_to_vless(self) -> None:
+        """vmess carries its user id in base64 JSON, so a raw check would be wrong.
+
+        Pinned because the rule reads like a general one: applying it to vmess
+        would refuse configs xray parses happily.
+        """
+        assert _xray_incompatible_reason("vmess://readable-text@h.example.com:443") == ""
+
+    def test_tuic_is_not_a_filter_concern(self) -> None:
+        """TUIC is xray's gap, but this filter refuses by pattern, not by protocol.
+
+        The parser returns None for it, which is the path that handles TUIC; the
+        filter staying silent is deliberate rather than an oversight.
+        """
+        assert _xray_incompatible_reason("tuic://uuid:pass@h.example.com:443") == ""
+
+
 class TestTheRulesThatStay:
     """The refusals that are real — pinned so a hy2 fix cannot take them too.
 

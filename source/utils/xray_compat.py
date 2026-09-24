@@ -88,6 +88,18 @@ def _xray_incompatible_reason(cfg: str) -> str:
     if cfg_lower.startswith(("hysteria://", "hy1://")):
         return "hysteria v1 unsupported by xray (version != 2)"
 
+    # A Hysteria2 node reachable only with the certificate check off has no xray
+    # shape at all: xray removed `allowInsecure` and replaced it with a pinned
+    # certificate hash. Refuse that with its reason instead of letting it fail
+    # like a dead server — the difference is whether the source gets aged out of
+    # URLS.txt for something that is the node's security, not its availability.
+    if (
+        cfg_lower.startswith(("hysteria2://", "hy2://"))
+        and any(flag in cfg_lower for flag in ("insecure=1", "insecure=true"))
+        and "pinsha256=" not in cfg_lower
+    ):
+        return "hysteria2 needs verification off (xray removed allowInsecure)"
+
     # ── UUID validation (vless, vmess) ────────────────────────────
     # Extract UUID: vless://uuid@host
     if cfg_lower.startswith("vless://"):

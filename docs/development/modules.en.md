@@ -203,11 +203,11 @@ before verification, and `create_multi_config()` while building a batch config.
   it is testable
 
 Refused are the configs that parse and then fail when xray loads the JSON: a dead
-UUID, a garbage `encryption=` value, flows xray removed, hysteria v1, Reality with
-a space in the password or an invalid shortId, and Reality over an unsupported
-transport. In batch mode one xray process carries up to `XRAY_BATCH_SIZE` configs,
-so a failed load costs the whole chunk — which is why the check reads the URL
-before anything is built.
+UUID, a garbage `encryption=` value, flows xray removed, hysteria v1, Hysteria2
+with `insecure=1` and no `pinSHA256`, Reality with a space in the password or an
+invalid shortId, and Reality over an unsupported transport. In batch mode one xray
+process carries up to `XRAY_BATCH_SIZE` configs, so a failed load costs the whole
+chunk — which is why the check reads the URL before anything is built.
 
 Not refused: Hysteria2. xray added that outbound in v26.1.13 and the pipeline runs
 `releases/latest`, so refusing it discards a protocol xray can test.

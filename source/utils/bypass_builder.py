@@ -227,6 +227,14 @@ def verify_config_file(
                     log(f"Using Xray-core tester: {verifier.xray_path}")
                     # Final compat filter before xray sees these configs
                     configs, rejected = filter_xray_compatible(configs)
+                    if rejected:
+                        # Attributed to the file being verified: the filter's own
+                        # line counts a batch, and a run verifies several, so
+                        # without this no reader can tell which source lost configs.
+                        log(
+                            f"{input_path}: {len(rejected)} config(s) are not testable "
+                            f"by xray, {len(configs)} go on to verification"
+                        )
                     if not configs:
                         log("All configs filtered out by xray compat check")
                         all_results = []

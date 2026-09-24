@@ -378,7 +378,7 @@ def _normalized(path: str | Path) -> str:
 def _output_dir_defaults() -> dict[str, Any]:
     """Every production callable that carries a default output directory.
 
-    Nine sites spell the literal out in the audit's list; a second pass found
+    Nine sites spell the literal out, and a second pass found
     two more (the Telegram proxy processor and the numbered default writer).
     Each is inspected rather than trusted to a grep, because a default binds at
     import time and only the callable knows what it holds.

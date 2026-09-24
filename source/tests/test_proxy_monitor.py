@@ -169,7 +169,11 @@ class TestProxyMonitorShutdown:
 
     def test_no_sys_exit_in_source(self):
         """sys.exit() should not appear anywhere in the proxy_monitor source.
-        Regression test for the audit bug (8th pass)."""
+
+        The monitor runs on a background thread, and SystemExit raised there
+        ends the monitor without ending the process — nothing reports it, so a
+        loop that exits instead of returning looks alive.
+        """
         import inspect
 
         source = inspect.getsource(ProxyMonitor)

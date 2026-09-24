@@ -385,8 +385,8 @@ only squashes *runs* of consecutive auto-commits, so the fresh ones stay visible
 one by one.
 
 The share is anchored to a commit rather than to HEAD: every hand-written commit
-lowers it a little (it moved from 97.5 % to 97.2 % across the two previous commits
-of this session), so a HEAD-relative figure is wrong one commit after it is
+lowers it a little (it moved from 97.5 % to 97.2 % across the two previous
+commits), so a HEAD-relative figure is wrong one commit after it is
 written. `71972831` was the tip of `main` when this was measured, and
 `source/tests/test_docs_figures.py` checks that the anchor and both shares stay
 in place.

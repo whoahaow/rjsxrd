@@ -379,10 +379,10 @@ class TestFileOperations:
 class TestGetDedupKeyLRUCache:
     """Regression tests for the @lru_cache on _get_dedup_key.
 
-    Bug context: the cache was added on 2026-06-15 after the audit found that
-    _get_dedup_key was base64-decoding + JSON-parsing vmess configs 60K-120K
-    times per run on duplicate configs. The cache must produce identical keys
-    for identical inputs and survive repeated calls.
+    Bug context: _get_dedup_key used to base64-decode and JSON-parse every vmess
+    config it was handed, which on 60K-120K duplicate configs per run is the hot
+    path; the cache went in on 2026-06-15 for that reason. The cache must produce
+    identical keys for identical inputs and survive repeated calls.
     """
 
     def setup_method(self):

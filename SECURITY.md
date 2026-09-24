@@ -142,13 +142,13 @@ daily-repo fetchers, and the aggregator's output.
 `_destination_refusal(url, FETCH_PRIVATE_ALLOWLIST)` is the decision; it is made before
 the session is built, and again for the address a redirect actually ended at.
 
-It is not on every HTTP call in the tree. The surfaces the audit measured, and why each
+It is not on every HTTP call in the tree. The surfaces measured here, and why each
 is outside it:
 
 | Surface | What it fetches | Why the guard is not the control |
 |---|---|---|
 | `scripts/purge_stale_urls.py` — `build_github_session()`, `check_rate_limit()`, `get_last_commit_date()` | the GitHub API, for the last commit date of a file behind a `github.com` / `raw.githubusercontent.com` URL | the owner, repo and path come from `URLS.txt`, but the request goes to `api.github.com`, a literal in that module. The untrusted input chooses a path on a host this module fixes, not a destination |
-| `scripts/benchmark_configs.py` — `resolve_path()` | this project's own `githubmirror/bypass/bypass-all.txt` | the URL is a module-level literal on `raw.githubusercontent.com`, and the script takes no URL from its arguments or its environment. The audit recorded this one as an operator-supplied URL; the code has no such input. If that changes, the rule below applies to it |
+| `scripts/benchmark_configs.py` — `resolve_path()` | this project's own `githubmirror/bypass/bypass-all.txt` | the URL is a module-level literal on `raw.githubusercontent.com`, and the script takes no URL from its arguments or its environment. Calling this an operator-supplied URL does not hold: the code has no such input. If that changes, the rule below applies to it |
 | `utils/ip_verifier.py` — `_make_request()` and its callers | the IP-echo providers in `IP_CHECK_URLS` | the destinations are that module's own constants. Its `proxies` argument does come from outside (the operator's `--proxy` / `--proxy-chain`), but the guard judges a *destination*, not a route: a private proxy address is not a URL this guard could refuse, and refusing one would not be the control that helps |
 | `utils/xray_tester.py` — `_get_session()`, called from `utils/xray_batch.py` | the ping URLs in `TEST_PING_URLS`, which are operator-supplied | the request is sent through a SOCKS listener on loopback (`socks5h://127.0.0.1:{port}`), so the URL's host is resolved by the proxy under test and not by this process. The guard's question — what does *this* process resolve the name to — does not arise, and refusing on a local answer would forbid a URL the proxy can reach |
 

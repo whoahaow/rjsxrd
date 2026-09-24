@@ -131,16 +131,6 @@ def _log_xray_error(tag: str, stderr: str, stdout: str = "", config_snippet: str
         pass  # best-effort logging
 
 
-def _cleanup_all() -> None:
-    """Cleanup all active Xray processes on exit.
-
-    Backwards-compatible wrapper around the shared registry's force-cleanup.
-    Callers should use install_signal_handler() from utils.process_registry
-    instead, or let main.py handle cleanup via its own signal handler.
-    """
-    default_registry.cleanup(force=True)
-
-
 # ── Xray outbound config builders ────────────────────────────────────
 
 

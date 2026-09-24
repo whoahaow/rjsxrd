@@ -86,7 +86,7 @@ The `--cov=.` rows measure the code, not the test suite: it is excluded from the
 measurement (`omit = ["tests/*"]` in `[tool.coverage.run]`). It used to be included —
 6556 of the tree's 14234 statements were the tests, covered at 98 % against the code's
 57 % — so the percentage was mostly a statement about the suite rather than about the
-code it exists for, and every card that touched the suite moved the figures. That is
+code it exists for, and every change to the suite moved the figures. That is
 why these rows went stale three times. The two-package row measured code only from the
 start; it has a denominator of its own.
 
@@ -215,8 +215,8 @@ errors in 22 files**.
 `strict`, `disallow_untyped_defs` and `check_untyped_defs` are deliberately not
 enabled: each multiplies the error count rather than surfacing new defects, so
 strictness is staged. The `name-defined` findings that used to sit in the
-residual were defects and are resolved. The error and file counts move from card
-to card — measure them with the command above instead of carrying a number over
+residual were defects and are resolved. The error and file counts move from commit
+to commit — measure them with the command above instead of carrying a number over
 from a document.
 
 ## Module size

@@ -1,7 +1,7 @@
 """Offline end-to-end pipeline test: the real orchestrator, every seam stubbed.
 
-``main.py`` sat at 0% coverage and ``ConfigPipeline`` at 37%; the P0 crashes an
-earlier card fixed (an unbound local in the sync batch path, upload handlers
+``main.py`` sat at 0% coverage and ``ConfigPipeline`` at 37%; the two crashes an
+earlier change had just fixed (an unbound local in the sync batch path, upload handlers
 that evaporated under ``-O``) both lived in that untested band. This module
 drives the real pipeline instead of a mocked-out copy: stage dispatch, dedup,
 tagging, SNI/CIDR and security filtering, the file writers and the

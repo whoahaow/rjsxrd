@@ -386,9 +386,11 @@ rjsxrd/
 - Empty passwords REJECTED
 
 ### Hysteria2
-- Protocol name: `"hysteria2"` (NOT `"hysteria"`)
-- `hysteriaSettings` structure with `version: 2`
-- SNI validated for TLS
+- Outbound protocol name: `"hysteria"` — xray registers no `"hysteria2"` outbound
+- `version: 2` asserted in both `settings` and `hysteriaSettings`; `infra/conf/hysteria.go` rejects anything else
+- Auth token in `hysteriaSettings.auth`, SNI in `tlsSettings.serverName` (xray errors "tls config is nil" without `security: "tls"`)
+- `obfs=salamander&obfs-password=…` maps to `streamSettings.finalmask.udp`, not to a transport
+- `insecure=1` is unmappable and therefore unverifiable: xray removed `allowInsecure` in favour of `pinnedPeerCertSha256`
 
 ### Hysteria v1
 - Limited support (may not work with all Xray-core versions)

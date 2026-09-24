@@ -544,39 +544,67 @@ def parse_shadowsocks_to_outbound(url: str, tag: str = "proxy") -> dict | None:
 
 
 def parse_hysteria2_to_outbound(url: str, tag: str = "proxy") -> dict | None:
-    """Parse Hysteria2/Hy2 URL to Xray outbound."""
+    """Parse a Hysteria2/Hy2 URL into the outbound Xray documents.
+
+    xray has no "hysteria2" outbound: the protocol is "hysteria" and the version
+    is asserted twice — `settings.version` (infra/conf/hysteria.go returns
+    "version != 2" for anything else) and `hysteriaSettings.version`. The address
+    and port belong to `settings`, the password to `hysteriaSettings.auth`, and
+    QUIC camouflage is a finalmask stage rather than a transport, so
+    `obfs=salamander&obfs-password=...` maps onto `finalmask.udp`.
+
+    `insecure=1` is deliberately unmapped: xray removed `allowInsecure` in favour
+    of `pinnedPeerCertSha256`, so a node that needs verification off has no xray
+    representation at all. The compatibility filter refuses those by name rather
+    than letting them fail like a dead server.
+
+    Query keys are matched case-insensitively because the hysteria2 URI spec
+    writes `pinSHA256` while collectors and Clash converters lowercase it.
+    """
     try:
         parsed = urlparse(url)
-        params = parse_qs(parsed.query)
+        params = {k.lower(): v for k, v in parse_qs(parsed.query).items()}
 
         if not parsed.hostname or not parsed.port:
             return None
 
-        # Hysteria2 uses QUIC transport with TLS
-        auth = unquote(parsed.username) if parsed.username else ""
-        sni = params.get("sni", [parsed.hostname])[0] if params.get("sni") else parsed.hostname
+        def param(name: str, default: str = "") -> str:
+            return params.get(name, [default])[0]
 
-        # Validate SNI for TLS
-        if not sni or not sni.strip():
-            sni = parsed.hostname
+        auth = unquote(parsed.username) if parsed.username else param("auth")
+        sni = param("sni").strip() or parsed.hostname
 
-        # Hysteria2 uses different structure - direct settings, NOT servers[] array
-        # Password goes in hysteriaSettings.auth, NOT in settings.password
+        tls_settings = _make_tls_settings(sni, param("fp") or None)
+        pinned = param("pinsha256").strip()
+        if pinned:
+            tls_settings["pinnedPeerCertSha256"] = pinned
+
+        hysteria_settings: dict[str, Any] = {"version": 2}
+        if auth:
+            hysteria_settings["auth"] = auth
+
+        stream_settings: dict[str, Any] = {
+            "network": "hysteria",
+            # xray errors "tls config is nil" without it: hysteria rides on TLS.
+            "security": "tls",
+            "hysteriaSettings": hysteria_settings,
+            "tlsSettings": tls_settings,
+        }
+        if param("obfs").strip().lower() == "salamander" and param("obfs-password"):
+            stream_settings["finalmask"] = {
+                "udp": [
+                    {
+                        "type": "salamander",
+                        "settings": {"password": unquote(param("obfs-password"))},
+                    }
+                ]
+            }
+
         return {
             "tag": tag,
-            "protocol": "hysteria2",
+            "protocol": "hysteria",
             "settings": {"version": 2, "address": parsed.hostname, "port": parsed.port},
-            "streamSettings": {
-                "network": "hysteria",
-                "security": "tls",
-                "hysteriaSettings": {"version": 2, "auth": auth},
-                "tlsSettings": {
-                    "serverName": sni,
-                    "fingerprint": params.get("fp", ["chrome"])[0]
-                    if params.get("fp")
-                    else "chrome",
-                },
-            },
+            "streamSettings": stream_settings,
         }
     except (
         ValueError,

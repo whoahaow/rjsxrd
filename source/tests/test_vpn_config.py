@@ -343,16 +343,75 @@ class TestHysteria2Config:
         out = cfg.to_xray_outbound(tag="hy2-proxy")
         assert out is not None
         assert out["tag"] == "hy2-proxy"
-        assert out["protocol"] == "hysteria2"
-        assert out["settings"]["auth"] == "secret123"
-        assert out["settings"]["serverName"] == "hy2-sni.com"
+        # xray has no "hysteria2" outbound, and it rejects settings.version != 2.
+        assert out["protocol"] == "hysteria"
+        assert out["settings"] == {"version": 2, "address": "hy2.com", "port": 443}
+        assert out["streamSettings"]["hysteriaSettings"]["auth"] == "secret123"
+        assert out["streamSettings"]["tlsSettings"]["serverName"] == "hy2-sni.com"
 
     def test_no_auth_no_secretfield(self):
-        """If no auth, the field should not be in the settings dict
+        """If no auth, the field should not be in hysteriaSettings
         (the HY2 parser only sets it if present)."""
         cfg = Hysteria2Config(host="hy2.com", port=443, auth="")
         out = cfg.to_xray_outbound()
-        assert "auth" not in out["settings"]
+        assert "auth" not in out["streamSettings"]["hysteriaSettings"]
+
+    def test_security_is_tls(self):
+        """xray errors "tls config is nil" for a hysteria stream without it."""
+        cfg = Hysteria2Config(host="hy2.com", port=443)
+        out = cfg.to_xray_outbound()
+        assert out["streamSettings"]["security"] == "tls"
+        assert out["streamSettings"]["network"] == "hysteria"
+
+    def test_salamander_obfs_becomes_a_finalmask_stage(self):
+        """obfs is not a transport in xray: it is the last camouflage stage."""
+        cfg = Hysteria2Config(
+            host="hy2.com",
+            port=443,
+            obfs="salamander",
+            obfs_password="hidden",
+        )
+        out = cfg.to_xray_outbound()
+        assert out["streamSettings"]["finalmask"] == {
+            "udp": [{"type": "salamander", "settings": {"password": "hidden"}}]
+        }
+
+    def test_no_obfs_means_no_finalmask_key(self):
+        """An unobfuscated node must not carry an empty camouflage stage."""
+        cfg = Hysteria2Config(host="hy2.com", port=443)
+        out = cfg.to_xray_outbound()
+        assert "finalmask" not in out["streamSettings"]
+
+    def test_pin_sha256_replaces_the_dropped_allow_insecure(self):
+        """xray's answer to `insecure=1` is a pinned certificate hash."""
+        cfg = Hysteria2Config(host="hy2.com", port=443, pin_sha256="ab" * 32)
+        out = cfg.to_xray_outbound()
+        assert out["streamSettings"]["tlsSettings"]["pinnedPeerCertSha256"] == "ab" * 32
+
+    def test_matches_the_legacy_parser_for_the_same_url(self):
+        """Two producers of one outbound is how a URL gets tested two ways.
+
+        `_url_to_outbound()` tries the typed path first and falls back to the
+        legacy parser, so any drift between them decides which shape a URL gets.
+        """
+        from utils.protocol_parsers import parse_hysteria2_to_outbound
+
+        url = "hysteria2://secret123@hy2.com:443/?sni=hy2-sni.com&obfs=salamander&obfs-password=hidden"
+        typed = parse_url(url)
+        assert typed is not None
+        assert typed.to_xray_outbound("proxy") == parse_hysteria2_to_outbound(url, "proxy")
+
+    def test_parse_reads_auth_from_userinfo_and_camel_case_pins(self):
+        """The URI scheme puts the token in the userinfo and writes pinSHA256."""
+        cfg = parse_url(
+            "hysteria2://tok%40en@hy2.com:443/?sni=a.com&pinSHA256=deadbeef&obfs=SALAMANDER"
+            "&obfs-password=pw"
+        )
+        assert cfg is not None
+        assert cfg.auth == "tok@en"
+        assert cfg.pin_sha256 == "deadbeef"
+        assert cfg.obfs == "salamander"
+        assert cfg.obfs_password == "pw"
 
 
 class TestSecurityEdgeCases:

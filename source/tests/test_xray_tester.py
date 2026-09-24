@@ -198,14 +198,17 @@ class TestXrayProtocolParsers:
         url = "hysteria2://password@hy2.example.com:443?insecure=1"
         result = tester._url_to_outbound(url, "proxy")
         assert result is not None
-        assert result["protocol"] == "hysteria2"
+        # xray registers the outbound as "hysteria" and rejects version != 2.
+        assert result["protocol"] == "hysteria"
+        assert result["settings"] == {"version": 2, "address": "hy2.example.com", "port": 443}
+        assert result["streamSettings"]["hysteriaSettings"]["version"] == 2
 
     def test_hy2_alias(self):
         tester = self._make_tester()
         url = "hy2://password@hy2.example.com:443?insecure=1"
         result = tester._url_to_outbound(url, "proxy")
         assert result is not None
-        assert result["protocol"] == "hysteria2"
+        assert result["protocol"] == "hysteria"
 
     # --- Hysteria v1 ---
 

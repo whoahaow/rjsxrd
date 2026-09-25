@@ -47,6 +47,7 @@ main.py                          # Entry point, CLI, orchestration
   │   ├── xray_batch.py          #   BatchRunner — concurrent testing + batch mode (shared Xray, v2rayN-style)
   │   ├── xray_compat.py         #   Configs xray cannot load, refused before verification
   │   ├── xray_helpers.py        #   Xray helpers (wait_for_port)
+  │   ├── xray_stream_settings.py    # streamSettings builders (tls/reality/ws/grpc/httpupgrade/xhttp/finalmask)
   │   ├── proxy_detector.py      #   Auto-detection of proxies
   │   ├── proxy_monitor.py       #   Chain monitoring
   │   ├── resource_monitor.py    #   CPU/RAM/network monitoring
@@ -74,7 +75,7 @@ main.py                          # Entry point, CLI, orchestration
   │   ├── benchmark_configs.py
   │   ├── test_telegram_proxies.py
   │   └── setup-vps.sh
-  └── tests/                     # 1122 tests in 39 files
+  └── tests/                     # 1133 tests in 39 files
 ```
 
 ## Processing pipeline

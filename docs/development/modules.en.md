@@ -275,15 +275,34 @@ Moved out of `utils/xray_tester.py` to reduce the god-module. All six protocol p
 - Hysteria v1 has no parser at all: xray cannot load that version, so the compatibility filter refuses those URLs instead
 - TUIC has no parser: xray implements no TUIC outbound, so a `tuic://` URL resolves to no config at all
 
-**Shared helpers (extracted from VLESS/Trojan/SSR to eliminate duplication):**
+**URL helpers (extracted from VLESS/Trojan/SSR to eliminate duplication):**
 - `_clean_url_part(url)` — case-insensitive protocol removal
 - `_split_fragment_query(url_part)` — splitting `#fragment`, `?query`, `base`
 - `_parse_user_host_port(base)` — parsing `user@host:port`
-- `_make_stream_settings(network, security, params, host)` — assembling streamSettings (tls, reality, ws, grpc, httpupgrade)
-- `_make_tls_settings()`, `_make_reality_settings()`, `_make_ws_settings()`, `_make_grpc_settings()`, `_make_httpupgrade_settings()` — low-level section builders
-- `apply_tls_fragment(stream)` — attaches the `finalmask.tcp` stage that makes `ENABLE_FRAGMENT` real; called by the verifier, not by a URL parser
+
+The `streamSettings` blocks are built in `xray_stream_settings.py`, described next.
 
 Imports `is_xray_cipher()` from `security_filter.py`. Every parser has to return None rather than raise — that is a contract, not a hope: the SSR password shape that used to leak `UnboundLocalError` out of the decoder is pinned by a test.
+
+## xray_stream_settings.py — streamSettings builders
+
+Split out of `protocol_parsers.py` when that file passed the module-size ceiling.
+Pure builders: no URL parsing, no protocol knowledge, one job — emit keys xray's
+`StreamConfig` reads (checked against `infra/conf/transport_internet.go` at
+v26.3.27). `utils/vpn_config.py` builds the same blocks on the typed path, and
+`test_protocol_parsers.py` asserts the two agree key for key.
+
+- `_make_stream_settings(network, security, params, host)` — the whole block: tls or reality plus the transport settings
+- `_make_tls_settings()`, `_make_reality_settings()`, `_make_ws_settings()`, `_make_grpc_settings()`, `_make_httpupgrade_settings()`, `_make_xhttp_settings()` — the section builders
+- `apply_tls_fragment(stream)` — the `finalmask.tcp` stage that makes `ENABLE_FRAGMENT` real; the verifier calls it, not a URL parser
+
+Two shapes are deliberate. `wsSettings`, `httpupgradeSettings` and `xhttpSettings`
+carry `host` rather than a `headers` map: xray honors a host hidden in `headers`
+only as a fallback and prints a deprecation warning for it. And `fingerprint`
+belongs inside `tlsSettings`/`realitySettings` — `StreamConfig` has no fingerprint
+key, so the `streamSettings.fingerprint` this repo used to write was dropped in
+silence, while a blank or unknown value in the place xray does read aborts the
+config load.
 
 ## config_helpers.py — pipeline helpers
 

@@ -435,7 +435,7 @@ source/               - исходный код генератора
  │   ├─ purge_stale_urls.py - очистка по git timestamp
  │   ├─ setup-vps.sh   - скрипт развёртывания на VPS
  │   └─ test_telegram_proxies.py - тестирование Telegram прокси
- ├─ tests/            - unit-тесты (1122 теста, 39 файлов)
+ ├─ tests/            - unit-тесты (1133 теста, 39 файлов)
  │   ├─ __init__.py
  │   ├─ conftest.py   - фикстуры и конфигурация pytest
  │   ├─ test_config_processor.py
@@ -513,6 +513,7 @@ source/               - исходный код генератора
  │   ├─ xray_batch.py - batch-режим тестирования (shared Xray)
  │   ├─ xray_compat.py - отбраковка конфигов, которые xray не загрузит
  │   ├─ xray_helpers.py - вспомогательные функции Xray
+ │   ├─ xray_stream_settings.py - строители streamSettings: tls, reality, ws, grpc, httpupgrade, xhttp, finalmask
  │   └─ xray_tester.py - Xray-core тестирование с сортировкой по скорости
  ├─ xray/             - Xray-core бандл (xray, geoip.dat, geosite.dat, LICENSE)
  ├─ requirements.txt  - рантайм-зависимости
@@ -544,7 +545,7 @@ cd source && ../.venv/Scripts/python.exe main.py   # конфиги появят
 
 #### Запуск тестов
 
-Проект включает набор unit-тестов для проверки корректности работы основных модулей (1122 теста, 39 файлов; замер — `pytest -q`):
+Проект включает набор unit-тестов для проверки корректности работы основных модулей (1133 теста, 39 файлов; замер — `pytest -q`):
 
 ```bash
 # тестовый тулчейн — из корня репозитория

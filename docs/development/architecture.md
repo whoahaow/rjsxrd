@@ -47,6 +47,7 @@ main.py                          # Точка входа, CLI, оркестра�
   │   ├── xray_batch.py          #   BatchRunner — конкурентное тестирование + batch-режим (shared Xray, v2rayN-стиль)
   │   ├── xray_compat.py         #   Отбраковка конфигов, которые xray не загрузит — до верификации
   │   ├── xray_helpers.py        #   Хэлперы Xray (wait_for_port)
+  │   ├── xray_stream_settings.py    # Сборщики streamSettings (tls/reality/ws/grpc/httpupgrade/xhttp/finalmask)
   │   ├── proxy_detector.py      #   Авто-детекция прокси
   │   ├── proxy_monitor.py       #   Мониторинг цепочек
   │   ├── resource_monitor.py    #   Мониторинг CPU/RAM/сети
@@ -74,7 +75,7 @@ main.py                          # Точка входа, CLI, оркестра�
   │   ├── benchmark_configs.py
   │   ├── test_telegram_proxies.py
   │   └── setup-vps.sh
-  └── tests/                     # 1122 теста в 39 файлах
+  └── tests/                     # 1133 теста в 39 файлах
 ```
 
 ## Пайплайн обработки

@@ -435,7 +435,7 @@ source/               - generator source code
  │   ├─ purge_stale_urls.py - cleaning by git timestamp
  │   ├─ setup-vps.sh   - VPS deployment script
  │   └─ test_telegram_proxies.py - testing Telegram proxies
- ├─ tests/            - unit tests (1122 tests, 39 files)
+ ├─ tests/            - unit tests (1133 tests, 39 files)
  │   ├─ __init__.py
  │   ├─ conftest.py   - pytest fixtures and configuration
  │   ├─ test_config_processor.py
@@ -513,6 +513,7 @@ source/               - generator source code
  │   ├─ xray_batch.py - batch testing mode (shared Xray)
  │   ├─ xray_compat.py - configs xray cannot load, refused before verification
  │   ├─ xray_helpers.py - Xray helper functions
+ │   ├─ xray_stream_settings.py - streamSettings builders: tls, reality, ws, grpc, httpupgrade, xhttp, finalmask
  │   └─ xray_tester.py - Xray-core testing sorted by speed
  ├─ xray/             - Xray-core bundle (xray, geoip.dat, geosite.dat, LICENSE)
  ├─ requirements.txt  - runtime dependencies
@@ -544,7 +545,7 @@ cd source && ../.venv/Scripts/python.exe main.py   # configs will appear in ../g
 
 #### Running the tests
 
-The project includes a set of unit tests to verify the correctness of the main modules (1122 tests, 39 files; measured with `pytest -q`):
+The project includes a set of unit tests to verify the correctness of the main modules (1133 tests, 39 files; measured with `pytest -q`):
 
 ```bash
 # test toolchain — from the repository root

@@ -66,6 +66,7 @@ from utils.psutil_available import psutil
 from utils.xray_batch import BatchRunner
 from utils.xray_compat import _xray_incompatible_reason, filter_xray_compatible
 from utils.xray_helpers import wait_for_port
+from utils.xray_stream_settings import apply_tls_fragment
 
 # ── Xray error logging ──────────────────────────────────────────────
 # Each pipeline run logs xray stderr to logs/xray-errors-YYYY-MM-DDTHH-MM-SS.log
@@ -966,7 +967,7 @@ class XrayTester:
     def _apply_fragment(outbound: dict) -> None:
         """Add the TLS fragment stage to an outbound built for verification."""
         stream = outbound.setdefault("streamSettings", {})
-        protocol_parsers.apply_tls_fragment(stream)
+        apply_tls_fragment(stream)
 
     async def _tcp_ping(self, host: str, port: int, timeout: float = 1.5) -> bool:
         """Quick async TCP connect. Returns True if port is reachable."""

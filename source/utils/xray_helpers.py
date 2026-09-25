@@ -134,3 +134,26 @@ def print_error_summary() -> None:
             if error_type in _error_samples:
                 for sample in _error_samples[error_type][:2]:
                     log(f"    e.g.: {sample[:120]}")
+
+
+_RE_FINGERPRINT = re.compile(r"^[a-z0-9]{2,32}$")
+
+# `TLSConfig.Build()` returns `unknown "fingerprint"` for any value utls does not
+# resolve, and the Reality client refuses `unsafe` and `hellogolang` on top of
+# that. Both abort the config load, which in batch mode costs every other config
+# sharing the process, so an unusable value falls back to the configured default
+# instead of reaching xray. The utls name list lives in a third-party module and
+# is deliberately not reproduced here: a node whose `fp=` is a typo is then tested
+# with the default ClientHello rather than dropped, and `fp=` describes the test
+# client anyway, not the node — the published URL keeps whatever it said.
+_REJECTED_FINGERPRINTS = frozenset({"unsafe", "hellogolang"})
+
+
+def xray_fingerprint(fp: str | None) -> str:
+    """The ClientHello id to test with, in a spelling xray resolves."""
+    from config.settings import TLS_FINGERPRINT
+
+    value = (fp or "").strip().lower()
+    if not _RE_FINGERPRINT.match(value) or value in _REJECTED_FINGERPRINTS:
+        return TLS_FINGERPRINT
+    return value

@@ -669,7 +669,71 @@ class TestXrayStartupTimeout:
                 os.unlink(fake_path)
 
 
-class TestMissingXrayBinary:
+class TestTlsFragmentStage:
+    """The ClientHello fragmentation the settings advertise, in a key xray reads.
+
+    `streamSettings.fragment` is not a field of xray's `StreamConfig`, and xray
+    skips unrecognised JSON without complaining — so the setting looked enabled,
+    the emitted config looked configured, and every node was still verified with
+    an intact ClientHello. These assert the shape that actually reaches the
+    binary rather than asserting that some dict was touched.
+    """
+
+    def test_the_stage_is_finalmask_tcp_with_a_delay_field(self) -> None:
+        from utils.xray_tester import XrayTester
+
+        outbound: dict = {"streamSettings": {"network": "tcp", "security": "tls"}}
+        XrayTester._apply_fragment(outbound)
+
+        stream = outbound["streamSettings"]
+        assert "fragment" not in stream, "the ignored key is back"
+        assert stream["finalmask"]["tcp"] == [
+            {
+                "type": "fragment",
+                "settings": {
+                    "packets": "tlshello",
+                    "length": "100-200",
+                    "delay": "10-20",
+                },
+            }
+        ]
+
+    def test_disabling_the_setting_emits_no_stage(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        import config.settings as settings
+        from utils.xray_tester import XrayTester
+
+        monkeypatch.setattr(settings, "ENABLE_FRAGMENT", False)
+        outbound: dict = {"streamSettings": {"network": "tcp", "security": "tls"}}
+
+        XrayTester._apply_fragment(outbound)
+
+        assert outbound["streamSettings"] == {"network": "tcp", "security": "tls"}
+
+    def test_a_quic_outbound_gets_no_tcp_stage(self) -> None:
+        """Hysteria rides on UDP; a TCP-stage mask would be dead weight."""
+        from utils.protocol_parsers import parse_hysteria2_to_outbound
+        from utils.xray_tester import XrayTester
+
+        outbound = parse_hysteria2_to_outbound("hy2://tok@hy2.example.com:443?sni=hy2.example.com")
+        assert outbound is not None
+        XrayTester._apply_fragment(outbound)
+
+        assert "tcp" not in outbound["streamSettings"].get("finalmask", {})
+
+    def test_an_existing_udp_stage_survives_the_append(self) -> None:
+        """The stage is appended, never written over a dict: one clobbers the other."""
+        from utils.protocol_parsers import apply_tls_fragment
+
+        stream: dict = {
+            "network": "tcp",
+            "finalmask": {"udp": [{"type": "salamander", "settings": {"password": "p"}}]},
+        }
+
+        apply_tls_fragment(stream)
+
+        assert [m["type"] for m in stream["finalmask"]["udp"]] == ["salamander"]
+        assert [m["type"] for m in stream["finalmask"]["tcp"]] == ["fragment"]
+
     """A tester with no resolved binary must report the cause, not a TypeError.
 
     `self.xray_path` is `str | None` — `_find_xray()` returns None when nothing

@@ -280,7 +280,7 @@ Reality. В batch-режиме один процесс xray держит до `X
 - `_make_tls_settings()`, `_make_reality_settings()`, `_make_ws_settings()`, `_make_grpc_settings()`, `_make_httpupgrade_settings()` — низкоуровневые строители секций
 - `apply_tls_fragment(stream)` — навешивает стадию `finalmask.tcp`, которая и делает `ENABLE_FRAGMENT` настоящим; вызывает её верификатор, а не парсер URL
 
-Импортирует `is_xray_cipher()` из `security_filter.py`. Каждый парсер защищён try/except и возвращает None при ошибке.
+Импортирует `is_xray_cipher()` из `security_filter.py`. Каждый парсер обязан вернуть None вместо исключения — контракт, а не надежда: форма SSR-пароля, на которой декод поднимал `UnboundLocalError` наружу, закреплена тестом.
 
 ## config_helpers.py — хэлперы пайплайна
 

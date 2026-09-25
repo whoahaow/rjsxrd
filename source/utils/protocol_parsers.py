@@ -700,11 +700,16 @@ def parse_ssr_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         # are dropped, the outbound built below is plain Shadowsocks.
         method = parts[3]
 
-        # Decode password from base64 with validation
+        # The password is base64 with the padding usually stripped, so it is
+        # re-padded before decoding. The re-padding cannot depend on the branch
+        # that applies it: a segment whose length is already a multiple of 4 needs
+        # no padding, and skipping the assignment there left the name unbound —
+        # which raised UnboundLocalError out of the parser instead of returning
+        # None. That covers every plain (unencoded) SSR password 4, 8, 12
+        # characters long and every base64 password whose source is a whole
+        # multiple of 3 bytes.
+        password_base64 = parts[5] + "=" * ((4 - len(parts[5]) % 4) % 4)
         try:
-            password_padding = 4 - len(parts[5]) % 4
-            if password_padding != 4:
-                password_base64 = parts[5] + "=" * password_padding
             password = (
                 base64.urlsafe_b64decode(password_base64).decode("utf-8", errors="ignore").strip()
             )

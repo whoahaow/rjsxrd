@@ -279,7 +279,7 @@ Moved out of `utils/xray_tester.py` to reduce the god-module. All six protocol p
 - `_make_tls_settings()`, `_make_reality_settings()`, `_make_ws_settings()`, `_make_grpc_settings()`, `_make_httpupgrade_settings()` — low-level section builders
 - `apply_tls_fragment(stream)` — attaches the `finalmask.tcp` stage that makes `ENABLE_FRAGMENT` real; called by the verifier, not by a URL parser
 
-Imports `is_xray_cipher()` from `security_filter.py`. Each parser is protected by try/except and returns None on error.
+Imports `is_xray_cipher()` from `security_filter.py`. Every parser has to return None rather than raise — that is a contract, not a hope: the SSR password shape that used to leak `UnboundLocalError` out of the decoder is pinned by a test.
 
 ## config_helpers.py — pipeline helpers
 

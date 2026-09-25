@@ -1,12 +1,18 @@
 """Tests for security_filter.py — security checks for VPN configs."""
 
+import base64
+
 import pytest
 
 from utils.security_filter import (
+    SS_PLAINTEXT_CIPHERS,
     SS_SECURE_CIPHERS,
     SS_WEAK_CIPHERS,
+    SS_XRAY_CIPHERS,
+    extract_ss_credentials,
     filter_secure_configs,
     has_insecure_setting,
+    is_xray_cipher,
 )
 
 pytestmark = pytest.mark.unit
@@ -221,3 +227,130 @@ class TestFilterSecureConfigs:
         ]
         result = filter_secure_configs(configs)
         assert len(result) == 2
+
+
+class TestShadowsocksCipherAllowlist:
+    """The methods xray's Shadowsocks loader accepts, and what that set is for.
+
+    `cipherFromString` in xray's `infra/conf/shadowsocks.go` is a switch, so any
+    name outside it becomes CipherType_UNKNOWN and the client builder returns
+    "unknown cipher method" — a config-load failure, not a slow handshake. The
+    accepted spellings below are the switch's own cases (checked at v26.3.27),
+    including the `aead_*` aliases it lists next to each real name.
+    """
+
+    @pytest.mark.parametrize(
+        "method",
+        [
+            "aes-128-gcm",
+            "aes-256-gcm",
+            "chacha20-poly1305",
+            "chacha20-ietf-poly1305",
+            "xchacha20-poly1305",
+            "xchacha20-ietf-poly1305",
+            "aead_aes_128_gcm",
+            "aead_aes_256_gcm",
+            "aead_chacha20_poly1305",
+            "aead_xchacha20_poly1305",
+            "2022-blake3-aes-128-gcm",
+            "2022-blake3-aes-256-gcm",
+            "2022-blake3-chacha20-poly1305",
+            "none",
+            "plain",
+        ],
+    )
+    def test_a_method_xray_names_is_accepted(self, method):
+        assert is_xray_cipher(method) is True
+
+    @pytest.mark.parametrize(
+        "method",
+        [
+            "aes-192-gcm",  # a real AEAD cipher the switch omits
+            "2022-blake3-aes-192-gcm",  # the 2022 list holds exactly three names
+            "2022-blake3-chacha20-ietf-poly1305",  # a plausible spelling that is absent
+            "chacha20",  # stream cipher, and in SS_WEAK_CIPHERS besides
+            "rc4-md5",
+            "table",
+            "sodium:chacha20",
+            "",
+        ],
+    )
+    def test_a_method_xray_does_not_name_is_refused(self, method):
+        assert is_xray_cipher(method) is False
+
+    def test_no_cipher_the_security_filter_calls_weak_is_loadable(self):
+        """Overlap would mean the allowlist grew past what xray actually accepts."""
+        overlap = SS_WEAK_CIPHERS & SS_XRAY_CIPHERS
+        assert not overlap, f"weak ciphers inside the allowlist: {overlap}"
+
+    def test_the_secure_set_is_the_allowlist_minus_the_plaintext_methods(self):
+        """One source of truth: secure is "xray loads it" minus "no crypto"."""
+        assert SS_SECURE_CIPHERS == SS_XRAY_CIPHERS - SS_PLAINTEXT_CIPHERS
+
+    def test_case_and_surrounding_space_are_normalised(self):
+        assert is_xray_cipher("  AES-256-GCM ") is True
+
+    def test_a_plaintext_method_loads_so_the_security_filter_has_to_flag_it(self):
+        """`none` and `plain` are xray-compatible *and* insecure.
+
+        The two filters answer different questions, so both have to say something
+        here: if this check ever returns False an unencrypted tunnel is treated as
+        encrypted and reaches the secure files.
+        """
+        assert has_insecure_setting("ss://none:somepassword@h.example.com:443") is True
+        assert has_insecure_setting("ss://plain:somepassword@h.example.com:443") is True
+        assert has_insecure_setting("ss://aes-256-gcm:somepassword@h.example.com:443") is False
+
+    def test_an_unloadable_cipher_is_not_a_security_verdict(self):
+        """`aes-192-gcm` has no known weakness; xray just cannot read it.
+
+        Pinned because the compatibility filter refuses it while the security
+        filter does not, and the split is what keeps ss-secure.txt (built before
+        verification) from silently losing configs for the wrong reason.
+        """
+        assert has_insecure_setting("ss://aes-192-gcm:somepassword@h.example.com:443") is False
+
+
+class TestExtractSsCredentials:
+    """The three URL encodings one helper has to cover."""
+
+    def test_plaintext_form(self):
+        url = "ss://aes-256-gcm:pw@h.example.com:443"
+        assert extract_ss_credentials(url) == ("aes-256-gcm", "pw")
+
+    def test_base64_form(self):
+        token = base64.b64encode(b"chacha20-ietf-poly1305:secretpw").decode()
+        assert extract_ss_credentials(f"ss://{token}@h.example.com:443") == (
+            "chacha20-ietf-poly1305",
+            "secretpw",
+        )
+
+    def test_remark_and_params_are_stripped_before_parsing(self):
+        url = "ss://aes-128-gcm:pw@h.example.com:443?plugin=obfs-local#name"
+        assert extract_ss_credentials(url) == ("aes-128-gcm", "pw")
+
+    def test_ssr_form_returns_the_method_without_decoding_the_password(self):
+        """SSR nests a second base64 layer in the password; nobody reads it."""
+        raw = b"h.example.com:443:origin:aes-256-cfb:tls1.2_ticket_auth:cGFzcw"
+        assert extract_ss_credentials(f"ssr://{base64.b64encode(raw).decode()}") == (
+            "aes-256-cfb",
+            "",
+        )
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "vless://12345678-1234-1234-1234-123456789012@h.example.com:443",
+            "ss://!!!not-base64!!!@h.example.com:443",
+            "ssr://aGVsbG8",  # decodes to fewer than the six fields SSR has
+            "ss://YWJjZA==",  # base64 with no "@" — the host is inside the blob
+        ],
+    )
+    def test_no_verdict_is_none_rather_than_a_guess(self, url):
+        """Both callers read None as "leave this config alone".
+
+        Returning a guessed method instead would decide a config's tier from text
+        that was never a cipher name, and the compatibility filter would refuse
+        configs it cannot read.
+        """
+        assert extract_ss_credentials(url) is None

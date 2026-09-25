@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # С отчётом о покрытии
 ```
 
 Маркеры проставлены на каждом тестовом модуле (`pytestmark`), поэтому `-m unit`
-и `-m integration` действительно что-то выбирают: 1021 и 15 тестов из 1036
+и `-m integration` действительно что-то выбирают: 1076 и 15 тестов из 1091
 (замер — `pytest --collect-only -q` с тем и другим маркером). Сеть трогают
 только два модуля (`test_fetcher.py`, `test_ip_checker.py`) — они помечены
 `integration`. Чистая логика сети не требует и лежит в unit-модулях, включая
@@ -31,7 +31,7 @@ pytest --cov=fetchers --cov=utils  # С отчётом о покрытии
 
 ## Структура тестов
 
-Всего **1036 тестов** в 38 файлах. Полный прогон на машине разработки (Windows,
+Всего **1091 тестов** в 38 файлах. Полный прогон на машине разработки (Windows,
 Python 3.12) занимает около 70–80 секунд; время зависит от диска и загрузки
 машины, поэтому ориентируйтесь на `pytest -q` у себя.
 
@@ -39,9 +39,9 @@ Python 3.12) занимает около 70–80 секунд; время зав
 |------|--------|---------|
 | `test_config_processor.py` | 86 | Пайплайн обработки, `prepare_config_content`, `_add_unique`, `write_configs_file` |
 | `test_file_utils.py` | 70 | `extract_host_port`, `deduplicate_configs`, `is_valid_vpn_config_url`, `filter_secure_configs` |
-| `test_xray_tester.py` | 49 | Парсеры, сигналы, startup-timeout, security edge-кейсы, TLS fragment stage |
-| `test_vpn_config.py` | 41 | VPNConfig typed dataclass'ы |
-| `test_security_filter.py` | 35 | `has_insecure_setting`, все протоколы и edge-кейсы, 2022 key length validation |
+| `test_xray_tester.py` | 50 | Парсеры, сигналы, startup-timeout, security edge-кейсы, TLS fragment stage, SSR-шифры |
+| `test_vpn_config.py` | 42 | VPNConfig typed dataclass'ы |
+| `test_security_filter.py` | 71 | `has_insecure_setting`, все протоколы и edge-кейсы, 2022 key length validation, allowlist шифров xray, `extract_ss_credentials` |
 | `test_logger.py` | 30 | Логирование, уровни, формат |
 | `test_yaml_converter.py` | 32 | Конвертация Clash/Surge YAML в VPN URL |
 | `test_smart_eta.py` | 27 | SmartETA: 3-way estimate (window, global, EMA) + timeout floor |
@@ -52,7 +52,7 @@ Python 3.12) занимает около 70–80 секунд; время зав
 | `test_health_check.py` | 22 | Health check: DNS fallback, диск, память, токен |
 | `test_github_handler.py` | 22 | GitHub API, rate limits, 409 conflicts, batch |
 | `test_xray_batch.py` | 21 | BatchRunner, shared xray, port allocation |
-| `test_xray_compat_filter.py` | 47 | `filter_xray_compatible`: какие конфиги вообще доходят до верификации |
+| `test_xray_compat_filter.py` | 64 | `filter_xray_compatible`: какие конфиги вообще доходят до верификации, allowlist шифров Shadowsocks |
 | `test_telegram_proxy_scraper.py` | 21 | Извлечение MTProto и SOCKS5 из контента |
 | `test_proxy_monitor.py` | 19 | Мониторинг цепочек, stop-событие |
 | `test_pipeline_e2e.py` | 19 | Прогон всего пайплайна офлайн, с заглушёнными швами |

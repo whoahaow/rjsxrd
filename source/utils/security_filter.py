@@ -2,6 +2,7 @@
 Validates encryption, certificates, and protocol-specific security settings."""
 
 import base64
+import binascii
 import json
 import re
 from functools import lru_cache
@@ -45,25 +46,105 @@ SS_WEAK_CIPHERS = {
     "xchacha20",
 }
 
-SS_SECURE_CIPHERS = {
-    "aes-128-gcm",
-    "aes-256-gcm",
-    "chacha20-ietf-poly1305",
-    "chacha20-poly1305",
-    "xchacha20-ietf-poly1305",
-    "2022-blake3-aes-128-gcm",
-    "2022-blake3-aes-256-gcm",
-    "2022-blake3-chacha20-poly1305",
-}
+# Two methods that load and select no encryption at all. They are the
+# clearest case of "must not reach the secure files", and they are NOT a
+# compatibility problem — see `SS_XRAY_CIPHERS`.
+SS_PLAINTEXT_CIPHERS = {"none", "plain"}
 
 # Expected key lengths for Shadowsocks 2022 ciphers (in bytes).
 # The password for these ciphers must be a base64-encoded key of exactly this length.
 # Ref: https://xtls.github.io/en/config/inbounds/shadowsocks.html
+# This is also the authoritative list of 2022 methods xray accepts:
+# `infra/conf/shadowsocks.go` matches them against `shadowaead_2022.List`, which
+# is exactly these three names, compared case-sensitively.
 _SS_2022_KEY_LENGTHS = {
     "2022-blake3-aes-128-gcm": 16,
     "2022-blake3-aes-256-gcm": 32,
     "2022-blake3-chacha20-poly1305": 32,
 }
+
+# The methods xray's Shadowsocks loader accepts, spelled as
+# `cipherFromString` in `infra/conf/shadowsocks.go` matches them (v26.3.27, the
+# release `releases/latest` serves). Anything else is `CipherType_UNKNOWN`, and
+# the client builder returns `unknown cipher method: ...` — a config-load
+# failure, so in batch mode one such config costs every other config in the
+# chunk. That is why the check is an allowlist: the rejected set is open-ended
+# (`aes-192-gcm`, `table`, `rc4-md5`, the garbage a failed base64 read
+# produces), and `SS_WEAK_CIPHERS` names only the part of it that is a security
+# problem rather than a syntax one.
+SS_XRAY_CIPHERS = {
+    "aes-128-gcm",
+    "aead_aes_128_gcm",
+    "aes-256-gcm",
+    "aead_aes_256_gcm",
+    "chacha20-poly1305",
+    "chacha20-ietf-poly1305",
+    "aead_chacha20_poly1305",
+    "xchacha20-poly1305",
+    "xchacha20-ietf-poly1305",
+    "aead_xchacha20_poly1305",
+    *_SS_2022_KEY_LENGTHS,
+    *SS_PLAINTEXT_CIPHERS,
+}
+
+# What this project calls "secure": a method xray loads that also encrypts.
+# `none`/`plain` load, so they are excluded here and flagged by
+# `has_insecure_setting()` instead of being refused by the compatibility filter.
+SS_SECURE_CIPHERS = SS_XRAY_CIPHERS - SS_PLAINTEXT_CIPHERS
+
+
+def is_xray_cipher(method: str) -> bool:
+    """Whether xray's Shadowsocks loader would accept this cipher method."""
+    return method.strip().lower() in SS_XRAY_CIPHERS
+
+
+def extract_ss_credentials(config_line: str) -> tuple[str, str] | None:
+    """The cipher method and password a Shadowsocks or SSR URL carries.
+
+    Covers the three encodings in circulation — plain `ss://method:password@host`,
+    the base64 `ss://b64(method:password)@host`, and the `ssr://` payload — so
+    every consumer that judges a cipher reads the same decode instead of
+    re-deriving it and disagreeing. Returns None when the line is not an SS/SSR
+    URL or cannot be decoded: that means "no verdict here", not "insecure".
+    """
+    lower = config_line.lower()
+    try:
+        if lower.startswith("ss://"):
+            body = config_line[5:]
+            body = body.split("#")[0]
+            body = body.split("?")[0]
+            if ":" in body and "@" in body and body.index(":") < body.index("@"):
+                method, _, rest = body.partition(":")
+                return method.strip().lower(), rest.split("@")[0]
+            if "@" not in body:
+                return None
+            encoded = body.split("@")[0]
+            padding = 4 - len(encoded) % 4
+            decoded = base64.b64decode(encoded + "=" * padding if padding != 4 else encoded).decode(
+                "utf-8"
+            )
+            if ":" not in decoded:
+                return None
+            method, _, password = decoded.partition(":")
+            return method.strip().lower(), password
+
+        if lower.startswith("ssr://"):
+            payload = config_line[6:]
+            padding = len(payload) % 4
+            decoded = base64.b64decode(
+                payload + "=" * (4 - padding) if padding else payload
+            ).decode("utf-8")
+            parts = decoded.split(":")
+            if len(parts) < 6:
+                return None
+            # host:port:protocol:method:obfs:password[_params]. The password is
+            # itself base64 here and stays that way: no consumer of this helper
+            # reads it, and decoding it would fail on the malformed payloads that
+            # are exactly what the caller wants a verdict on.
+            return parts[3].strip().lower(), ""
+    except (ValueError, IndexError, UnicodeDecodeError, binascii.Error):
+        return None
+    return None
 
 
 def _check_ss_2022_key(method: str, password: str) -> bool:
@@ -193,65 +274,37 @@ def _check_vmess_json(config_line: str, config_lower: str) -> bool:
 
 
 def _check_ss_cipher(config_line: str, config_lower: str) -> bool:
-    """Check for insecure Shadowsocks methods and invalid 2022 key lengths."""
+    """Check for insecure Shadowsocks methods and invalid 2022 key lengths.
+
+    `none` and `plain` are here as well as anywhere: xray loads them, and what it
+    loads is a tunnel with no encryption at all, so they are the clearest case of
+    "must not reach the secure files" — the compatibility filter correctly leaves
+    them alone because they are not a load failure.
+    """
     if not config_lower.startswith("ss://"):
         return False
 
-    try:
-        ss_part = config_line[5:]
-        # Strip fragment/query tail for clean parsing
-        if "#" in ss_part:
-            ss_part = ss_part.split("#")[0]
-        url_clean = ss_part.split("?")[0] if "?" in ss_part else ss_part
+    credentials = extract_ss_credentials(config_line)
+    if credentials is None:
+        return False
 
-        if ":" in url_clean and "@" in url_clean and url_clean.index(":") < url_clean.index("@"):
-            # Plaintext format: method:password@host:port
-            method = url_clean.split(":")[0].lower()
-            if method in SS_WEAK_CIPHERS:
-                return True
-            # Extract password for 2022 key validation
-            password = url_clean.split(":", 1)[1].split("@")[0]
-            if _check_ss_2022_key(method, password):
-                return True
-        else:
-            # Base64-encoded format: base64(method:password)@host:port
-            if "@" in url_clean:
-                encoded_part = url_clean.split("@")[0]
-                rem = 4 - len(encoded_part) % 4
-                padded_encoded_part = encoded_part + "=" * rem if rem != 4 else encoded_part
-                try:
-                    decoded_credentials = base64.b64decode(padded_encoded_part).decode("utf-8")
-                    if ":" in decoded_credentials:
-                        method = decoded_credentials.split(":")[0].lower()
-                        password = decoded_credentials.split(":", 1)[1]
-                        if method in SS_WEAK_CIPHERS:
-                            return True
-                        if _check_ss_2022_key(method, password):
-                            return True
-                except (ValueError, IndexError, UnicodeDecodeError):
-                    pass
-    except (ValueError, IndexError, UnicodeDecodeError):
-        pass
-    return False
+    method, password = credentials
+    if method in SS_PLAINTEXT_CIPHERS:
+        return True
+    if method in SS_WEAK_CIPHERS:
+        return True
+    return _check_ss_2022_key(method, password)
 
 
 def _check_ssr_method(config_line: str, config_lower: str) -> bool:
     """Check for insecure ShadowsocksR methods."""
-    if config_lower.startswith("ssr://"):
-        try:
-            payload = config_line[6:]
-            rem = len(payload) % 4
-            if rem:
-                payload += "=" * (4 - rem)
-            decoded = base64.b64decode(payload).decode("utf-8")
-            parts = decoded.split(":")
-            if len(parts) >= 6:
-                method = parts[3].lower()
-                if method in SS_WEAK_CIPHERS:
-                    return True
-        except (ValueError, IndexError, UnicodeDecodeError):
-            pass
-    return False
+    if not config_lower.startswith("ssr://"):
+        return False
+
+    credentials = extract_ss_credentials(config_line)
+    if credentials is None:
+        return False
+    return credentials[0] in SS_WEAK_CIPHERS
 
 
 def _check_catch_all(config_lower: str) -> bool:

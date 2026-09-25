@@ -446,6 +446,24 @@ class TestSecurityEdgeCases:
         return None (weak ciphers are rejected in _parse_shadowsocks)."""
         assert parse_url("ss://cmM0LW1kNTpwYXNz@ss.com:8388") is None  # rc4-md5
 
+    def test_shadowsocks_method_is_emitted_the_way_xray_spells_it(self):
+        """A 2022 method has to leave the parser lowercase.
+
+        xray looks the 2022 names up in `shadowaead_2022.List` with a
+        case-sensitive match before it reaches `cipherFromString`, which
+        lowercases. Passing the URL's spelling through therefore turns
+        `2022-BLAKE3-AES-256-GCM` into `unknown cipher method` at config load —
+        a startup failure, not a failed connection.
+        """
+        token = base64.b64encode(b"2022-BLAKE3-AES-256-GCM:" + b"K" * 44).decode()
+        cfg = parse_url(f"ss://{token}@ss.com:8388")
+
+        assert cfg is not None
+        assert cfg.method == "2022-blake3-aes-256-gcm"
+        assert cfg.to_xray_outbound()["settings"]["servers"][0]["method"] == (
+            "2022-blake3-aes-256-gcm"
+        )
+
     def test_shadowsocks_with_empty_password_returns_none_from_parse(self):
         """SECURITY: parse_url shadowsocks with empty password should
         return None."""

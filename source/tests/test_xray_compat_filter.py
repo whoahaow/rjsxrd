@@ -19,6 +19,8 @@ config string, and `filter_xray_compatible()` only partitions a list. Neither
 opens a socket, resolves a name or starts xray.
 """
 
+import base64
+
 import pytest
 
 from utils.xray_compat import _xray_incompatible_reason, filter_xray_compatible
@@ -299,6 +301,86 @@ class TestTheOlderRules:
         oversight.
         """
         assert _xray_incompatible_reason("tuic://uuid:pass@h.example.com:443") == ""
+
+
+class TestTheShadowsocksCipherAllowlist:
+    """A cipher name xray's loader does not know kills the process at startup.
+
+    The rejected set is open-ended — stream ciphers, removed experimental ones,
+    `aes-192-gcm` (a real AEAD cipher the switch omits), and whatever a failed
+    base64 read leaves behind — so the rule is an allowlist read off
+    `cipherFromString` in `infra/conf/shadowsocks.go` rather than a list of
+    known-bad names. `none` and `plain` are loadable and therefore absent here:
+    their problem is the missing encryption, and
+    `has_insecure_setting()` is what has to catch them.
+    """
+
+    @pytest.mark.parametrize(
+        "cipher",
+        [
+            "aes-256-gcm",
+            "aead_aes_256_gcm",
+            "chacha20-ietf-poly1305",
+            "xchacha20-poly1305",
+            "2022-blake3-aes-256-gcm",
+            "none",
+            "plain",
+        ],
+    )
+    def test_a_cipher_xray_loads_is_testable(self, cipher: str) -> None:
+        assert _xray_incompatible_reason(f"ss://{cipher}:secretpw@h.example.com:443") == ""
+
+    @pytest.mark.parametrize(
+        "cipher",
+        [
+            "aes-256-cfb",
+            "rc4-md5",
+            "chacha20",
+            "aes-192-gcm",
+            "2022-blake3-aes-192-gcm",
+            "table",
+        ],
+    )
+    def test_a_cipher_xray_does_not_load_is_refused_by_name(self, cipher: str) -> None:
+        reason = _xray_incompatible_reason(f"ss://{cipher}:secretpw@h.example.com:443")
+
+        assert reason == f"unknown shadowsocks cipher: {cipher}"
+
+    def test_the_base64_form_of_a_url_is_read_as_well_as_the_plain_one(self) -> None:
+        """The cipher sits inside a base64 blob in half the corpus."""
+        blob = base64.b64encode(b"rc4-md5:secretpw").decode()
+
+        assert "unknown shadowsocks cipher" in _xray_incompatible_reason(
+            f"ss://{blob}@h.example.com:443"
+        )
+
+    def test_a_shadowsocksr_cipher_is_judged_the_same_way(self) -> None:
+        """SSR configs get converted to plain Shadowsocks, so the same switch runs.
+
+        This is most of the `ssr://` corpus: `aes-256-cfb` is what ssserver
+        defaulted to, and xray has no SSR protocol or obfs layer either.
+        """
+        raw = b"h.example.com:443:origin:aes-256-cfb:plain:none"
+
+        reason = _xray_incompatible_reason(f"ssr://{base64.b64encode(raw).decode()}")
+
+        assert "aes-256-cfb" in reason
+
+    def test_a_password_that_looks_like_a_cipher_is_left_alone(self) -> None:
+        """The rule reads the scheme, not the word.
+
+        Trojan passwords are free-form text in front of the host, and an
+        unscoped check would refuse configs xray builds without complaint.
+        """
+        assert _xray_incompatible_reason("trojan://rc4-md5@h.example.com:443?security=tls") == ""
+
+    def test_an_ss_url_whose_credentials_cannot_be_read_is_not_refused(self) -> None:
+        """No verdict is not a verdict: this one has to fall through.
+
+        Pinned because the rule is written as `if method and ...` and an
+        unparseable payload would otherwise be refused for a cipher nobody read.
+        """
+        assert _xray_incompatible_reason("ss://!!!not-base64!!!@h.example.com:443") == ""
 
 
 class TestTheRulesThatStay:

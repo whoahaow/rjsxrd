@@ -265,6 +265,13 @@ def _check_vmess_json(config_line: str, config_lower: str) -> bool:
                     return True
                 alter_id = j.get("aid") or j.get("alterId")
                 if alter_id is not None:
+                    # `aid > 0` marks a deployment still on the deprecated MD5
+                    # id-cycle: the client asks the server to accept derived extra
+                    # IDs, and that cycle is the attack surface. It is a property of
+                    # the node, not of the verifier -- current xray's `VMessAccount`
+                    # reads only id/security/experiments from JSON, so the value is
+                    # ignored when connecting and the handshake goes out with zero
+                    # alter IDs.
                     alter_id_value = int(alter_id) if isinstance(alter_id, (int, str)) else 0
                     if alter_id_value > 0:
                         return True

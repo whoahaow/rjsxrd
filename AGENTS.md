@@ -574,7 +574,10 @@ pytest -n auto                      # Parallel execution
 **Fixtures** (`source/tests/conftest.py`): sample VLESS/VMess/Trojan/SS configs, MTProto/SOCKS5 proxies, temp files, mock logger.
 
 ### Test Coverage
-Measured at `5165416c`: **975 tests** across 37 test files (full suite in ~70s). `docs/development/testing.md` holds the authoritative per-module counts and the figures guard keeps them in step; the list below is a snapshot for orientation.
+Measured at `5165416c`: **975 tests** across 37 test files (full suite in ~70s). `docs/development/testing.md` holds the authoritative per-module counts, and
+`tests/test_docs_figures.py` fails the suite when they drift. The list below is a
+snapshot for orientation: its per-file numbers are not kept in step, so do not
+correct a count here without correcting the guard's file too.
 - `test_config_processor.py` - 86 processor tests
 - `test_fetcher_unit.py` - 83 fetcher unit tests
 - `test_file_utils.py` - 70 file utils tests
@@ -735,7 +738,7 @@ Configs pass through these filters in order before reaching Xray:
    - A Shadowsocks/SSR cipher outside `SS_XRAY_CIPHERS` — `cipherFromString` returns
      `CipherType_UNKNOWN` for anything it does not name, so `aes-256-cfb` (the ssserver
      default), `rc4-md5` and `aes-192-gcm` alike fail the load
-   - Invalid UUIDs (URL-encoded garbage, truncated, non-hex chars)
+   - A VLESS user id that is not a user id: URL-encoded garbage, non-hex text, a dashed form with the wrong segments. Not a load-failure guard — `common/uuid.ParseString` folds any 1-30 character string into a v5 UUID without error, so these load and then fail authentication; a 32-character dashless id is valid and is not refused
    - VLESS with garbage encryption values (`encryption=none=@...`)
    - Reality whose `pbk` is not 43 characters of raw-url base64 (xray requires the
      decoded key to be 32 bytes, so a standard-alphabet key with `+`, `/` or `=` fails),

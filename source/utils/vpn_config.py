@@ -156,7 +156,6 @@ class TrojanConfig(VPNConfig):
                     "address": self.host,
                     "port": self.port,
                     "password": self.password,
-                    "flow": self.flow or None,
                 }
             ]
         }

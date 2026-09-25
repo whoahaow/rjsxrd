@@ -46,6 +46,19 @@ _RE_SHORTID_VALID = re.compile(r"^[0-9a-f]{2,32}$", re.I)
 # Supported Reality transports (xray URL type= maps to raw transport)
 _REALITY_TRANSPORTS = frozenset({"raw", "tcp", "xhttp", "grpc"})
 
+# Transports xray has deleted. `infra/conf/transport_internet.go` returns
+# `PrintRemovedFeatureError` for these names — a config-load failure, not a
+# failed handshake — so in batch mode one such URL costs every other config in
+# the chunk. They are refused whatever protocol carries them.
+_REMOVED_TRANSPORTS = frozenset({"h2", "h3", "http", "quic", "mkcp", "ray"})
+
+# Stream-level `security=` values xray's loader knows. Anything else is
+# `Unknown security "..."`, and `xtls` specifically is a removed feature; both
+# are load failures. Scoped to the schemes that use the parameter for the stream
+# (an `ss://` URL may carry `security=` meaning the cipher, not the transport).
+_STREAM_SECURITY_VALUES = frozenset({"", "none", "tls", "reality"})
+_STREAM_SECURITY_SCHEMES = ("vless://", "trojan://", "vmess://")
+
 
 def filter_xray_compatible(configs: list[str]) -> tuple[list[str], list[tuple[str, str]]]:
     """Filter configs that would crash xray at startup.
@@ -177,5 +190,29 @@ def _xray_incompatible_reason(cfg: str) -> str:
             transport = type_match.group(1).lower().split("&")[0].split("#")[0]
             if transport not in _REALITY_TRANSPORTS:
                 return f"reality with unsupported transport: {transport}"
+
+    # ── Transport and security names xray's loader rejects ────────
+    # Not a slow handshake: `infra/conf/transport_internet.go` fails while
+    # building the transport, which takes down the whole shared process.
+    transport_match = re.search(r"[?&]type=([^&#]+)", cfg_lower)
+    if transport_match:
+        transport = transport_match.group(1).lower().split("&")[0].split("#")[0]
+        if transport in _REMOVED_TRANSPORTS:
+            return f"transport removed from xray: {transport}"
+
+    if cfg_lower.startswith(_STREAM_SECURITY_SCHEMES):
+        security_match = re.search(r"[?&]security=([^&#]+)", cfg_lower)
+        if security_match:
+            security = security_match.group(1).lower().split("&")[0].split("#")[0]
+            if security not in _STREAM_SECURITY_VALUES:
+                return f"unknown stream security: {security}"
+
+    # A non-empty flow on trojan is a removed feature upstream
+    # (`trojan.go`: `Flow for Trojan` → PrintRemovedFeatureError), so the config
+    # never loads. VLESS keeps its flow: there xray accepts `xtls-rprx-vision`.
+    if cfg_lower.startswith("trojan://") and "flow=" in cfg_lower:
+        flow_match = re.search(r"[?&]flow=([^&#]*)", cfg_lower)
+        if flow_match and flow_match.group(1).strip("&#"):
+            return "trojan with a non-empty flow (removed from xray)"
 
     return ""

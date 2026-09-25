@@ -153,6 +153,71 @@ class TestBothModesRefuseTheSameConfig:
         assert tester._quick_validate_url(HY2_URL) == (True, "")
 
 
+class TestConfigsThatFailAtConfigLoad:
+    """Names xray's loader rejects outright — a handshake timeout is not the issue.
+
+    `infra/conf/transport_internet.go` returns `PrintRemovedFeatureError` for the
+    deleted HTTP/QUIC transports and `unknown transport protocol` for anything it
+    does not register, and `trojan.go` rejects a non-empty flow the same way. Each
+    of those aborts `xray -c` before it listens, so in batch mode one such config
+    costs the chunk — up to `XRAY_BATCH_SIZE` configs — rather than itself.
+    """
+
+    @pytest.mark.parametrize(
+        "transport",
+        ["h2", "http", "quic", "mkcp", "ray", "h3"],
+    )
+    def test_a_removed_transport_is_refused_whatever_the_protocol(self, transport: str) -> None:
+        url = f"vless://12345678-1234-1234-1234-123456789012@h.example.com:443?security=tls&type={transport}"
+
+        assert transport in _xray_incompatible_reason(url)
+
+    def test_a_removed_transport_on_vmess_is_refused_too(self) -> None:
+        """The vmess parser has no h2 branch left, and nothing asks for one."""
+        url = "vless://12345678-1234-1234-1234-123456789012@h.example.com:443?type=h2"
+
+        assert "transport removed from xray" in _xray_incompatible_reason(url)
+
+    def test_an_unknown_stream_security_is_refused(self) -> None:
+        url = "vless://12345678-1234-1234-1234-123456789012@h.example.com:443?security=xtls"
+
+        assert "unknown stream security" in _xray_incompatible_reason(url)
+
+    @pytest.mark.parametrize("security", ["tls", "reality", "none"])
+    def test_the_security_values_xray_knows_are_left_alone(self, security: str) -> None:
+        url = f"vless://12345678-1234-1234-1234-123456789012@h.example.com:443?security={security}"
+
+        assert _xray_incompatible_reason(url) == ""
+
+    def test_security_on_an_ss_url_is_the_cipher_and_stays_out_of_it(self) -> None:
+        """The scoped schemes exist because `ss://?security=` means something else.
+
+        Refusing on the parameter name alone would drop valid Shadowsocks configs
+        whose `security` carries the method.
+        """
+        assert (
+            _xray_incompatible_reason(
+                "ss://aes-256-gcm:pass@h.example.com:443?security=aes-256-gcm"
+            )
+            == ""
+        )
+
+    def test_a_trojan_flow_is_refused(self) -> None:
+        """`trojan.go` returns a removed-feature error for any non-empty flow."""
+        url = "trojan://pass@h.example.com:443?security=tls&sni=h.example.com&flow=xtls-rprx-vision"
+
+        assert "trojan with a non-empty flow" in _xray_incompatible_reason(url)
+
+    def test_a_trojan_without_flow_is_testable(self) -> None:
+        assert _xray_incompatible_reason("trojan://pass@h.example.com:443?security=tls") == ""
+
+    def test_the_same_flow_on_vless_is_still_accepted(self) -> None:
+        """The rule is about trojan, not about the word `flow`."""
+        url = "vless://12345678-1234-1234-1234-123456789012@h.example.com:443?security=tls&flow=xtls-rprx-vision"
+
+        assert _xray_incompatible_reason(url) == ""
+
+
 class TestTheOlderRules:
     """The rules that predate this module, now pinned one case at a time.
 

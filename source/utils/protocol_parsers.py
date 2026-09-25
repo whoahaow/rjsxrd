@@ -8,7 +8,7 @@ representing an Xray outbound config, or None if the URL could not be parsed.
 
 Supported protocols:
 - VLESS: Full support (TLS, Reality, WS, gRPC, HTTPUpgrade)
-- VMess: Full support (TLS, WS, gRPC, h2)
+- VMess: TLS, WS, gRPC (xray removed the HTTP transport)
 - Trojan: Full support (TLS, Reality, WS, gRPC, HTTPUpgrade)
 - Shadowsocks: AEAD methods only; `plugin=` is rejected (xray takes no plugin)
 - ShadowsocksR: Basic support (converted to Shadowsocks, SSR features limited in Xray-core)
@@ -311,14 +311,11 @@ def parse_vmess_to_outbound(url: str, tag: str = "proxy") -> dict | None:
             }
         elif network == "grpc":
             stream_settings["grpcSettings"] = {"serviceName": data.get("path", "")}
-        elif network == "h2":
-            host_value = data.get("host")
-            if isinstance(host_value, list):
-                hosts = host_value if host_value else [data.get("add", "")]
-            else:
-                hosts = [host_value] if host_value else [data.get("add", "")]
 
-            stream_settings["httpSettings"] = {"path": data.get("path", "/"), "host": hosts}
+        # No `h2`/`http` branch: xray deleted the HTTP transport, so asking for
+        # it is a config-load failure. `xray_compat` refuses those configs before
+        # anything is built, and a branch that emitted `httpSettings` would only
+        # keep the removed shape alive.
 
         return {
             "tag": tag,
@@ -764,7 +761,7 @@ def parse_url_to_outbound(url: str, tag: str = "proxy") -> dict | None:
 
     Protocol support levels:
     - VLESS: Full support (TLS, Reality, WS, gRPC, HTTPUpgrade)
-    - VMess: Full support (TLS, WS, gRPC, h2)
+    - VMess: TLS, WS, gRPC (xray removed the HTTP transport)
     - Trojan: Full support (TLS, Reality, WS, gRPC, HTTPUpgrade)
     - Shadowsocks: Full support (AEAD ciphers only, weak ciphers rejected)
     - SSR: Limited (converted to Shadowsocks, protocol/obfs features lost)

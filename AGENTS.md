@@ -289,7 +289,7 @@ rjsxrd/
 - `test_through_socks()` - HTTP ping through SOCKS
 - **Protocol parsers** (dispatched from `_url_to_outbound()` to `protocol_parsers.py`):
   - `parse_vless_to_outbound()` - Full support (TLS, Reality, WS, gRPC, HTTPUpgrade)
-  - `parse_vmess_to_outbound()` - Full support (TLS, WS, gRPC, h2)
+  - `parse_vmess_to_outbound()` - TLS, WS, gRPC (xray removed the HTTP transport, so `net: h2` configs are refused before verification)
   - `parse_trojan_to_outbound()` - Full support (TLS, Reality, WS, gRPC, HTTPUpgrade)
   - `parse_shadowsocks_to_outbound()` - Full support (AEAD only, weak ciphers rejected)
   - `parse_ssr_to_outbound()` - Limited (converted to Shadowsocks)
@@ -713,6 +713,9 @@ Configs pass through these filters in order before reaching Xray:
    Removes configs that would **crash xray at startup** even though they parse successfully:
    - Hysteria v1 (`hysteria://`, `hy1://`) — xray's hysteria outbound rejects `version != 2`
    - Hysteria2 with `insecure=1` and no `pinSHA256` — xray removed `allowInsecure`, so such a node has no config shape
+   - Removed transports on any URL (`type=h2|h3|http|quic|mkcp|ray`) — `transport_internet.go` fails while building the transport
+   - An unknown stream `security=` on vless/trojan/vmess — only `tls`, `reality`, `none` load. Scoped to those schemes because `security=` on an `ss://` URL names the cipher
+   - A non-empty `flow=` on a trojan URL — `trojan.go` returns a removed-feature error for any flow
    - Invalid UUIDs (URL-encoded garbage, truncated, non-hex chars)
    - VLESS with garbage encryption values (`encryption=none=@...`)
    - Reality with spaces in password

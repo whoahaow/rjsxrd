@@ -207,19 +207,23 @@ for the same reason instead of reporting a parse failure.
   it is testable
 
 Refused are the configs that parse and then fail when xray loads the JSON: a dead
-UUID, a garbage `encryption=` value, flows xray removed, a non-empty `flow=` on
-trojan, hysteria v1, Hysteria2 with `insecure=1` and no `pinSHA256`, a transport
-xray deleted (`h2`, `h3`, `http`, `quic`, `mkcp`, `ray`), an unknown stream
-`security=`, a Shadowsocks or SSR cipher outside `SS_XRAY_CIPHERS`, Reality with a
-space in the password or an invalid shortId, and Reality over an unsupported
-transport. In batch mode one xray process carries up to `XRAY_BATCH_SIZE` configs,
-so a failed load costs the whole chunk — which is why the check reads the URL
-before anything is built. `none` and `plain` mark where the two filters part:
+UUID, a garbage `encryption=` value, a VLESS `flow=` outside the three xray
+switches on, a non-empty `flow=` on trojan, hysteria v1, Hysteria2 with
+`insecure=1` and no `pinSHA256` or with a pin that is not 32 bytes of hex, a
+`type=` the transport builder cannot resolve (the deleted `h2`, `h3`, `http`,
+`quic` and every unregistered name — but not `splithttp` or `mkcp`, which are
+aliases it does resolve), an unknown stream `security=`, a Shadowsocks or SSR
+cipher outside `SS_XRAY_CIPHERS`, and a Reality `pbk`/`sid` the client builder's
+decoders reject. In batch mode one xray process carries up to `XRAY_BATCH_SIZE`
+configs, so a failed load costs the whole chunk — which is why the check reads the
+URL before anything is built. `none` and `plain` mark where the two filters part:
 `xray_compat.py` refuses what xray cannot load, `security_filter.py` flags what it
 loads with no encryption.
 
-Not refused: Hysteria2. xray added that outbound in v26.1.13 and the pipeline runs
-`releases/latest`, so refusing it discards a protocol xray can test.
+Not refused: Hysteria2, and Reality over WebSocket or gRPC. xray added the
+Hysteria2 outbound in v26.1.13 and the pipeline runs `releases/latest`, and its
+Reality client builder never inspects the transport — refusing either discards
+configs xray loads and connects with.
 
 ## xray_helpers.py — pure Xray helpers
 

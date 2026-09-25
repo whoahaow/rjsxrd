@@ -719,18 +719,24 @@ Configs pass through these filters in order before reaching Xray:
    Removes configs that would **crash xray at startup** even though they parse successfully:
    - Hysteria v1 (`hysteria://`, `hy1://`) — xray's hysteria outbound rejects `version != 2`
    - Hysteria2 with `insecure=1` and no `pinSHA256` — xray removed `allowInsecure`, so such a node has no config shape
-   - Removed transports on any URL (`type=h2|h3|http|quic|mkcp|ray`) — `transport_internet.go` fails while building the transport
+   - Hysteria2 with a `pinSHA256` that is not 32 bytes of hex — the TLS builder strips colons, hex-decodes and requires exactly 32 bytes, so a short hash aborts the load
+   - A `type=` xray's transport builder cannot resolve: `h2`, `h3`, `http`, `quic` return a removal error and any other unregistered spelling returns `unknown transport protocol`. `splithttp` is an accepted alias of `xhttp`, and `kcp`/`mkcp` still build, so all four are testable
    - An unknown stream `security=` on vless/trojan/vmess — only `tls`, `reality`, `none` load. Scoped to those schemes because `security=` on an `ss://` URL names the cipher
    - A non-empty `flow=` on a trojan URL — `trojan.go` returns a removed-feature error for any flow
+   - A `flow=` on VLESS other than `xtls-rprx-vision` or its `-udp443` variant — `vless.go` switches on those and errors on the rest, which is why `xtls-rprx-direct*` and `xtls-rprx-splice*` are refused while `-udp443` is not
    - A Shadowsocks/SSR cipher outside `SS_XRAY_CIPHERS` — `cipherFromString` returns
      `CipherType_UNKNOWN` for anything it does not name, so `aes-256-cfb` (the ssserver
      default), `rc4-md5` and `aes-192-gcm` alike fail the load
    - Invalid UUIDs (URL-encoded garbage, truncated, non-hex chars)
    - VLESS with garbage encryption values (`encryption=none=@...`)
-   - Reality with spaces in password
-   - Reality shortId too short (<2 hex) or too long (>32 hex)
-   - Reality with unsupported transport (only raw/tcp/xhttp/grpc allowed)
-   - Deprecated flow values (xtls-rprx-direct*, etc.)
+   - Reality whose `pbk` is not 43 characters of raw-url base64 (xray requires the
+     decoded key to be 32 bytes, so a standard-alphabet key with `+`, `/` or `=` fails),
+     or whose `sid` is not 0-16 hex in whole bytes (it decodes into an 8-byte buffer;
+     an empty shortId is legal and common). Scoped to `security=reality`: a `pbk=` on
+     any other URL is text xray never reads
+   - Deliberately **not** refused: Reality over any transport xray can name. The old
+     rule allowed only raw/tcp/xhttp/grpc, but the client builder never inspects the
+     transport and `StreamConfig` resolves the two apart, so it dropped working nodes
 5. **Xray verification** — actual speed/latency testing
 
 ### Security Filtering (`has_insecure_setting()`)

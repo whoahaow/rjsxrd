@@ -135,8 +135,10 @@
 
 - **`has_insecure_setting(config_line) -> bool`** — проверяет один конфиг на наличие небезопасных параметров. Защищён `lru_cache` (65536 записей). Внутренняя логика по протоколам описана в [Система безопасности](security-system.md). Включает валидацию длины ключа для 2022-blake3 шифров (`_SS_2022_KEY_LENGTHS`).
 - **`filter_secure_configs(configs) -> list`** — параллельная фильтрация через ProcessPoolExecutor (8 workers).
-- **`SS_WEAK_CIPHERS` / `SS_SECURE_CIPHERS`** — единый источник истины для шифров Shadowsocks. Импортируется `xray_tester.py` и `protocol_parsers.py`.
-- **`_SS_2022_KEY_LENGTHS`** — маппинг 2022-blake3 шифров на ожидаемую длину ключа (16/32 байт).
+- **`SS_XRAY_CIPHERS` / `SS_WEAK_CIPHERS` / `SS_PLAINTEXT_CIPHERS` / `SS_SECURE_CIPHERS`** — единый источник истины по шифрам Shadowsocks: что загружает xray, что считается слабым, что означает «без шифрования». `SS_SECURE_CIPHERS` вычитается из первого списка. Читают это `protocol_parsers.py`, `vpn_config.py` и `xray_compat.py` — через `is_xray_cipher()`.
+- **`is_xray_cipher(method) -> bool`** — принимает метод, который `cipherFromString` в xray знает; всё остальное для xray `unknown cipher method`, то есть падение загрузки конфига.
+- **`extract_ss_credentials(config_line) -> tuple | None`** — один декодер трёх форм (`method:pass@host`, `b64(method:pass)@host`, payload SSR), чтобы парсеры и оба фильтра читали один и тот же шифр. `None` — «вердикта нет», а не «небезопасно».
+- **`_SS_2022_KEY_LENGTHS`** — маппинг 2022-blake3 шифров на ожидаемую длину ключа (16/32 байт); он же список методов 2022, которые принимает xray.
 
 ## xray_tester.py — верификация через Xray-core
 
@@ -208,10 +210,13 @@
 нерабочий UUID, мусорное значение `encryption=`, удалённые из xray flow'ы,
 непустой `flow=` у trojan, Hysteria v1, Hysteria2 с `insecure=1` без `pinSHA256`,
 удалённые из xray транспорты (`h2`, `h3`, `http`, `quic`, `mkcp`, `ray`),
-неизвестное стримовое `security=`, Reality с пробелом в пароле, некорректный
-shortId и неподдерживаемый транспорт Reality. В batch-режиме один процесс xray
-держит до `XRAY_BATCH_SIZE` конфигов, поэтому сорванный запуск стоит результатов
-всего чанка — отсюда проверка по строке до построения конфига.
+неизвестное стримовое `security=`, шифр Shadowsocks/SSR вне `SS_XRAY_CIPHERS`,
+Reality с пробелом в пароле, некорректный shortId и неподдерживаемый транспорт
+Reality. В batch-режиме один процесс xray держит до `XRAY_BATCH_SIZE` конфигов,
+поэтому сорванный запуск стоит результатов всего чанка — отсюда проверка по
+строке до построения конфига. Ровно на границе двух фильтров стоят `none` и
+`plain`: `xray_compat.py` отклоняет то, что xray не загрузит, а
+`security_filter.py` помечает то, что загружается без шифрования.
 
 Что НЕ отклоняется: Hysteria2. xray добавил к нему outbound в v26.1.13, а пайплайн
 берёт `releases/latest`, так что отказываться от него — значит терять протокол,
@@ -256,13 +261,13 @@ shortId и неподдерживаемый транспорт Reality. В batch
 
 ## protocol_parsers.py — парсеры протоколов
 
-Вынесены из `utils/xray_tester.py` для уменьшения god-module. Все 8 парсеров живут здесь:
+Вынесены из `utils/xray_tester.py` для уменьшения god-module. Все шесть парсеров живут здесь:
 
 - `parse_vless_to_outbound()` — TLS, Reality, WS, gRPC, HTTPUpgrade (97→33 строк, использует shared helpers)
 - `parse_trojan_to_outbound()` — TLS, Reality, WS, gRPC, HTTPUpgrade (103→32 строк, использует shared helpers)
-- `parse_vmess_to_outbound()` — TLS, WS, gRPC, h2 (93 строк, base64 JSON)
-- `parse_shadowsocks_to_outbound()` — AEAD only, слабые шифры отвергаются
-- `parse_ssr_to_outbound()` — конвертация → Shadowsocks (использует `_clean_url_part`)
+- `parse_vmess_to_outbound()` — TLS, WS, gRPC (93 строк, base64 JSON); ветки h2 нет — xray удалил этот транспорт
+- `parse_shadowsocks_to_outbound()` — только шифры из `SS_XRAY_CIPHERS`, метод отдаётся в нижнем регистре
+- `parse_ssr_to_outbound()` — конвертация → Shadowsocks (использует `_clean_url_part`), тот же список шифров
 - `parse_hysteria2_to_outbound()` — outbound ровно в том виде, в котором его документирует xray: `protocol: "hysteria"`, `version: 2`, TLS, `finalmask.udp` для obfuscation salamander
 - для Hysteria v1 парсера нет вовсе: xray не умеет эту версию, поэтому фильтр совместимости отклоняет такие URL
 - для TUIC парсера нет: xray не реализует исходящий TUIC-протокол, поэтому `tuic://` не даёт никакого конфига вообще
@@ -273,8 +278,9 @@ shortId и неподдерживаемый транспорт Reality. В batch
 - `_parse_user_host_port(base)` — парсинг `user@host:port`
 - `_make_stream_settings(network, security, params, host)` — сборка streamSettings (tls, reality, ws, grpc, httpupgrade)
 - `_make_tls_settings()`, `_make_reality_settings()`, `_make_ws_settings()`, `_make_grpc_settings()`, `_make_httpupgrade_settings()` — низкоуровневые строители секций
+- `apply_tls_fragment(stream)` — навешивает стадию `finalmask.tcp`, которая и делает `ENABLE_FRAGMENT` настоящим; вызывает её верификатор, а не парсер URL
 
-Импортирует `SS_WEAK_CIPHERS` из `security_filter.py`. Каждый парсер защищён try/except и возвращает None при ошибке.
+Импортирует `is_xray_cipher()` из `security_filter.py`. Каждый парсер защищён try/except и возвращает None при ошибке.
 
 ## config_helpers.py — хэлперы пайплайна
 

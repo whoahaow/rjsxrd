@@ -135,8 +135,10 @@ Moved out of `file_utils.py`. Contains:
 
 - **`has_insecure_setting(config_line) -> bool`** — checks one config for insecure parameters. Protected by `lru_cache` (65536 entries). The internal per-protocol logic is described in [Security system](security-system.en.md). Includes key length validation for 2022-blake3 ciphers (`_SS_2022_KEY_LENGTHS`).
 - **`filter_secure_configs(configs) -> list`** — parallel filtering via ProcessPoolExecutor (8 workers).
-- **`SS_WEAK_CIPHERS` / `SS_SECURE_CIPHERS`** — the single source of truth for Shadowsocks ciphers. Imported by `xray_tester.py` and `protocol_parsers.py`.
-- **`_SS_2022_KEY_LENGTHS`** — mapping of 2022-blake3 ciphers to the expected key length (16/32 bytes).
+- **`SS_XRAY_CIPHERS` / `SS_WEAK_CIPHERS` / `SS_PLAINTEXT_CIPHERS` / `SS_SECURE_CIPHERS`** — the single source of truth for Shadowsocks ciphers: what xray loads, what counts as weak, what means "no encryption". `SS_SECURE_CIPHERS` is derived from the first two. Read by `protocol_parsers.py`, `vpn_config.py` and `xray_compat.py` through `is_xray_cipher()`.
+- **`is_xray_cipher(method) -> bool`** — true for the methods `cipherFromString` in xray knows; anything else is `unknown cipher method` there, which fails the config load.
+- **`extract_ss_credentials(config_line) -> tuple | None`** — one decoder for the three encodings in circulation (`method:pass@host`, `b64(method:pass)@host`, and the SSR payload), so the parsers and both filters read the same method. `None` means "no verdict", not "insecure".
+- **`_SS_2022_KEY_LENGTHS`** — mapping of 2022-blake3 ciphers to the expected key length (16/32 bytes); it is also the list of 2022 methods xray accepts.
 
 ## xray_tester.py — verification via Xray-core
 
@@ -208,10 +210,13 @@ Refused are the configs that parse and then fail when xray loads the JSON: a dea
 UUID, a garbage `encryption=` value, flows xray removed, a non-empty `flow=` on
 trojan, hysteria v1, Hysteria2 with `insecure=1` and no `pinSHA256`, a transport
 xray deleted (`h2`, `h3`, `http`, `quic`, `mkcp`, `ray`), an unknown stream
-`security=`, Reality with a space in the password or an invalid shortId, and
-Reality over an unsupported transport. In batch mode one xray process carries up
-to `XRAY_BATCH_SIZE` configs, so a failed load costs the whole chunk — which is
-why the check reads the URL before anything is built.
+`security=`, a Shadowsocks or SSR cipher outside `SS_XRAY_CIPHERS`, Reality with a
+space in the password or an invalid shortId, and Reality over an unsupported
+transport. In batch mode one xray process carries up to `XRAY_BATCH_SIZE` configs,
+so a failed load costs the whole chunk — which is why the check reads the URL
+before anything is built. `none` and `plain` mark where the two filters part:
+`xray_compat.py` refuses what xray cannot load, `security_filter.py` flags what it
+loads with no encryption.
 
 Not refused: Hysteria2. xray added that outbound in v26.1.13 and the pipeline runs
 `releases/latest`, so refusing it discards a protocol xray can test.
@@ -255,13 +260,13 @@ Cached singleton via `get_specs()` — import-safe lazy init.
 
 ## protocol_parsers.py — protocol parsers
 
-Moved out of `utils/xray_tester.py` to reduce the god-module. All 8 parsers live here:
+Moved out of `utils/xray_tester.py` to reduce the god-module. All six protocol parsers live here:
 
 - `parse_vless_to_outbound()` — TLS, Reality, WS, gRPC, HTTPUpgrade (97→33 lines, uses shared helpers)
 - `parse_trojan_to_outbound()` — TLS, Reality, WS, gRPC, HTTPUpgrade (103→32 lines, uses shared helpers)
-- `parse_vmess_to_outbound()` — TLS, WS, gRPC, h2 (93 lines, base64 JSON)
-- `parse_shadowsocks_to_outbound()` — AEAD only, weak ciphers are rejected
-- `parse_ssr_to_outbound()` — conversion → Shadowsocks (uses `_clean_url_part`)
+- `parse_vmess_to_outbound()` — TLS, WS, gRPC (93 lines, base64 JSON); no h2 branch, xray deleted that transport
+- `parse_shadowsocks_to_outbound()` — only the ciphers in `SS_XRAY_CIPHERS`, emitted lowercased
+- `parse_ssr_to_outbound()` — conversion → Shadowsocks (uses `_clean_url_part`), same cipher allowlist
 - `parse_hysteria2_to_outbound()` — the outbound xray documents: `protocol: "hysteria"`, `version: 2`, TLS, `finalmask.udp` for salamander obfuscation
 - Hysteria v1 has no parser at all: xray cannot load that version, so the compatibility filter refuses those URLs instead
 - TUIC has no parser: xray implements no TUIC outbound, so a `tuic://` URL resolves to no config at all
@@ -272,8 +277,9 @@ Moved out of `utils/xray_tester.py` to reduce the god-module. All 8 parsers live
 - `_parse_user_host_port(base)` — parsing `user@host:port`
 - `_make_stream_settings(network, security, params, host)` — assembling streamSettings (tls, reality, ws, grpc, httpupgrade)
 - `_make_tls_settings()`, `_make_reality_settings()`, `_make_ws_settings()`, `_make_grpc_settings()`, `_make_httpupgrade_settings()` — low-level section builders
+- `apply_tls_fragment(stream)` — attaches the `finalmask.tcp` stage that makes `ENABLE_FRAGMENT` real; called by the verifier, not by a URL parser
 
-Imports `SS_WEAK_CIPHERS` from `security_filter.py`. Each parser is protected by try/except and returns None on error.
+Imports `is_xray_cipher()` from `security_filter.py`. Each parser is protected by try/except and returns None on error.
 
 ## config_helpers.py — pipeline helpers
 

@@ -21,6 +21,7 @@ callers, so it is the seam that closes.
 import re
 
 from utils.logger import log
+from utils.security_filter import extract_ss_credentials, is_xray_cipher
 
 # Regex for validating UUIDs (standard format: 8-4-4-4-12 hex)
 _RE_UUID = re.compile(
@@ -103,15 +104,30 @@ def _xray_incompatible_reason(cfg: str) -> str:
 
     # A Hysteria2 node reachable only with the certificate check off has no xray
     # shape at all: xray removed `allowInsecure` and replaced it with a pinned
-    # certificate hash. Refuse that with its reason instead of letting it fail
-    # like a dead server — the difference is whether the source gets aged out of
-    # URLS.txt for something that is the node's security, not its availability.
+    # certificate hash. This is not a load failure — the parser emits a
+    # verifying TLS config and xray starts happily — but the handshake can never
+    # succeed, so the run spends a test slot on it and reports a timeout, which
+    # reads exactly like a dead server. Refusing it names what it actually is.
     if (
         cfg_lower.startswith(("hysteria2://", "hy2://"))
         and any(flag in cfg_lower for flag in ("insecure=1", "insecure=true"))
         and "pinsha256=" not in cfg_lower
     ):
         return "hysteria2 needs verification off (xray removed allowInsecure)"
+
+    # ── Shadowsocks cipher xray's loader does not know ────────────
+    # `unknown cipher method` is a load failure, so a chunk of configs dies with
+    # it. The set of methods that break is open-ended — `aes-192-gcm`, `table`,
+    # `rc4-md5`, a string mangled by a failed base64 read — which is why the test
+    # is an allowlist of what xray accepts rather than a list of known-bad names.
+    # `none` and `plain` are inside that allowlist: xray loads them, so their
+    # problem is the missing encryption, and that is the security filter's
+    # decision, not this one.
+    if cfg_lower.startswith(("ss://", "ssr://")):
+        credentials = extract_ss_credentials(cfg)
+        method = credentials[0] if credentials else ""
+        if method and not is_xray_cipher(method):
+            return f"unknown shadowsocks cipher: {method}"
 
     # ── UUID validation (vless, vmess) ────────────────────────────
     # Extract UUID: vless://uuid@host

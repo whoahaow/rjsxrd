@@ -185,11 +185,24 @@ class TestXrayProtocolParsers:
     # --- SSR ---
 
     def test_ssr_converted_to_ss(self):
+        """An SSR node whose cipher xray can load comes back as Shadowsocks.
+
+        The assertion used to accept either verdict, which made it unable to fail.
+        With the cipher allowlist in place the outcome is fixed: `aes-256-cfb`, the
+        cipher ssserver defaulted to, is not something xray loads at all.
+        """
+        tester = self._make_tester()
+        ssr_data = "ss.example.com:1443:origin:aes-256-gcm:tls1.2_ticket_auth:password123"
+        url = f"ssr://{base64.b64encode(ssr_data.encode()).decode()}"
+        result = tester._url_to_outbound(url, "tag")
+        assert result is not None
+        assert result["protocol"] == "shadowsocks"
+
+    def test_ssr_with_the_default_ssserver_cipher_is_not_built(self):
         tester = self._make_tester()
         ssr_data = "ss.example.com:1443:origin:aes-256-cfb:tls1.2_ticket_auth:password123"
         url = f"ssr://{base64.b64encode(ssr_data.encode()).decode()}"
-        result = tester._url_to_outbound(url, "tag")
-        assert result is None or result["protocol"] == "shadowsocks"
+        assert tester._url_to_outbound(url, "tag") is None
 
     # --- Hysteria2 ---
 

@@ -40,23 +40,42 @@ Reality parser: the same requirements as VLESS.
 | Check | Criterion |
 |----------|----------|
 | Weak cipher | Unified list in `security_filter.py` — `rc4`, `des`, `rc4-md5`, all `aes-*-cfb`/`-cfb8`/`-cfb1`/`-ctr`, `bf-cfb`, `camellia-*-cfb`, `cast5-cfb`, `des-cfb`, `idea-cfb`, `rc2-cfb`, `seed-cfb`, `salsa20`, `chacha20`, `xsalsa20`, `xchacha20`, etc. |
+| Plaintext method | `none` or `plain` — xray loads them, and what it loads is a tunnel with no encryption |
 | Empty password | Password length = 0 |
 | Plugin | Any plugin parameter (not supported) |
 | **2022 key length** | The base64 key for `2022-blake3-aes-128-gcm` must decode to 16 bytes, for `2022-blake3-aes-256-gcm` and `2022-blake3-chacha20-poly1305` — to 32 bytes. The multi-key `key1:key2` format (3x-ui) is skipped — this is an Xray-core feature, not an error. |
 
-**Secure ciphers (AEAD):**
+**Ciphers xray loads** — `SS_XRAY_CIPHERS`, the cases of `cipherFromString` in
+xray's `infra/conf/shadowsocks.go` (checked at v26.3.27):
+
 ```
-aes-128-gcm, aes-256-gcm, chacha20-ietf-poly1305,
-chacha20-poly1305, xchacha20-ietf-poly1305,
+aes-128-gcm, aead_aes_128_gcm, aes-256-gcm, aead_aes_256_gcm,
+chacha20-poly1305, chacha20-ietf-poly1305, aead_chacha20_poly1305,
+xchacha20-poly1305, xchacha20-ietf-poly1305, aead_xchacha20_poly1305,
 2022-blake3-aes-128-gcm, 2022-blake3-aes-256-gcm,
-2022-blake3-chacha20-poly1305
+2022-blake3-chacha20-poly1305, none, plain
 ```
 
-The constants are defined in `source/utils/security_filter.py:11-29` — the single source of truth, imported in `xray_tester.py` and `protocol_parsers.py`.
+Anything outside it is `unknown cipher method`, which fails while xray loads the
+config — so `utils/xray_compat.py` refuses such a URL before verification rather
+than taking the rest of its batch chunk down with it. `none` and `plain` are
+inside the allowlist on purpose: they are not a load failure, and catching them
+is the security filter's job, which is why both sets appear above.
+
+`SS_SECURE_CIPHERS` is `SS_XRAY_CIPHERS` minus the two plaintext methods. The
+sets live in `source/utils/security_filter.py` and are read through
+`is_xray_cipher()` by `protocol_parsers.py`, `vpn_config.py` and
+`xray_compat.py`; `xray_tester.py` imports none of them and delegates to the
+parsers. Both the typed parser and the legacy one lowercase the method before
+emitting it, because xray looks the 2022 names up case-sensitively.
 
 ### ShadowsocksR
 
-Converted to Shadowsocks (SSR protocol and obfuscation are lost). The same cipher and empty password validation is used.
+Converted to Shadowsocks (SSR protocol and obfuscation are lost, and nothing is
+logged about it). The cipher is read through `extract_ss_credentials()`, the same
+decoder `ss://` uses, so the allowlist above applies here too. That matters:
+`aes-256-cfb` is what ssserver defaulted to, so most SSR nodes are refused
+verification for that reason alone.
 
 ### TUIC
 

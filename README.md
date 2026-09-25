@@ -33,8 +33,8 @@ ETH: `0x17D7206EBfba1F0b6b65E99ACbd294827D9A79B1`
   - **VMess**: проверка `insecure`, `allowInsecure`, `security=none`, `alterId > 0` + валидация TLS SNI
   - **VLESS**: проверка `allowInsecure`, `insecure`, `security=none`, `encryption=none` + валидация Reality publicKey
   - **Trojan**: проверка `allowInsecure`, `insecure` + валидация Reality publicKey/SNI
-  - **Shadowsocks**: проверка слабых шифров (RC4, DES, CFB, Salsa20, Chacha20 non-IETF) + отвергаются пустые пароли
-  - **ShadowsocksR**: проверка слабых шифров + конвертация в Shadowsocks + отвергаются пустые пароли
+  - **Shadowsocks**: в проверенные файлы попадают только шифры, которые умеет xray (AEAD и 2022-blake3); слабые (RC4, DES, CFB, Salsa20, Chacha20 non-IETF) и незнакомые xray отбраковываются до верификации + отвергаются пустые пароли
+  - **ShadowsocksR**: тот же список шифров — если у ноды стоит `aes-256-cfb` (дефолт ssserver), xray такой конфиг не загружает и нода в проверенных файлах не появится + конвертация в Shadowsocks + отвергаются пустые пароли
   - **Hysteria2**: верифицируется outbound'ом `hysteria` с `version: 2` (TLS обязателен); узел с `insecure=1` без `pinSHA256` не проверяется — xray убрал `allowInsecure`, такой конфиг отклоняется фильтром совместимости
   - **Hysteria v1**: не верифицируется — xray умеет только `version: 2`, отказ до верификации с явной причиной
   - **TUIC**: не поддерживается Xray-core (реализации в xray нет; парсер возвращает `None`)
@@ -435,7 +435,7 @@ source/               - исходный код генератора
  │   ├─ purge_stale_urls.py - очистка по git timestamp
  │   ├─ setup-vps.sh   - скрипт развёртывания на VPS
  │   └─ test_telegram_proxies.py - тестирование Telegram прокси
- ├─ tests/            - unit-тесты (1036 тестов, 38 файлов)
+ ├─ tests/            - unit-тесты (1091 тест, 38 файлов)
  │   ├─ __init__.py
  │   ├─ conftest.py   - фикстуры и конфигурация pytest
  │   ├─ test_config_processor.py
@@ -543,7 +543,7 @@ cd source && ../.venv/Scripts/python.exe main.py   # конфиги появят
 
 #### Запуск тестов
 
-Проект включает набор unit-тестов для проверки корректности работы основных модулей (1036 тестов, 38 файлов; замер — `pytest -q`):
+Проект включает набор unit-тестов для проверки корректности работы основных модулей (1091 тест, 38 файлов; замер — `pytest -q`):
 
 ```bash
 # тестовый тулчейн — из корня репозитория

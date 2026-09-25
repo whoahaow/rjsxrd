@@ -33,8 +33,8 @@ Configs are updated **every hour** from a VPS (primary channel) and **once every
   - **VMess**: checks `insecure`, `allowInsecure`, `security=none`, `alterId > 0` + TLS SNI validation
   - **VLESS**: checks `allowInsecure`, `insecure`, `security=none`, `encryption=none` + Reality publicKey validation
   - **Trojan**: checks `allowInsecure`, `insecure` + Reality publicKey/SNI validation
-  - **Shadowsocks**: check for weak ciphers (RC4, DES, CFB, Salsa20, Chacha20 non-IETF) + empty passwords are rejected
-  - **ShadowsocksR**: check for weak ciphers + conversion to Shadowsocks + empty passwords are rejected
+  - **Shadowsocks**: only the ciphers xray understands reach the verified files (AEAD and 2022-blake3); weak ones (RC4, DES, CFB, Salsa20, Chacha20 non-IETF) and anything xray does not name are dropped before verification + empty passwords are rejected
+  - **ShadowsocksR**: the same cipher list — a node on `aes-256-cfb` (the ssserver default) is a config xray cannot load, so it never appears in the verified files + conversion to Shadowsocks + empty passwords are rejected
   - **Hysteria2**: verified through xray's `hysteria` outbound with `version: 2` (TLS required); a node with `insecure=1` and no `pinSHA256` is not testable — xray removed `allowInsecure`, so the compatibility filter refuses that config
   - **Hysteria v1**: not verified — xray implements `version: 2` only; refused before verification with the reason stated
   - **TUIC**: not supported by Xray-core (no TUIC implementation upstream; the parser returns `None`)
@@ -435,7 +435,7 @@ source/               - generator source code
  │   ├─ purge_stale_urls.py - cleaning by git timestamp
  │   ├─ setup-vps.sh   - VPS deployment script
  │   └─ test_telegram_proxies.py - testing Telegram proxies
- ├─ tests/            - unit tests (1036 tests, 38 files)
+ ├─ tests/            - unit tests (1091 tests, 38 files)
  │   ├─ __init__.py
  │   ├─ conftest.py   - pytest fixtures and configuration
  │   ├─ test_config_processor.py
@@ -543,7 +543,7 @@ cd source && ../.venv/Scripts/python.exe main.py   # configs will appear in ../g
 
 #### Running the tests
 
-The project includes a set of unit tests to verify the correctness of the main modules (1036 tests, 38 files; measured with `pytest -q`):
+The project includes a set of unit tests to verify the correctness of the main modules (1091 tests, 38 files; measured with `pytest -q`):
 
 ```bash
 # test toolchain — from the repository root

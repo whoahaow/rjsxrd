@@ -60,7 +60,7 @@ rjsxrd/
 │   │   ├── config_helpers.py    # Helper utilities (extracted from config_processor)
 │   │   ├── curl_import.py       # Shared curl_cffi import (single source of truth)
 │   │   ├── file_utils.py          # File ops, SNI/CIDR, protocol helpers
-│   │   ├── security_filter.py     # has_insecure_setting() + cipher sets (SS_WEAK_CIPHERS/SS_SECURE_CIPHERS)
+│   │   ├── security_filter.py     # has_insecure_setting() + cipher sets (SS_XRAY_CIPHERS/SS_WEAK_CIPHERS)
 │   │   ├── vpn_config.py          # VPNConfig typed dataclass hierarchy
 │   │   ├── managed_process.py     # ManagedProcess for subprocess lifecycle
 │   │   ├── process_registry.py    # Unified ProcessRegistry (replaces 3 old registries)
@@ -240,7 +240,7 @@ rjsxrd/
 #### `utils/security_filter.py` - Security Filtering
 - `has_insecure_setting()` - Security check for all protocols (cached via lru_cache)
 - `filter_secure_configs()` - Parallel security filtering via ProcessPoolExecutor
-- `SS_WEAK_CIPHERS`/`SS_SECURE_CIPHERS` - Unified cipher sets (single source of truth, imported by xray_tester.py and protocol_parsers.py)
+- `SS_XRAY_CIPHERS`/`SS_WEAK_CIPHERS`/`SS_PLAINTEXT_CIPHERS` + `is_xray_cipher()` + `extract_ss_credentials()` - the cipher allowlist xray's loader defines, the names flagged insecure, and the one decoder every consumer reads a Shadowsocks/SSR method through (`SS_SECURE_CIPHERS` is the allowlist minus the plaintext pair)
 
 #### `utils/system_specs.py` - System Auto-Detection
 - `SystemSpecs.detect()` - Detect total RAM, CPU cores, WSL, container cgroup limits
@@ -253,7 +253,7 @@ rjsxrd/
 - Parsers: `parse_vless_to_outbound()`, `parse_vmess_to_outbound()`, `parse_trojan_to_outbound()`, `parse_shadowsocks_to_outbound()`, `parse_hysteria2_to_outbound()`, `parse_ssr_to_outbound()` — no hysteria v1 or TUIC parser: xray cannot load v1 and has no TUIC implementation
 - **Shared helpers**: `_clean_url_part()`, `_split_fragment_query()`, `_parse_user_host_port()`, `_make_stream_settings()`, `_make_tls_settings()`, `_make_reality_settings()`, `_make_ws_settings()`, `_make_grpc_settings()`, `apply_tls_fragment()` — extracted to shorten parsers (VLESS 97→33, Trojan 103→32 lines). `apply_tls_fragment()` is the one the verifier calls, not a URL parser: it attaches the `finalmask.tcp` stage that makes `ENABLE_FRAGMENT` real
 - Imported by xray_tester.py (`_url_to_outbound()` dispatches to these)
-- Uses cipher sets from `security_filter.py` (single source of truth)
+- Uses `is_xray_cipher()` from `security_filter.py` (single source of truth), and emits the method lowercased because xray matches the 2022 names case-sensitively
 
 #### `utils/smart_eta.py` - Smart ETA Estimator
 - `SmartETA` class — 3-way estimate (window rate, global rate, EMA duration) + timeout floor
@@ -296,7 +296,7 @@ rjsxrd/
   - `parse_hysteria2_to_outbound()` - Hysteria2, as xray documents it: protocol `hysteria`, `version: 2`, TLS, finalmask obfuscation
   - TUIC: no parser — xray has no TUIC implementation, so the typed `parse_url()` returns None. Use sing-box
 - **Security validation**:
-  - Cipher sets imported from `security_filter.py` (`SS_SECURE_CIPHERS`, `SS_WEAK_CIPHERS`)
+  - Cipher allowlist applied by the parsers through `is_xray_cipher()` in `security_filter.py`
   - Empty password validation (Shadowsocks/SSR)
   - Plugin rejection (Shadowsocks) — `plugin=` is not supported by xray
   - Reality rejection when `sni` or `publicKey` is missing (VLESS, Trojan, VMess via the shared helper). Note what this is NOT: an empty TLS `sni` is never rejected — it falls back to the hostname
@@ -371,17 +371,21 @@ rjsxrd/
 - **Parser validation**: Reality requires non-empty `sni` AND `publicKey`, HTTPUpgrade uses `headers.Host` format
 
 ### Shadowsocks
-- **Module-level cipher sets** (`SS_WEAK_CIPHERS`, `SS_SECURE_CIPHERS`) — single source of truth in `security_filter.py`, imported by `xray_tester.py` and `protocol_parsers.py`
-- Weak ciphers: `rc4`, `des`, `rc4-md5`, `aes-*-cfb`, `aes-*-cfb8`, `aes-*-cfb1`, `aes-*-cfb-fast`, `aes-*-cfb-simple`, `aes-*-ctr`, `bf-cfb`, `camellia-*-cfb`, `cast5-cfb`, `des-cfb`, `idea-cfb`, `rc2-cfb`, `seed-cfb`, `salsa20`, `chacha20`, `xsalsa20`, `xchacha20` (REJECTED)
-- Secure AEAD: `aes-*-gcm`, `chacha20-ietf-poly1305`, `2022-blake3-*`
+- **Module-level cipher sets** in `security_filter.py` — single source of truth, read through `is_xray_cipher()` by `protocol_parsers.py`, `vpn_config.py` and `xray_compat.py` (`xray_tester.py` imports none of it; it delegates to the parsers)
+  - `SS_XRAY_CIPHERS` — the methods xray's loader accepts, spelled as the `cipherFromString` switch in `infra/conf/shadowsocks.go` matches them: `aes-128-gcm`, `aes-256-gcm`, `chacha20-poly1305`/`chacha20-ietf-poly1305`, `xchacha20-poly1305`/`xchacha20-ietf-poly1305`, the four `aead_*` aliases, the three `2022-blake3-*` methods, and `none`/`plain`
+  - `SS_SECURE_CIPHERS` — `SS_XRAY_CIPHERS` minus `SS_PLAINTEXT_CIPHERS`; "loadable and actually encrypted"
+  - `SS_WEAK_CIPHERS` — the stream/legacy names flagged insecure: `rc4`, `des`, `rc4-md5`, `aes-*-cfb`, `aes-*-cfb8`, `aes-*-cfb1`, `aes-*-cfb-fast`, `aes-*-cfb-simple`, `aes-*-ctr`, `bf-cfb`, `camellia-*-cfb`, `cast5-cfb`, `des-cfb`, `idea-cfb`, `rc2-cfb`, `seed-cfb`, `salsa20`, `chacha20`, `xsalsa20`, `xchacha20`
+- Anything outside the allowlist is `unknown cipher method` at **config load**, so `xray_compat.py` refuses it before verification instead of taking the batch chunk down with it
+- `none` / `plain` are loadable and encrypt nothing: the security filter flags them insecure, the compatibility filter deliberately leaves them alone
+- Parsers emit the lowercased method: xray looks the 2022 names up case-sensitively in `shadowaead_2022.List`
 - Empty passwords REJECTED
-- Plugins NOT supported (rejected with log message)
+- Plugins NOT supported (the parser returns None; nothing is logged)
 - **2022 key length validation**: `2022-blake3-aes-128-gcm` requires 16-byte base64 key, `2022-blake3-aes-256-gcm` and `2022-blake3-chacha20-poly1305` require 32-byte base64 key. Wrong-length base64 keys are rejected. Multi-key format (`key1:key2` used by 3x-ui) is NOT rejected — it's a legitimate Xray-core feature.
 
 ### ShadowsocksR
 - Parse SSR format, check encryption method
-- **Converted to basic Shadowsocks** (protocol/obfs features lost, warning logged)
-- Same cipher validation as Shadowsocks
+- **Converted to basic Shadowsocks** (protocol/obfs features lost; no warning is logged)
+- Same cipher allowlist as Shadowsocks, reached through `extract_ss_credentials()`. `aes-256-cfb` is what ssserver defaulted to, so most SSR nodes are refused verification for that reason alone
 - Empty passwords REJECTED
 
 ### Hysteria2
@@ -716,6 +720,9 @@ Configs pass through these filters in order before reaching Xray:
    - Removed transports on any URL (`type=h2|h3|http|quic|mkcp|ray`) — `transport_internet.go` fails while building the transport
    - An unknown stream `security=` on vless/trojan/vmess — only `tls`, `reality`, `none` load. Scoped to those schemes because `security=` on an `ss://` URL names the cipher
    - A non-empty `flow=` on a trojan URL — `trojan.go` returns a removed-feature error for any flow
+   - A Shadowsocks/SSR cipher outside `SS_XRAY_CIPHERS` — `cipherFromString` returns
+     `CipherType_UNKNOWN` for anything it does not name, so `aes-256-cfb` (the ssserver
+     default), `rc4-md5` and `aes-192-gcm` alike fail the load
    - Invalid UUIDs (URL-encoded garbage, truncated, non-hex chars)
    - VLESS with garbage encryption values (`encryption=none=@...`)
    - Reality with spaces in password
@@ -873,9 +880,13 @@ on:
 ### Module-Level Constants
 
 ```python
-# utils/security_filter.py:11-29 (single source of truth, imported by xray_tester.py and protocol_parsers.py)
-SS_SECURE_CIPHERS = {...}  # AEAD шифры
-SS_WEAK_CIPHERS = {...}  # Слабые шифры (отвергаются) — единый список
+# utils/security_filter.py — one source of truth for every cipher verdict.
+# Read through is_xray_cipher() by protocol_parsers.py, vpn_config.py and
+# xray_compat.py; xray_tester.py imports none of it and delegates to the parsers.
+SS_XRAY_CIPHERS = {...}  # the methods cipherFromString() in xray accepts
+SS_PLAINTEXT_CIPHERS = {"none", "plain"}  # load in xray, encrypt nothing
+SS_SECURE_CIPHERS = SS_XRAY_CIPHERS - SS_PLAINTEXT_CIPHERS  # loadable and encrypted
+SS_WEAK_CIPHERS = {...}  # stream/legacy names, flagged insecure
 ```
 
 ---

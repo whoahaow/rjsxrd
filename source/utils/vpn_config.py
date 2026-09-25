@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
-from utils.security_filter import SS_WEAK_CIPHERS
+from utils.security_filter import is_xray_cipher
 
 # ── Base class ──────────────────────────────────────────────────────────
 
@@ -393,8 +393,12 @@ def _parse_shadowsocks(url: str) -> ShadowsocksConfig | None:
         except (ValueError, IndexError, UnicodeDecodeError):
             pass
 
-    # SECURITY: reject weak ciphers and empty passwords
-    if method.lower() in SS_WEAK_CIPHERS:
+    # SECURITY: reject ciphers xray's loader does not know, and empty passwords.
+    # The method is normalized first: xray matches the 2022 names case-sensitively
+    # against `shadowaead_2022.List`, so `to_xray_outbound()` has to emit the
+    # spelling the loader actually has.
+    method = method.strip().lower()
+    if not is_xray_cipher(method):
         return None
     if not password:
         return None

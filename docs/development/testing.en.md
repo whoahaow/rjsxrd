@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 ```
 
 Every test module declares its marker (`pytestmark`), so `-m unit` and
-`-m integration` actually select something: 1021 and 15 tests out of 1036
+`-m integration` actually select something: 1076 and 15 tests out of 1091
 (measured with `pytest --collect-only -q` under each marker). Only the two
 modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) carry `integration`. Pure logic needs
@@ -32,7 +32,7 @@ which took the 15 pure-logic tests out of `test_fetcher.py`.
 
 ## Test structure
 
-**1036 tests** in 38 files. A full run takes around 70–80 seconds on the
+**1091 tests** in 38 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
@@ -40,9 +40,9 @@ load, so measure with `pytest -q` on your own machine.
 |------|--------|---------|
 | `test_config_processor.py` | 86 | Processing pipeline, `prepare_config_content`, `_add_unique`, `write_configs_file` |
 | `test_file_utils.py` | 70 | `extract_host_port`, `deduplicate_configs`, `is_valid_vpn_config_url`, `filter_secure_configs` |
-| `test_xray_tester.py` | 49 | Parsers, signals, startup-timeout, security edge cases, TLS fragment stage |
-| `test_vpn_config.py` | 41 | VPNConfig typed dataclasses |
-| `test_security_filter.py` | 35 | `has_insecure_setting`, all protocols and edge cases, 2022 key length validation |
+| `test_xray_tester.py` | 50 | Parsers, signals, startup-timeout, security edge cases, TLS fragment stage, SSR ciphers |
+| `test_vpn_config.py` | 42 | VPNConfig typed dataclasses |
+| `test_security_filter.py` | 71 | `has_insecure_setting`, all protocols and edge cases, 2022 key length validation, the xray cipher allowlist, `extract_ss_credentials` |
 | `test_logger.py` | 30 | Logging, levels, format |
 | `test_yaml_converter.py` | 32 | Clash/Surge YAML to VPN URL conversion |
 | `test_smart_eta.py` | 27 | SmartETA: 3-way estimate (window, global, EMA) + timeout floor |
@@ -53,7 +53,7 @@ load, so measure with `pytest -q` on your own machine.
 | `test_health_check.py` | 22 | Health check: DNS fallback, disk, memory, token |
 | `test_github_handler.py` | 22 | GitHub API, rate limits, 409 conflicts, batch |
 | `test_xray_batch.py` | 21 | BatchRunner, shared xray, port allocation |
-| `test_xray_compat_filter.py` | 47 | `filter_xray_compatible`: which configs reach verification at all |
+| `test_xray_compat_filter.py` | 64 | `filter_xray_compatible`: which configs reach verification at all, the Shadowsocks cipher allowlist |
 | `test_telegram_proxy_scraper.py` | 21 | Extracting MTProto and SOCKS5 from content |
 | `test_proxy_monitor.py` | 19 | Chain monitoring, stop event |
 | `test_pipeline_e2e.py` | 19 | Full offline pipeline run with every seam stubbed |

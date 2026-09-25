@@ -28,7 +28,7 @@ import json
 from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
-from utils.security_filter import SS_WEAK_CIPHERS
+from utils.security_filter import is_xray_cipher
 from utils.vpn_config import parse_url as vpn_parse_url
 
 # ── Shared helpers ─────────────────────────────────────────────────────
@@ -531,9 +531,13 @@ def parse_shadowsocks_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         if not password or not password.strip():
             return None
 
-        # SECURITY CHECK: Reject weak ciphers (using module-level constants)
-        method_lower = method.lower()
-        if method_lower in SS_WEAK_CIPHERS:
+        # SECURITY/COMPAT: allowlist of the ciphers xray's loader accepts. The
+        # emitted spelling is the normalized one because xray matches the 2022
+        # methods case-sensitively against `shadowaead_2022.List`, so a URL
+        # written `2022-BLAKE3-AES-256-GCM` would come back as
+        # `unknown cipher method` at config load.
+        method = method.strip().lower()
+        if not is_xray_cipher(method):
             return None
 
         # Parse query params for additional settings
@@ -676,11 +680,9 @@ def parse_ssr_to_outbound(url: str, tag: str = "proxy") -> dict | None:
             return None
 
         # SSR format: host:port:protocol:method:obfs:base64pass/?obfsparam=base64&protoparam=base64&remarks=base64
-        if "/?" in decoded:
-            main_part, query_part = decoded.split("/?", 1)
-        else:
-            main_part = decoded
-            query_part = ""
+        # The `/?` tail is dropped rather than parsed: those parameters describe the
+        # SSR obfs and protocol layers, which a Shadowsocks outbound cannot carry.
+        main_part = decoded.partition("/?")[0]
 
         parts = main_part.split(":")
         if len(parts) < 6:
@@ -694,11 +696,9 @@ def parse_ssr_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         except ValueError:
             return None
 
-        protocol = parts[2]
+        # Only the method has an xray equivalent: SSR's protocol and obfs layers
+        # are dropped, the outbound built below is plain Shadowsocks.
         method = parts[3]
-        obfs = parts[4]
-        # protocol/obfs parsed for forward-compat; not used in current cipher check
-        del protocol, obfs
 
         # Decode password from base64 with validation
         try:
@@ -720,12 +720,8 @@ def parse_ssr_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         ):
             return None
 
-        # Parse query params (forward-compat: may be used by future checks)
-        params = parse_qs(query_part)
-        del params
-
-        # SECURITY CHECK: Reject weak ciphers (using module-level constants)
-        if method.lower() in SS_WEAK_CIPHERS:
+        # SECURITY/COMPAT: the converted outbound is Shadowsocks, so same ciphers
+        if not is_xray_cipher(method):
             return None
 
         # Note: Xray-core has limited SSR support. This creates a basic Shadowsocks config

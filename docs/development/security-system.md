@@ -40,23 +40,42 @@
 | Проверка | Критерий |
 |----------|----------|
 | Слабый шифр | Единый список в `security_filter.py` — `rc4`, `des`, `rc4-md5`, все `aes-*-cfb`/`-cfb8`/`-cfb1`/`-ctr`, `bf-cfb`, `camellia-*-cfb`, `cast5-cfb`, `des-cfb`, `idea-cfb`, `rc2-cfb`, `seed-cfb`, `salsa20`, `chacha20`, `xsalsa20`, `xchacha20` и др. |
+| Метод без шифрования | `none` или `plain` — xray их загружает, и загружает туннель без шифрования |
 | Пустой пароль | Длина пароля = 0 |
 | Плагин | Любой plugin-параметр (не поддерживаются) |
 | **2022 длина ключа** | Base64-ключ для `2022-blake3-aes-128-gcm` должен декодиться в 16 байт, для `2022-blake3-aes-256-gcm` и `2022-blake3-chacha20-poly1305` — в 32 байта. Multi-key формат `key1:key2` (3x-ui) пропускается — это фича Xray-core, не ошибка. |
 
-**Безопасные шифры (AEAD):**
+**Шифры, которые загружает xray** — `SS_XRAY_CIPHERS`, то есть случаи `cipherFromString`
+из `infra/conf/shadowsocks.go` (проверено на v26.3.27):
+
 ```
-aes-128-gcm, aes-256-gcm, chacha20-ietf-poly1305,
-chacha20-poly1305, xchacha20-ietf-poly1305,
+aes-128-gcm, aead_aes_128_gcm, aes-256-gcm, aead_aes_256_gcm,
+chacha20-poly1305, chacha20-ietf-poly1305, aead_chacha20_poly1305,
+xchacha20-poly1305, xchacha20-ietf-poly1305, aead_xchacha20_poly1305,
 2022-blake3-aes-128-gcm, 2022-blake3-aes-256-gcm,
-2022-blake3-chacha20-poly1305
+2022-blake3-chacha20-poly1305, none, plain
 ```
 
-Константы определены в `source/utils/security_filter.py:11-29` — единый источник истины, импортируется в `xray_tester.py` и `protocol_parsers.py`.
+Всё остальное — `unknown cipher method`, то есть падение при загрузке конфига,
+поэтому `utils/xray_compat.py` отклоняет такой URL до верификации, а не теряет
+вместе с ним всю пачку в batch-режиме. `none` и `plain` в список включены
+намеренно: загрузить их xray может, и ловить их должна проверка безопасности, а
+не проверка совместимости.
+
+`SS_SECURE_CIPHERS` — это `SS_XRAY_CIPHERS` минус два метода без шифрования.
+Наборы лежат в `source/utils/security_filter.py` и читаются через
+`is_xray_cipher()` в `protocol_parsers.py`, `vpn_config.py` и `xray_compat.py`;
+`xray_tester.py` ничего из этого не импортирует и делегирует парсерам. Оба
+парсера — и typed, и legacy — приводят метод к нижнему регистру: xray ищет
+имена 2022 в `shadowaead_2022.List` с учётом регистра.
 
 ### ShadowsocksR
 
-Конвертируется в Shadowsocks (протокол и обфускация SSR теряются). Используется та же валидация шифров и пустых паролей.
+Конвертируется в Shadowsocks (протокол и обфускация SSR теряются, лог при этом
+не пишется). Шифр читается через `extract_ss_credentials()` — тот же декодер,
+что и у `ss://`, — поэтому список выше действует и здесь. Это важно:
+`aes-256-cfb` был дефолтом ssserver, так что большинство SSR-нод отклоняются
+до верификации именно по этой причине.
 
 ### TUIC
 

@@ -81,6 +81,7 @@ rjsxrd/
 │   │   ├── xray_batch.py           # BatchRunner for concurrent Xray testing
 │   │   ├── xray_compat.py          # Configs xray cannot load, refused before verification
 │   │   ├── xray_helpers.py         # Pure helper functions for Xray testing
+│   │   ├── xray_stream_settings.py   # streamSettings section builders shared by the parsers and the verifier
 │   │   ├── ip_verifier.py         # IP verify + proxy setup (single+chain), merged from ip_checker
 │   │   ├── proxy_detector.py      # Auto-detect active proxies
 │   │   ├── proxy_monitor.py       # Background proxy chain health monitoring
@@ -252,9 +253,16 @@ rjsxrd/
 #### `utils/protocol_parsers.py` - Standalone Protocol Parsers
 - Extracted from `utils/xray_tester.py` to reduce god-module size
 - Parsers: `parse_vless_to_outbound()`, `parse_vmess_to_outbound()`, `parse_trojan_to_outbound()`, `parse_shadowsocks_to_outbound()`, `parse_hysteria2_to_outbound()`, `parse_ssr_to_outbound()` — no hysteria v1 or TUIC parser: xray cannot load v1 and has no TUIC implementation
-- **Shared helpers**: `_clean_url_part()`, `_split_fragment_query()`, `_parse_user_host_port()`, `_make_stream_settings()`, `_make_tls_settings()`, `_make_reality_settings()`, `_make_ws_settings()`, `_make_grpc_settings()`, `apply_tls_fragment()` — extracted to shorten parsers (VLESS 97→33, Trojan 103→32 lines). `apply_tls_fragment()` is the one the verifier calls, not a URL parser: it attaches the `finalmask.tcp` stage that makes `ENABLE_FRAGMENT` real
+- **URL helpers**: `_clean_url_part()`, `_split_fragment_query()`, `_parse_user_host_port()` — extracted to shorten parsers (VLESS 97→33, Trojan 103→32 lines)
+- The `streamSettings` blocks it emits are built by `utils/xray_stream_settings.py`, which the typed path in `vpn_config.py` shares the same shapes with
 - Imported by xray_tester.py (`_url_to_outbound()` dispatches to these)
 - Uses `is_xray_cipher()` from `security_filter.py` (single source of truth), and emits the method lowercased because xray matches the 2022 names case-sensitively
+
+#### `utils/xray_stream_settings.py` - streamSettings Section Builders
+- Split out of `protocol_parsers.py` when that file crossed the module-size ceiling: pure builders, no URL parsing
+- `_make_stream_settings()`, `_make_tls_settings()`, `_make_reality_settings()`, `_make_ws_settings()`, `_make_grpc_settings()`, `_make_httpupgrade_settings()`, `_make_xhttp_settings()` — every key is one xray's `StreamConfig` reads at v26.3.27 (`wsSettings{path,host}`, `httpupgradeSettings{path,host}`, `xhttpSettings{path,host,mode}`, `realitySettings{serverName,fingerprint,publicKey,shortId}`); a `host` inside a `headers` map is the deprecated shape and is not emitted
+- `apply_tls_fragment()` — the one the verifier calls, not a URL parser: it attaches the `finalmask.tcp` stage that makes `ENABLE_FRAGMENT` real
+- `xray_fingerprint()` (in `xray_helpers.py`) resolves the `fp=` value, because xray aborts the config load on a fingerprint it cannot resolve
 
 #### `utils/smart_eta.py` - Smart ETA Estimator
 - `SmartETA` class — 3-way estimate (window rate, global rate, EMA duration) + timeout floor
@@ -358,7 +366,7 @@ rjsxrd/
 ### VMess
 - `insecure`, `allowInsecure` = true/1/'true'/'1'
 - `security`/`scy` = 'none'
-- `alterId`/`aid` > 0 (MD5 authentication vulnerability)
+- `alterId`/`aid` > 0 — the node is on the deprecated MD5 id-cycle. xray's `VMessAccount` reads only `id`/`security`/`experiments` from JSON, so the verifier ignores the value and connects with zero alter IDs; the rule is a judgement about the deployment, not about what the test does
 - **Parser validation**: TLS requires non-empty SNI, h2 host array properly formatted
 
 ### VLESS
@@ -369,7 +377,7 @@ rjsxrd/
 
 ### Trojan
 - `allowInsecure`, `insecure` params
-- **Parser validation**: Reality requires non-empty `sni` AND `publicKey`, HTTPUpgrade uses `headers.Host` format
+- **Parser validation**: Reality requires non-empty `sni` AND `publicKey`; HTTPUpgrade emits `httpupgradeSettings{path,host}`
 
 ### Shadowsocks
 - **Module-level cipher sets** in `security_filter.py` — single source of truth, read through `is_xray_cipher()` by `protocol_parsers.py`, `vpn_config.py` and `xray_compat.py` (`xray_tester.py` imports none of it; it delegates to the parsers)
@@ -573,7 +581,7 @@ Measured at `5165416c`: **975 tests** across 37 test files (full suite in ~70s).
 - `test_fetch_guard_scope.py` - 70 destination-guard tests (refused ranges, the allowlist, the warning-filter walk)
 - `test_fetch_posture.py` - 55 fetch-security tests (refusals, the token host set, the run conditions)
 - `test_xray_tester.py` - 10 tester lifecycle tests (signals, startup timeout, fragment stage)
-- `test_protocol_parsers.py` - 44 URL-to-outbound tests, split out of the tester file
+- `test_protocol_parsers.py` - 55 URL-to-outbound tests, split out of the tester file
 - `test_vpn_config.py` - 35 VPNConfig typed dataclass tests
 - `test_security_filter.py` - 35 security filter tests
 - `test_ip_verifier.py` - 35 IP verifier tests
@@ -748,7 +756,7 @@ Configs pass through these filters in order before reaching Xray:
 - Update docstring with new checks
 
 ### Modify Protocol Parsing (Xray testing)
-Edit `utils/protocol_parsers.py` — standalone parsers for all 8 protocols.
+Edit `utils/protocol_parsers.py` — the six parsers xray has a shape for, and `utils/xray_stream_settings.py` for the `streamSettings` blocks they share.
 Edit `utils/xray_tester.py:_url_to_outbound()` — dispatch to the parsers.
 When adding a new protocol: add parser to protocol_parsers.py, register in xray_tester's dispatch, add security check in security_filter.py.
 

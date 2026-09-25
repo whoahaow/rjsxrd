@@ -20,6 +20,7 @@ from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
 from utils.security_filter import is_xray_cipher
+from utils.xray_helpers import xray_fingerprint
 
 # ── Base class ──────────────────────────────────────────────────────────
 
@@ -37,9 +38,10 @@ class VPNConfig:
     port: int
     remark: str = ""
     # Common transport fields (shared by most protocols, used by _add_stream_settings)
-    transport: str = "tcp"  # tcp, ws, grpc, httpupgrade
+    transport: str = "tcp"  # tcp, ws, grpc, httpupgrade, xhttp, splithttp
     tls: bool = False
     sni: str = ""
+    fingerprint: str = ""  # the URL's `fp=`, resolved by xray_fingerprint()
     ws_path: str = ""
     ws_host: str = ""
     grpc_service_name: str = ""
@@ -87,16 +89,8 @@ class VLESSConfig(VPNConfig):
         }
         security = "reality" if self.reality else ("tls" if self.tls else None)
         _add_stream_settings(outbound, self, security_override=security)
-        if self.reality and self.public_key:
-            outbound["streamSettings"]["fingerprint"] = "chrome"
-            outbound["streamSettings"]["realitySettings"] = {
-                "serverName": self.sni or self.host,
-                "fingerprint": "chrome",
-                "publicKey": self.public_key,
-                "shortId": self.short_id or "",
-            }
-        elif self.reality and not self.public_key:
-            return None  # Reality requires publicKey
+        if self.reality and not _add_reality_settings(outbound, self):
+            return None  # Reality requires a publicKey
         return outbound
 
     def dedup_key(self) -> tuple[Any, ...]:
@@ -161,16 +155,8 @@ class TrojanConfig(VPNConfig):
         }
         security = "reality" if self.reality else ("tls" if self.tls else None)
         _add_stream_settings(outbound, self, security_override=security)
-        if self.reality and self.public_key:
-            outbound["streamSettings"]["fingerprint"] = "chrome"
-            outbound["streamSettings"]["realitySettings"] = {
-                "serverName": self.sni or self.host,
-                "fingerprint": "chrome",
-                "publicKey": self.public_key,
-                "shortId": self.short_id or "",
-            }
-        elif self.reality and not self.public_key:
-            return None
+        if self.reality and not _add_reality_settings(outbound, self):
+            return None  # Reality requires a publicKey
         return outbound
 
     def dedup_key(self) -> tuple[Any, ...]:
@@ -306,6 +292,7 @@ def _parse_vless(url: str) -> VLESSConfig | None:
         reality=params.get("security", [""])[0] == "reality",
         public_key=params.get("pbk", [""])[0],
         short_id=params.get("sid", [""])[0],
+        fingerprint=params.get("fp", [""])[0],
         transport=params.get("type", ["tcp"])[0],
         ws_path=params.get("path", [""])[0],
         ws_host=params.get("host", [""])[0],
@@ -339,6 +326,7 @@ def _parse_vmess(url: str) -> VMessConfig | None:
         security=j.get("scy", "auto"),
         tls=bool(j.get("tls")),
         sni=j.get("sni", ""),
+        fingerprint=j.get("fp", ""),
         transport=j.get("net", "tcp"),
         ws_path=j.get("path", ""),
         ws_host=j.get("host", ""),
@@ -365,6 +353,10 @@ def _parse_trojan(url: str) -> TrojanConfig | None:
         flow=params.get("flow", [""])[0],
         reality=params.get("security", [""])[0] == "reality",
         public_key=params.get("pbk", [""])[0],
+        # shortId is how a reality server routes the handshake: dropping it makes
+        # the node reject us, so the test reported a working node as dead.
+        short_id=params.get("sid", [""])[0],
+        fingerprint=params.get("fp", [""])[0],
         transport=params.get("type", ["tcp"])[0],
         ws_path=params.get("path", [""])[0],
         ws_host=params.get("host", [""])[0],
@@ -472,18 +464,16 @@ def _add_stream_settings(
         ss["security"] = "none"
 
     if ss.get("security") == "tls" or (cfg.tls and not security_override):
-        from config.settings import TLS_FINGERPRINT
-
         tls_settings: dict[str, Any] = {
             "serverName": cfg.sni or cfg.host,
-            "fingerprint": TLS_FINGERPRINT,
+            "fingerprint": xray_fingerprint(cfg.fingerprint),
         }
         ss["tlsSettings"] = tls_settings
 
     if cfg.transport == "ws":
         ws: dict[str, Any] = {"path": cfg.ws_path or "/"}
         if cfg.ws_host:
-            ws["headers"] = {"Host": cfg.ws_host}
+            ws["host"] = cfg.ws_host
         ss["network"] = "ws"
         ss["wsSettings"] = ws
     elif cfg.transport == "grpc":
@@ -491,7 +481,33 @@ def _add_stream_settings(
         ss["grpcSettings"] = {"serviceName": cfg.grpc_service_name or ""}
     elif cfg.transport == "httpupgrade":
         ss["network"] = "httpupgrade"
+        ss["httpupgradeSettings"] = {
+            "path": cfg.ws_path or "/",
+            "host": cfg.ws_host or cfg.host,
+        }
+    elif cfg.transport in ("xhttp", "splithttp"):
+        ss["network"] = cfg.transport
+        ss["xhttpSettings"] = {"path": cfg.ws_path or "/", "host": cfg.ws_host or cfg.host}
     elif cfg.transport == "tcp":
         ss["network"] = "tcp"
 
     outbound["streamSettings"] = ss
+
+
+def _add_reality_settings(outbound: dict[str, Any], cfg: Any) -> bool:
+    """Attach realitySettings to a VLESS or Trojan outbound; False when unusable.
+
+    The fingerprint belongs *inside* realitySettings: `streamSettings.fingerprint`
+    is not a key xray's `StreamConfig` has, so writing it there did nothing, while
+    a blank or unresolvable value *here* makes the client builder abort the load
+    with `unknown "fingerprint"`. xray's Reality client also rejects `unsafe`.
+    """
+    if not cfg.public_key:
+        return False
+    outbound["streamSettings"]["realitySettings"] = {
+        "serverName": cfg.sni or cfg.host,
+        "fingerprint": xray_fingerprint(cfg.fingerprint),
+        "publicKey": cfg.public_key,
+        "shortId": cfg.short_id or "",
+    }
+    return True

@@ -551,4 +551,108 @@ class TestXraySecurityEdgeCases:
             "tag",
         )
         assert result is not None
+
+
+class TestStreamSettingsUseXraysKeys:
+    """Every key here has to be one `StreamConfig` reads.
+
+    `infra/conf/transport_internet.go` (v26.3.27) defines the settings blocks as
+    `wsSettings{path,host}`, `httpupgradeSettings{path,host}`, `xhttpSettings
+    {path,host,mode}` and `realitySettings{serverName,fingerprint,publicKey,
+    shortId}`. A key it does not have is dropped in silence, and a transport with
+    no settings block is dialled over the wrong wire — both come back as a dead
+    node rather than an error, which is the failure this project keeps mistaking
+    for an unavailable server.
+    """
+
+    URL = (
+        "vless://12345678-1234-1234-1234-123456789012@ws.example.com:443"
+        "?security=tls&sni=ws.example.com&type={kind}&path=%2Fnode&host=cdn.example.com"
+    )
+
+    def _stream(self, kind: str) -> dict:
+        from utils.protocol_parsers import parse_url_to_outbound
+
+        out = parse_url_to_outbound(self.URL.format(kind=kind), "proxy")
+        assert out is not None
+        return out["streamSettings"]
+
+    @pytest.mark.parametrize("kind", ["ws", "httpupgrade", "xhttp", "splithttp"])
+    def test_the_typed_and_legacy_builders_produce_the_same_stream(self, kind: str):
+        from utils.protocol_parsers import parse_vless_to_outbound
+        from utils.vpn_config import parse_url
+
+        typed = parse_url(self.URL.format(kind=kind))
+        assert typed is not None
+        legacy = parse_vless_to_outbound(self.URL.format(kind=kind), "proxy")
+
+        assert typed.to_xray_outbound()["streamSettings"] == legacy["streamSettings"]
+
+    def test_websocket_carries_host_rather_than_a_headers_map(self):
+        stream = self._stream("ws")
+
+        assert stream["wsSettings"] == {"path": "/node", "host": "cdn.example.com"}
+        assert "headers" not in stream["wsSettings"]
+
+    def test_httpupgrade_carries_its_own_settings_block(self):
+        """`network: httpupgrade` with no settings tested the node against `/`."""
+        stream = self._stream("httpupgrade")
+
+        assert stream["httpupgradeSettings"] == {"path": "/node", "host": "cdn.example.com"}
+
+    def test_xhttp_carries_its_own_settings_block_under_both_names(self):
+        for kind in ("xhttp", "splithttp"):
+            stream = self._stream(kind)
+
+            assert stream["network"] == kind
+            assert stream["xhttpSettings"] == {"path": "/node", "host": "cdn.example.com"}
+
+
+class TestFingerprintField:
+    """xray resolves `fingerprint` through utls and aborts the load when it cannot.
+
+    `TLSConfig.Build()` errors `unknown "fingerprint"` for anything
+    `GetFingerprint` does not know, and the Reality client refuses `unsafe` and
+    `hellogolang` as well. An empty string is one of those unknowns, so the old
+    `"fingerprint": fp` — `None` whenever the URL carried no `fp=` — made every
+    such reality outbound a config-load failure.
+    """
+
+    def _reality(self, query: str) -> dict:
+        from utils.protocol_parsers import parse_url_to_outbound
+
+        out = parse_url_to_outbound(
+            f"vless://12345678-1234-1234-1234-123456789012@r.example.com:443{query}", "proxy"
+        )
+        assert out is not None
+        return out["streamSettings"]
+
+    def test_a_reality_url_without_fp_still_names_one(self):
+        from config.settings import TLS_FINGERPRINT
+
+        stream = self._reality("?security=reality&pbk=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8")
+
+        assert stream["realitySettings"]["fingerprint"] == TLS_FINGERPRINT
+        assert stream["realitySettings"]["fingerprint"] is not None
+
+    def test_the_urls_own_fingerprint_is_kept(self):
+        stream = self._reality(
+            "?security=reality&fp=firefox&pbk=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+        )
+
+        assert stream["realitySettings"]["fingerprint"] == "firefox"
+
+    def test_a_fingerprint_reality_forbids_falls_back_instead_of_failing_the_load(self):
+        stream = self._reality(
+            "?security=reality&fp=unsafe&pbk=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+        )
+
+        assert stream["realitySettings"]["fingerprint"] == "chrome"
+
+    def test_fingerprint_does_not_belong_on_stream_settings(self):
+        """`StreamConfig` has no such key; the value is read inside the settings."""
+        stream = self._reality("?security=tls")
+
+        assert "fingerprint" not in stream
+        assert stream["tlsSettings"]["fingerprint"] == "chrome"
         # The outbound should have serverName = host (default when no sni param)

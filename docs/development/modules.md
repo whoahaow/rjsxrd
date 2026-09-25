@@ -275,15 +275,34 @@ Hysteria2 xray добавил в v26.1.13, а пайплайн берёт `relea
 - для Hysteria v1 парсера нет вовсе: xray не умеет эту версию, поэтому фильтр совместимости отклоняет такие URL
 - для TUIC парсера нет: xray не реализует исходящий TUIC-протокол, поэтому `tuic://` не даёт никакого конфига вообще
 
-**Shared helpers (извлечены из VLESS/Trojan/SSR для устранения дублирования):**
+**URL helpers (извлечены из VLESS/Trojan/SSR для устранения дублирования):**
 - `_clean_url_part(url)` — case-insensitive удаление протокола
 - `_split_fragment_query(url_part)` — разделение `#fragment`, `?query`, `base`
 - `_parse_user_host_port(base)` — парсинг `user@host:port`
-- `_make_stream_settings(network, security, params, host)` — сборка streamSettings (tls, reality, ws, grpc, httpupgrade)
-- `_make_tls_settings()`, `_make_reality_settings()`, `_make_ws_settings()`, `_make_grpc_settings()`, `_make_httpupgrade_settings()` — низкоуровневые строители секций
-- `apply_tls_fragment(stream)` — навешивает стадию `finalmask.tcp`, которая и делает `ENABLE_FRAGMENT` настоящим; вызывает её верификатор, а не парсер URL
+
+Блоки `streamSettings` собираются в `xray_stream_settings.py` — раздел ниже.
 
 Импортирует `is_xray_cipher()` из `security_filter.py`. Каждый парсер обязан вернуть None вместо исключения — контракт, а не надежда: форма SSR-пароля, на которой декод поднимал `UnboundLocalError` наружу, закреплена тестом.
+
+## xray_stream_settings.py — сборщики streamSettings
+
+Вынесены из `protocol_parsers.py`, когда тот перешагнул потолок размера модуля.
+Чистые строители: никакого разбора URL и никаких знаний о протоколах, одна задача —
+выдать ключи, которые читает `StreamConfig` xray (проверено по
+`infra/conf/transport_internet.go` на v26.3.27). `utils/vpn_config.py` строит те же
+блоки на typed-пути, и `test_protocol_parsers.py` сверяет их ключ в ключ.
+
+- `_make_stream_settings(network, security, params, host)` — весь блок: tls или reality плюс настройки транспорта
+- `_make_tls_settings()`, `_make_reality_settings()`, `_make_ws_settings()`, `_make_grpc_settings()`, `_make_httpupgrade_settings()`, `_make_xhttp_settings()` — строители секций
+- `apply_tls_fragment(stream)` — навешивает стадию `finalmask.tcp`, которая и делает `ENABLE_FRAGMENT` настоящим; вызывает её верификатор, а не парсер URL
+
+Две формы выбраны сознательно. `wsSettings`, `httpupgradeSettings` и
+`xhttpSettings` несут `host`, а не карту `headers`: xray принимает host, спрятанный
+в `headers`, только как запасной вариант и печатает предупреждение о deprecated. И
+`fingerprint` принадлежит `tlsSettings`/`realitySettings` — у `StreamConfig` нет
+ключа fingerprint, поэтому `streamSettings.fingerprint`, который здесь раньше
+писали, просто терялся; при этом пустое или неизвестное значение в том месте, где
+xray его действительно читает, рвёт загрузку конфига.
 
 ## config_helpers.py — хэлперы пайплайна
 

@@ -30,6 +30,12 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from utils.security_filter import is_xray_cipher
 from utils.vpn_config import parse_url as vpn_parse_url
+from utils.xray_helpers import xray_fingerprint
+from utils.xray_stream_settings import (
+    _make_stream_settings,
+    _make_tls_settings,
+    _make_ws_settings,
+)
 
 # ── Shared helpers ─────────────────────────────────────────────────────
 
@@ -74,117 +80,6 @@ def _parse_user_host_port(base_part: str) -> tuple[str, str, int] | None:
     if not hostname or not port or not user:
         return None
     return user, hostname, port
-
-
-def apply_tls_fragment(stream: dict[str, Any]) -> None:
-    """Attach TLS ClientHello fragmentation, in the shape xray reads.
-
-    There is no `streamSettings.fragment` key in xray: an unrecognised field is
-    skipped silently, so a config written that way verifies with an intact
-    ClientHello and the operator never learns. Fragmentation is a TCP finalmask
-    stage — `finalmask.tcp` with `{"type": "fragment", "settings": {...}}` — and
-    the pacing field xray calls `delay`, not `interval`.
-
-    Skipped for hysteria: that transport is QUIC, so a TCP-stage mask would be
-    dead weight in a config the pipeline is about to hand to xray.
-    """
-    from config.settings import (
-        ENABLE_FRAGMENT,
-        FRAGMENT_INTERVAL,
-        FRAGMENT_LENGTH,
-        FRAGMENT_PACKETS,
-    )
-
-    if not ENABLE_FRAGMENT or stream.get("network") == "hysteria":
-        return
-
-    finalmask = stream.setdefault("finalmask", {})
-    # `udp` may already carry a salamander stage from the hysteria2 parser;
-    # replacing the dict instead of appending would silently drop it.
-    finalmask.setdefault("tcp", []).append(
-        {
-            "type": "fragment",
-            "settings": {
-                "packets": FRAGMENT_PACKETS,
-                "length": FRAGMENT_LENGTH,
-                "delay": FRAGMENT_INTERVAL,
-            },
-        }
-    )
-
-
-def _make_tls_settings(sni: str, fp: str | None = None) -> dict:
-    """Build tlsSettings dict."""
-    from config.settings import TLS_FINGERPRINT
-
-    return {"serverName": sni, "fingerprint": fp or TLS_FINGERPRINT}
-
-
-def _make_reality_settings(sni: str, pbk: str, fp: str | None = None, sid: str = "") -> dict | None:
-    """Build realitySettings dict. Returns None if sni or pbk is missing."""
-    sni = sni.strip()
-    pbk = pbk.strip()
-    if not sni or not pbk:
-        return None
-    return {"serverName": sni, "fingerprint": fp, "publicKey": pbk, "shortId": sid}
-
-
-def _make_ws_settings(path: str, host: str) -> dict:
-    """Build wsSettings dict."""
-    return {"path": unquote(path), "headers": {"Host": unquote(host)}}
-
-
-def _make_grpc_settings(service_name: str) -> dict:
-    """Build grpcSettings dict."""
-    return {"serviceName": unquote(service_name)}
-
-
-def _make_httpupgrade_settings(path: str, host: str) -> dict:
-    """Build httpupgradeSettings dict."""
-    return {"path": unquote(path), "headers": {"Host": unquote(host)}}
-
-
-def _make_stream_settings(
-    network: str, security: str, params: dict, default_host: str
-) -> dict | None:
-    """Build streamSettings dict for common transports (ws, grpc, httpupgrade).
-
-    Returns None if Reality params are invalid.
-    """
-    stream: dict[str, Any] = {"network": network, "security": security}
-
-    if security == "tls":
-        sni = params.get("sni", [default_host])[0]
-        if not sni:
-            sni = default_host
-        fp_from_url = params.get("fp", [None])[0] or None
-        stream["tlsSettings"] = _make_tls_settings(sni, fp_from_url)
-    elif security == "reality":
-        fp_from_url = params.get("fp", [None])[0] or None
-        reality = _make_reality_settings(
-            params.get("sni", [""])[0],
-            params.get("pbk", [""])[0],
-            fp_from_url,
-            params.get("sid", [""])[0],
-        )
-        if reality is None:
-            return None
-        stream["realitySettings"] = reality
-
-    if network == "ws":
-        stream["wsSettings"] = _make_ws_settings(
-            params.get("path", ["/"])[0],
-            params.get("host", [default_host])[0],
-        )
-    elif network == "grpc":
-        stream["grpcSettings"] = _make_grpc_settings(params.get("serviceName", [""])[0])
-    elif network == "httpupgrade":
-        stream["httpupgradeSettings"] = _make_httpupgrade_settings(
-            params.get("path", ["/"])[0],
-            params.get("host", [default_host])[0],
-        )
-
-    return stream
 
 
 # ── Protocol parsers ──────────────────────────────────────────────────
@@ -300,14 +195,14 @@ def parse_vmess_to_outbound(url: str, tag: str = "proxy") -> dict | None:
                 return None
             stream_settings["tlsSettings"] = {
                 "serverName": server_name.strip(),
-                "fingerprint": data.get("fp", "chrome"),
+                "fingerprint": xray_fingerprint(data.get("fp")),
             }
 
         # Add transport-specific settings
         if network == "ws":
             stream_settings["wsSettings"] = {
                 "path": data.get("path", "/"),
-                "headers": {"Host": data.get("host", data.get("add", ""))},
+                "host": data.get("host", data.get("add", "")),
             }
         elif network == "grpc":
             stream_settings["grpcSettings"] = {"serviceName": data.get("path", "")}
@@ -553,10 +448,10 @@ def parse_shadowsocks_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         stream_settings: dict[str, Any] = {"network": network, "security": "none"}
 
         if network == "ws":
-            stream_settings["wsSettings"] = {
-                "path": unquote(params.get("path", ["/"])[0]),
-                "headers": {"Host": unquote(params.get("host", [hostname])[0])},
-            }
+            stream_settings["wsSettings"] = _make_ws_settings(
+                params.get("path", ["/"])[0],
+                params.get("host", [hostname])[0],
+            )
 
         return {
             "tag": tag,

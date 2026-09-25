@@ -177,7 +177,7 @@ class TestVLESSConfig:
         assert out is not None
         assert out["streamSettings"]["network"] == "ws"
         assert out["streamSettings"]["wsSettings"]["path"] == "/v2ray"
-        assert out["streamSettings"]["wsSettings"]["headers"]["Host"] == "ws-host-alt.com"
+        assert out["streamSettings"]["wsSettings"]["host"] == "ws-host-alt.com"
 
     def test_grpc_transport(self):
         cfg = VLESSConfig(

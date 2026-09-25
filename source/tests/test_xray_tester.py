@@ -236,7 +236,7 @@ class TestTlsFragmentStage:
 
     def test_an_existing_udp_stage_survives_the_append(self) -> None:
         """The stage is appended, never written over a dict: one clobbers the other."""
-        from utils.protocol_parsers import apply_tls_fragment
+        from utils.xray_stream_settings import apply_tls_fragment
 
         stream: dict = {
             "network": "tcp",

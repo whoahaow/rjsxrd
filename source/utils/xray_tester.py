@@ -36,10 +36,6 @@ from requests.adapters import HTTPAdapter
 from config.settings import (
     CHAIN_SECURITY_REQUIRED,
     CHAIN_TRANSPORT_WHITELIST,
-    ENABLE_FRAGMENT,
-    FRAGMENT_INTERVAL,
-    FRAGMENT_LENGTH,
-    FRAGMENT_PACKETS,
     LOG_ERROR_SAMPLE_LENGTH,
     LOG_XRAY_ERROR_LENGTH,
     MIN_CHAIN_HOPS,
@@ -968,15 +964,9 @@ class XrayTester:
 
     @staticmethod
     def _apply_fragment(outbound: dict) -> None:
-        """Add TLS fragment to outbound streamSettings if enabled in settings."""
-        if not ENABLE_FRAGMENT:
-            return
+        """Add the TLS fragment stage to an outbound built for verification."""
         stream = outbound.setdefault("streamSettings", {})
-        stream["fragment"] = {
-            "packets": FRAGMENT_PACKETS,
-            "length": FRAGMENT_LENGTH,
-            "interval": FRAGMENT_INTERVAL,
-        }
+        protocol_parsers.apply_tls_fragment(stream)
 
     async def _tcp_ping(self, host: str, port: int, timeout: float = 1.5) -> bool:
         """Quick async TCP connect. Returns True if port is reachable."""

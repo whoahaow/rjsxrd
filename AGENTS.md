@@ -251,7 +251,7 @@ rjsxrd/
 #### `utils/protocol_parsers.py` - Standalone Protocol Parsers
 - Extracted from `utils/xray_tester.py` to reduce god-module size
 - Parsers: `parse_vless_to_outbound()`, `parse_vmess_to_outbound()`, `parse_trojan_to_outbound()`, `parse_shadowsocks_to_outbound()`, `parse_hysteria2_to_outbound()`, `parse_ssr_to_outbound()` — no hysteria v1 or TUIC parser: xray cannot load v1 and has no TUIC implementation
-- **Shared helpers**: `_clean_url_part()`, `_split_fragment_query()`, `_parse_user_host_port()`, `_make_stream_settings()`, `_make_tls_settings()`, `_make_reality_settings()`, `_make_ws_settings()`, `_make_grpc_settings()` — extracted to shorten parsers (VLESS 97→33, Trojan 103→32 lines)
+- **Shared helpers**: `_clean_url_part()`, `_split_fragment_query()`, `_parse_user_host_port()`, `_make_stream_settings()`, `_make_tls_settings()`, `_make_reality_settings()`, `_make_ws_settings()`, `_make_grpc_settings()`, `apply_tls_fragment()` — extracted to shorten parsers (VLESS 97→33, Trojan 103→32 lines). `apply_tls_fragment()` is the one the verifier calls, not a URL parser: it attaches the `finalmask.tcp` stage that makes `ENABLE_FRAGMENT` real
 - Imported by xray_tester.py (`_url_to_outbound()` dispatches to these)
 - Uses cipher sets from `security_filter.py` (single source of truth)
 
@@ -746,10 +746,10 @@ Edit `source/config/settings.py` or use env vars:
 - `VALIDATION_HTTP_TIMEOUT` - Xray HTTP test timeout (default: 5s)
 - `TEST_PING_URLS` - Test URL(s) for Xray ping (default: gstatic/generate_204, comma-separated)
 - `TLS_FINGERPRINT` - TLS fingerprint (default: chrome, options: firefox/safari/edge/randomized)
-- `ENABLE_FRAGMENT` - TLS fragment stealth (default: true)
+- `ENABLE_FRAGMENT` - TLS fragment stealth, emitted as a `finalmask.tcp` stage (default: true)
 - `FRAGMENT_PACKETS` - Fragment packet type (default: tlshello)
 - `FRAGMENT_LENGTH` - Fragment packet length range (default: 100-200)
-- `FRAGMENT_INTERVAL` - Fragment packet interval range (default: 10-20)
+- `FRAGMENT_INTERVAL` - Fragment pacing range; xray's field for it is `delay` (default: 10-20)
 - `XRAY_STARTUP_TIMEOUT` - Max seconds to wait for xray to bind port (default: 3)
 - Environment overrides: `ASYNC_CONCURRENCY_LINUX=100 FETCH_TIMEOUT=4 python3 main.py`
 

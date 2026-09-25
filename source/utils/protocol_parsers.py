@@ -76,6 +76,43 @@ def _parse_user_host_port(base_part: str) -> tuple[str, str, int] | None:
     return user, hostname, port
 
 
+def apply_tls_fragment(stream: dict[str, Any]) -> None:
+    """Attach TLS ClientHello fragmentation, in the shape xray reads.
+
+    There is no `streamSettings.fragment` key in xray: an unrecognised field is
+    skipped silently, so a config written that way verifies with an intact
+    ClientHello and the operator never learns. Fragmentation is a TCP finalmask
+    stage — `finalmask.tcp` with `{"type": "fragment", "settings": {...}}` — and
+    the pacing field xray calls `delay`, not `interval`.
+
+    Skipped for hysteria: that transport is QUIC, so a TCP-stage mask would be
+    dead weight in a config the pipeline is about to hand to xray.
+    """
+    from config.settings import (
+        ENABLE_FRAGMENT,
+        FRAGMENT_INTERVAL,
+        FRAGMENT_LENGTH,
+        FRAGMENT_PACKETS,
+    )
+
+    if not ENABLE_FRAGMENT or stream.get("network") == "hysteria":
+        return
+
+    finalmask = stream.setdefault("finalmask", {})
+    # `udp` may already carry a salamander stage from the hysteria2 parser;
+    # replacing the dict instead of appending would silently drop it.
+    finalmask.setdefault("tcp", []).append(
+        {
+            "type": "fragment",
+            "settings": {
+                "packets": FRAGMENT_PACKETS,
+                "length": FRAGMENT_LENGTH,
+                "delay": FRAGMENT_INTERVAL,
+            },
+        }
+    )
+
+
 def _make_tls_settings(sni: str, fp: str | None = None) -> dict:
     """Build tlsSettings dict."""
     from config.settings import TLS_FINGERPRINT

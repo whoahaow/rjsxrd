@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 ```
 
 Every test module declares its marker (`pytestmark`), so `-m unit` and
-`-m integration` actually select something: 1002 and 15 tests out of 1017
+`-m integration` actually select something: 1006 and 15 tests out of 1021
 (measured with `pytest --collect-only -q` under each marker). Only the two
 modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) carry `integration`. Pure logic needs
@@ -32,7 +32,7 @@ which took the 15 pure-logic tests out of `test_fetcher.py`.
 
 ## Test structure
 
-**1017 tests** in 38 files. A full run takes around 70–80 seconds on the
+**1021 tests** in 38 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
@@ -40,7 +40,7 @@ load, so measure with `pytest -q` on your own machine.
 |------|--------|---------|
 | `test_config_processor.py` | 86 | Processing pipeline, `prepare_config_content`, `_add_unique`, `write_configs_file` |
 | `test_file_utils.py` | 70 | `extract_host_port`, `deduplicate_configs`, `is_valid_vpn_config_url`, `filter_secure_configs` |
-| `test_xray_tester.py` | 45 | Parsers, signals, startup-timeout, security edge cases |
+| `test_xray_tester.py` | 49 | Parsers, signals, startup-timeout, security edge cases, TLS fragment stage |
 | `test_vpn_config.py` | 41 | VPNConfig typed dataclasses |
 | `test_security_filter.py` | 35 | `has_insecure_setting`, all protocols and edge cases, 2022 key length validation |
 | `test_logger.py` | 30 | Logging, levels, format |

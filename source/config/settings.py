@@ -351,6 +351,12 @@ TLS_FINGERPRINT = os.environ.get("TLS_FINGERPRINT", "chrome")
 
 # TLS fragment (stealth) — splits TLS Client Hello into small TCP segments
 # to evade Deep Packet Inspection. Enabled by default for better test reliability.
+# TLS ClientHello fragmentation, emitted as a `finalmask.tcp` stage of type
+# "fragment" on every outbound the verifier builds (skipped for hysteria, which
+# is QUIC). xray has no `streamSettings.fragment` key and ignores fields it does
+# not know, so the stage — not a `fragment` dict — is what makes the setting real.
+# `FRAGMENT_INTERVAL` is the pacing between fragments; xray calls that field
+# `delay`, and the name is kept because operators already set it.
 ENABLE_FRAGMENT = os.environ.get("ENABLE_FRAGMENT", "true").lower() in ("true", "1", "yes")
 FRAGMENT_PACKETS = os.environ.get("FRAGMENT_PACKETS", "tlshello")
 FRAGMENT_LENGTH = os.environ.get("FRAGMENT_LENGTH", "100-200")

@@ -80,6 +80,12 @@ omit = ["tests/*"]
 # the floor stays 53, because the four-point offset it is derived with is what moved, not
 # the rule.
 #
+# The latest measurement (Windows, `e438ca8c`, 7704 statements) prints 59.00 % offline and
+# 59.19 % for the full suite, which leaves 6.00 points above this threshold rather than the
+# four the rule describes. The floor is deliberately not raised to match: the offset is
+# derived from a Linux number that has never been observed here, and moving the gate now
+# would gate CI on the Windows margin. testing.md records both figures and this gap.
+#
 # What those 3.76 points are for. Run-to-run variance, first: the 15 network-marked
 # tests execute a different amount of code per invocation, so the full-run figure moves
 # by about a tenth of a point — testing.md states the spread, and the offline floor

@@ -7,11 +7,17 @@ project publishes, which is exactly what happened to Hysteria2 for as long as th
 filter claimed xray had removed it (it added the outbound in v26.1.13, and this
 pipeline runs `releases/latest`).
 
-The rules exist because these configs parse into an outbound and then fail when
+Most rules exist because these configs parse into an outbound and then fail when
 xray loads the resulting JSON. In batch mode one xray process carries up to
 `XRAY_BATCH_SIZE` configs, so a single unbuildable config costs every other
 config in that chunk, not just itself — which is why the check runs on raw URL
 strings before anything is built, rather than after.
+
+Two rules are not load-failure guards, and the difference is written where each
+one lives so nobody reads it as one: the VLESS user-id check filters junk that
+xray accepts and authentication then rejects, and the Hysteria2 `insecure=1` rule
+refuses a node that verifies and can therefore never connect. Both would come
+back as timeouts; refusing them says what they are instead.
 
 Extracted from `utils/xray_tester.py`, which is over the repository's module-size
 ceiling and can only hold debt; the filter is pure string inspection with two
@@ -29,6 +35,10 @@ _RE_UUID = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
     re.I,
 )
+
+# The 32-character dashless spelling. `common/uuid/uuid.go` parses it the same
+# way, so this filter must not treat it as garbage.
+_RE_UUID_DASHLESS = re.compile(r"^[0-9a-f]{32}$", re.I)
 
 # The flows xray's VLESS account builder accepts. `infra/conf/vless.go` switches
 # on "", `vless.XRV` and `vless.XRV + "-udp443"` and returns
@@ -180,26 +190,28 @@ def _xray_incompatible_reason(cfg: str) -> str:
         if method and not is_xray_cipher(method):
             return f"unknown shadowsocks cipher: {method}"
 
-    # ── UUID validation (vless, vmess) ────────────────────────────
-    # Extract UUID: vless://uuid@host
+    # ── VLESS user id: a junk filter, not a load-failure guard ──────
+    # `common/uuid.ParseString` is far more forgiving than this rule: 32-36
+    # characters of hex parse (dashed or not) and *any* string of 1-30 characters
+    # is folded into a v5 UUID by SHA1 without an error. So a mangled id does not
+    # crash xray -- it loads, connects, and fails authentication. This exists
+    # because such a node can never work and would otherwise take a test slot and
+    # a line in the results that reads like an offline server.
+    # It is deliberately not a strict RFC-4122 check: 32 dashless hex characters
+    # parse upstream, so refusing them here would drop working nodes.
     if cfg_lower.startswith("vless://"):
         try:
             after_proto = cfg[cfg.index("://") + 3 :]
             uuid_part = after_proto.split("@")[0] if "@" in after_proto else ""
-            # URL-decode then strip non-hex
-            from urllib.parse import unquote
-
-            decoded = unquote(uuid_part)
             # Check for URL-encoded garbage (%25 repeated)
             if "%25" in uuid_part or "%2540" in uuid_part:
                 return "invalid UUID (url-encoded garbage)"
-            # Check for non-UUID text
-            clean = decoded.strip().rstrip(".")
-            if not _RE_UUID.match(clean):
+            clean = unquote(uuid_part).strip().rstrip(".")
+            if not _RE_UUID.match(clean) and not _RE_UUID_DASHLESS.match(clean):
                 # Check if it looks like readable text (not a UUID at all)
                 if len(clean) > 40 or not all(c in "0123456789abcdefABCDEF-" for c in clean):
                     return "invalid UUID (not a valid format)"
-                # It's hex-like but wrong length or format
+                # Dashed-but-broken, or a short junk string
                 return "invalid UUID (bad format)"
         except (ValueError, IndexError):
             return "invalid UUID (parse error)"

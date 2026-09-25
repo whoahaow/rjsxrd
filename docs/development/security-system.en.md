@@ -14,7 +14,7 @@ The `has_insecure_setting()` function checks each config for parameters that red
 |----------|----------|---------|
 | TLS disabled | `security=none` | Traffic is not encrypted |
 | Forced insecure | `insecure=true`, `allowInsecure=true` | The certificate is not verified |
-| Legacy mode | `alterId`/`aid` > 0 | MD5 vulnerability (VMess legacy) |
+| Legacy mode | `alterId`/`aid` > 0 | The node is on the deprecated MD5 id-cycle. xray's `VMessAccount` has no `alterId` field (it reads `id`/`security`/`experiments`), so the verifier ignores the value and connects with zero alter IDs — the flag judges the deployment, not the handshake |
 
 The parser also validates: TLS requires a non-empty SNI, the h2 host must be a valid array.
 

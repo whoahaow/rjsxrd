@@ -378,6 +378,19 @@ class TestTheOlderRules:
         """
         assert _xray_incompatible_reason(url) == ""
 
+    def test_a_dashless_uuid_is_not_junk(self) -> None:
+        """`common/uuid.ParseString` accepts 32-36 characters of hex, dashes or not.
+
+        The user-id rule is a junk filter rather than a crash guard, and being
+        stricter than xray here is how the filter loses nodes xray verifies fine.
+        """
+        assert (
+            _xray_incompatible_reason(
+                "vless://1234567890abcdef1234567890abcdef@h.example.com:443?security=tls"
+            )
+            == ""
+        )
+
     def test_the_uuid_rule_is_scoped_to_vless(self) -> None:
         """vmess carries its user id in base64 JSON, so a raw check would be wrong.
 

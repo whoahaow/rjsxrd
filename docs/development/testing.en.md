@@ -94,18 +94,17 @@ start; it has a denominator of its own.
 
 | Command | Scope | Coverage |
 |---------|-------|----------|
-| `pytest --cov=fetchers --cov=utils` | two packages | **60.59 %** (5879 statements, 2128 missed, 1974 branches; the spread this scope carries is stated below) |
-| `pytest --cov=.` — the full run, as in CI | the code under `source/` | **57.08 %** (7653 statements, 3065 missed, 2530 branches; ±0.1 pt between runs) |
-| `pytest -m "not integration" --cov=.` — the offline floor | the code under `source/` | **56.89 %** (7653 statements, 3081 missed, 2530 branches) |
+| `pytest --cov=fetchers --cov=utils` | two packages — today this command measures the whole tree, see below | **59.19 %** (7704 statements, 2949 missed, 2546 branches) |
+| `pytest --cov=.` — the full run, as in CI | the code under `source/` | **59.19 %** (7704 statements, 2949 missed, 2546 branches; ±0.1 pt between runs) |
+| `pytest -m "not integration" --cov=.` — the offline floor | the code under `source/` | **59.00 %** (7704 statements, 2965 missed, 2546 branches) |
 
-The figures above are a measurement on branch `main` at commit `5dad902f`, taken with
-the commands in the table's first column and `--cov-config=../pyproject.toml`. They are a
-historical fact rather than a claim about HEAD, and the commit names the revision of the
-code that was measured: it is the last one the measured tree changed at — the one that made
-every fetch attempt a verified one and retired the TLS downgrades (the measured tree: 7653
-statements, down from 7659 at the previous anchor). The test suite is out of the
-denominator, so a change that moves the suite no longer moves the figures — a change that
-moves the code still does. The figures guard
+The figures above are a measurement on branch `main` at commit `e438ca8c` (Windows), taken
+with the commands in the table's first column and `--cov-config=../pyproject.toml`. They are
+a historical fact rather than a claim about HEAD: the measured tree was 7653 statements at
+`5dad902f` and is 7704 at `e438ca8c`, and the next measurement will move the rows again —
+the anchor only holds that the numbers belong to the revision it names. The test suite is
+out of the denominator, so a change that moves the suite no longer moves the figures — a
+change that moves the code still does. The figures guard
 (`source/tests/test_docs_figures.py`) holds the anchor, the arithmetic behind each row and
 the agreement between the two languages; it does not re-derive the numbers, which would
 take a second instrumented run inside the suite.
@@ -118,20 +117,19 @@ printing 3073 and 3079 missed statements, about 0.08 of a point apart. The offli
 deselects those same 15 tests and so does not carry the spread. The digits after the point
 are what the command printed; the tolerance says how far the claim holds.
 
-The two-package row carries a wider spread than ±0.1 point, and the record for this tree
-says so: four runs printed 2128 missed statements and 60.59 %, and a fifth printed 2214
-and 58.64 % — nearly two points lower, on the same tree, with the counters of the other
-two scopes unchanged. It is not the network tests moving. The scope is executed by tests
-that hand work to child processes and thread pools, and a run started while the machine is
-already busy sees less of that code execute. The table states one of the five; when a
-figure from this scope is going to be written down, repeat the command and quote the runs
-that agree.
+The first row no longer measures two packages. `pytest --cov=fetchers --cov=utils` with
+this configuration prints a report over the whole tree: the table lists `main.py`,
+`processors/` and `config/`, and `TOTAL` reads 7704 statements — the same counters as the
+second row. The 60.59 % on 5879 statements (`5dad902f`) stays a history of that command
+rather than a figure it reproduces today, and the paragraph about this scope's spread is
+removed together with the scope it described. The row itself stays because the figures
+guard expects exactly three rows, and this is the command the README states.
 
 `fail_under = 53` is stated for the CI scope — the code under `source/`, without the
-suite. It is not a per-scope number: the two-package row now sits above the floor, but
-two packages and the tree's code have different denominators, and the coincidence says
-nothing about coverage. That run illustrates that coverage depends on scope; it is not
-the gate.
+suite. After this measurement the offline floor sits six points above the threshold
+(59.00 − 53), not the four the number was derived with: the floor-minus-four rule no
+longer reproduces 53, so the threshold is left as it is. Raising it to 55 would gate on a
+figure taken on Windows while the Linux runner has never measured this number at all.
 
 Below the floor, CI fails. The 53 is the offline floor — the last row of the table
 above, a run without the 15 network tests and without the coverage those tests alone

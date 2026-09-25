@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 ```
 
 Every test module declares its marker (`pytestmark`), so `-m unit` and
-`-m integration` actually select something: 1006 and 15 tests out of 1021
+`-m integration` actually select something: 1021 and 15 tests out of 1036
 (measured with `pytest --collect-only -q` under each marker). Only the two
 modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) carry `integration`. Pure logic needs
@@ -32,7 +32,7 @@ which took the 15 pure-logic tests out of `test_fetcher.py`.
 
 ## Test structure
 
-**1021 tests** in 38 files. A full run takes around 70–80 seconds on the
+**1036 tests** in 38 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
@@ -53,7 +53,7 @@ load, so measure with `pytest -q` on your own machine.
 | `test_health_check.py` | 22 | Health check: DNS fallback, disk, memory, token |
 | `test_github_handler.py` | 22 | GitHub API, rate limits, 409 conflicts, batch |
 | `test_xray_batch.py` | 21 | BatchRunner, shared xray, port allocation |
-| `test_xray_compat_filter.py` | 32 | `filter_xray_compatible`: which configs reach verification at all |
+| `test_xray_compat_filter.py` | 47 | `filter_xray_compatible`: which configs reach verification at all |
 | `test_telegram_proxy_scraper.py` | 21 | Extracting MTProto and SOCKS5 from content |
 | `test_proxy_monitor.py` | 19 | Chain monitoring, stop event |
 | `test_pipeline_e2e.py` | 19 | Full offline pipeline run with every seam stubbed |

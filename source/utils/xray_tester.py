@@ -4,7 +4,7 @@ Tests VPN configs (VLESS, VMess, Trojan, Shadowsocks, SSR, Hysteria2) using Xray
 
 Supported protocols:
 - VLESS: Full support (TLS, Reality, WS, gRPC, HTTPUpgrade)
-- VMess: Full support (TLS, WS, gRPC, h2)
+- VMess: TLS, WS, gRPC (xray removed the HTTP transport)
 - Trojan: Full support (TLS, Reality, WS, gRPC, HTTPUpgrade)
 - Shadowsocks: AEAD methods only; `plugin=` is rejected (xray takes no plugin)
 - ShadowsocksR: Basic support (converted to Shadowsocks, SSR features lost)
@@ -250,7 +250,7 @@ class XrayTester:
 
         Protocol support levels:
         - VLESS: Full support (TLS, Reality, WS, gRPC, HTTPUpgrade)
-        - VMess: Full support (TLS, WS, gRPC, h2)
+        - VMess: TLS, WS, gRPC (xray removed the HTTP transport)
         - Trojan: Full support (TLS, Reality, WS, gRPC, HTTPUpgrade)
         - Shadowsocks: Full support (AEAD ciphers only, weak ciphers rejected)
         - SSR: Limited (converted to Shadowsocks, protocol/obfs features lost)

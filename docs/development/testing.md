@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # С отчётом о покрытии
 ```
 
 Маркеры проставлены на каждом тестовом модуле (`pytestmark`), поэтому `-m unit`
-и `-m integration` действительно что-то выбирают: 1006 и 15 тестов из 1021
+и `-m integration` действительно что-то выбирают: 1021 и 15 тестов из 1036
 (замер — `pytest --collect-only -q` с тем и другим маркером). Сеть трогают
 только два модуля (`test_fetcher.py`, `test_ip_checker.py`) — они помечены
 `integration`. Чистая логика сети не требует и лежит в unit-модулях, включая
@@ -31,7 +31,7 @@ pytest --cov=fetchers --cov=utils  # С отчётом о покрытии
 
 ## Структура тестов
 
-Всего **1021 тест** в 38 файлах. Полный прогон на машине разработки (Windows,
+Всего **1036 тестов** в 38 файлах. Полный прогон на машине разработки (Windows,
 Python 3.12) занимает около 70–80 секунд; время зависит от диска и загрузки
 машины, поэтому ориентируйтесь на `pytest -q` у себя.
 
@@ -52,7 +52,7 @@ Python 3.12) занимает около 70–80 секунд; время зав
 | `test_health_check.py` | 22 | Health check: DNS fallback, диск, память, токен |
 | `test_github_handler.py` | 22 | GitHub API, rate limits, 409 conflicts, batch |
 | `test_xray_batch.py` | 21 | BatchRunner, shared xray, port allocation |
-| `test_xray_compat_filter.py` | 32 | `filter_xray_compatible`: какие конфиги вообще доходят до верификации |
+| `test_xray_compat_filter.py` | 47 | `filter_xray_compatible`: какие конфиги вообще доходят до верификации |
 | `test_telegram_proxy_scraper.py` | 21 | Извлечение MTProto и SOCKS5 из контента |
 | `test_proxy_monitor.py` | 19 | Мониторинг цепочек, stop-событие |
 | `test_pipeline_e2e.py` | 19 | Прогон всего пайплайна офлайн, с заглушёнными швами |

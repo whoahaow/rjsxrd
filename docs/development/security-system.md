@@ -83,7 +83,7 @@ xchacha20-poly1305, xchacha20-ietf-poly1305, aead_xchacha20_poly1305,
 
 ### Hysteria
 
-- Hysteria2: верифицируется outbound'ом `hysteria` с `version: 2`, TLS обязателен. Узел с `insecure=1` без `pinSHA256` отклоняется до верификации: xray убрал `allowInsecure`, проверять такой конфиг нечем
+- Hysteria2: верифицируется outbound'ом `hysteria` с `version: 2`, TLS обязателен. Узел с `insecure=1` без `pinSHA256` отклоняется до верификации: xray убрал `allowInsecure`, проверять такой конфиг нечем. `pinSHA256`, который не является 32 байтами hex, отклоняется тоже — xray выкидывает из него двоеточия, декодирует как hex и падает на загрузке конфига, а не на handshake
 - Hysteria v1: не верифицируется — xray отвергает `version != 2` на загрузке конфига, поэтому `utils/xray_compat.py` отклоняет такие URL с этой причиной
 
 ### Общие проверки

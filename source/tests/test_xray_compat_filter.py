@@ -37,6 +37,15 @@ VLESS_DEAD_FLOW = (
     "vless://12345678-1234-1234-1234-123456789012@v.example.com:443?flow=xtls-rprx-direct"
 )
 
+# A publicKey and a pinned certificate hash that xray actually accepts: 32 bytes
+# as unpadded raw-url base64, and 32 bytes as hex. The fixtures in this file used
+# to carry `pbk=key` and `pinSHA256=deadbeef`, and both of those abort xray's
+# config load — a test that pinned a broken config and called it the accepted
+# shape.
+PBK = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+PIN_SHA256 = "bfb3e4b6547b43ffa7bd708e678442072debc4dcb470fc7b6bfe056e38e84c99"
+REALITY = "vless://12345678-1234-1234-1234-123456789012@h.example.com:443?security=reality"
+
 
 class TestHysteria2IsVerified:
     """Hysteria2 belongs in xray today, so the filter must not refuse it."""
@@ -108,9 +117,30 @@ class TestAHysteria2NodeNeedingNoVerification:
 
     def test_the_same_node_with_a_pin_is_testable(self) -> None:
         """A pinned hash verifies the peer; it is not `allowInsecure`."""
-        url = "hy2://token@hy2.example.com:443?insecure=1&pinSHA256=deadbeef"
+        url = f"hy2://token@hy2.example.com:443?insecure=1&pinSHA256={PIN_SHA256}"
 
         assert _xray_incompatible_reason(url) == ""
+
+    def test_a_pin_xray_cannot_decode_is_refused(self) -> None:
+        """The hash goes through `hex.DecodeString` into 32 bytes after its colons
+        are stripped, so a short value aborts the config load."""
+        assert (
+            _xray_incompatible_reason("hy2://token@h.example.com:443?pinSHA256=deadbeef")
+            == "hysteria2 pinSHA256 is not 32 bytes of hex"
+        )
+
+    def test_a_colon_separated_pin_of_the_right_length_is_accepted(self) -> None:
+        """xray strips `:` before decoding, and cert tools print the hash that way."""
+        colonated = ":".join(PIN_SHA256[i : i + 2] for i in range(0, 64, 2))
+
+        assert (
+            _xray_incompatible_reason(f"hy2://token@h.example.com:443?pinSHA256={colonated}") == ""
+        )
+
+    def test_a_non_hex_pin_is_refused(self) -> None:
+        reason = _xray_incompatible_reason(f"hy2://token@h.example.com:443?pinSHA256={'z' * 64}")
+
+        assert "pinSHA256" in reason
 
     def test_a_verified_hysteria2_node_is_unaffected(self) -> None:
         """The rule reads the parameter, not the scheme."""
@@ -165,14 +195,33 @@ class TestConfigsThatFailAtConfigLoad:
     costs the chunk — up to `XRAY_BATCH_SIZE` configs — rather than itself.
     """
 
-    @pytest.mark.parametrize(
-        "transport",
-        ["h2", "http", "quic", "mkcp", "ray", "h3"],
-    )
+    @pytest.mark.parametrize("transport", ["h2", "http", "quic", "h3"])
     def test_a_removed_transport_is_refused_whatever_the_protocol(self, transport: str) -> None:
         url = f"vless://12345678-1234-1234-1234-123456789012@h.example.com:443?security=tls&type={transport}"
 
-        assert transport in _xray_incompatible_reason(url)
+        assert f"transport removed from xray: {transport}" == _xray_incompatible_reason(url)
+
+    @pytest.mark.parametrize("transport", ["ray", "webtransport", "kcp2"])
+    def test_a_transport_name_xray_does_not_register_is_refused(self, transport: str) -> None:
+        """`default:` in `TransportProtocol.Build()` is an error, not a fallback."""
+        url = f"vless://12345678-1234-1234-1234-123456789012@h.example.com:443?type={transport}"
+
+        assert f"unknown transport protocol: {transport}" == _xray_incompatible_reason(url)
+
+    @pytest.mark.parametrize(
+        "transport",
+        ["splithttp", "xhttp", "kcp", "mkcp", "ws", "websocket", "httpupgrade", "raw"],
+    )
+    def test_every_name_the_transport_builder_resolves_is_testable(self, transport: str) -> None:
+        """The aliases are the trap here: `splithttp` is xhttp and `mkcp` still builds.
+
+        Refusing a name xray accepts is the mistake this filter has now made twice
+        (Hysteria2, and `mkcp`/`splithttp` here), so the accepted spelling of every
+        alias is pinned rather than the ones that happen to be common.
+        """
+        url = f"vless://12345678-1234-1234-1234-123456789012@h.example.com:443?security=tls&type={transport}"
+
+        assert _xray_incompatible_reason(url) == ""
 
     def test_a_removed_transport_on_vmess_is_refused_too(self) -> None:
         """The vmess parser has no h2 branch left, and nothing asks for one."""
@@ -219,6 +268,25 @@ class TestConfigsThatFailAtConfigLoad:
 
         assert _xray_incompatible_reason(url) == ""
 
+    @pytest.mark.parametrize("flow", ["", "xtls-rprx-vision", "xtls-rprx-vision-udp443"])
+    def test_the_flows_xray_switches_on_are_testable(self, flow: str) -> None:
+        """`vless.go` accepts exactly these three, and `-udp443` is one of them.
+
+        The rule this replaces was a denylist that named `xtls-rprx-vision-udp443`
+        as unsupported, so every Vision node with the udp443 variant was dropped
+        from the published files for a reason that was simply wrong.
+        """
+        url = f"vless://12345678-1234-1234-1234-123456789012@h.example.com:443?security=tls&flow={flow}"
+
+        assert _xray_incompatible_reason(url) == ""
+
+    @pytest.mark.parametrize("flow", ["xtls-rprx-direct", "xtls-rprx-splice", "auto", "tls"])
+    def test_any_other_flow_is_refused_because_xray_errors_on_it(self, flow: str) -> None:
+        """The rejected set is open-ended, which is why the rule is an allowlist."""
+        url = f"vless://12345678-1234-1234-1234-123456789012@h.example.com:443?security=tls&flow={flow}"
+
+        assert f"flow xray does not support: {flow}" == _xray_incompatible_reason(url)
+
 
 class TestTheOlderRules:
     """The rules that predate this module, now pinned one case at a time.
@@ -246,30 +314,21 @@ class TestTheOlderRules:
                 "invalid UUID (not a valid format)",
             ),
             ("vless://1234@h.example.com:443", "invalid UUID (bad format)"),
+            (f"{REALITY}&pbk=abc%20def", "reality publicKey is not 32 bytes of raw url base64"),
+            (f"{REALITY}&pbk=key", "reality publicKey is not 32 bytes of raw url base64"),
             (
-                "trojan://pass@h.example.com:443?security=reality&pbk=abc%20def",
-                "reality pbk contains space",
+                f"{REALITY}&pbk=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh+",
+                "reality publicKey is not 32 bytes of raw url base64",
             ),
+            (f"{REALITY}&sid=a", "reality shortId is not whole hex bytes, 0-16 characters"),
             (
-                "vless://12345678-1234-1234-1234-123456789012@h.example.com:443?security=reality&sid=a",
-                "reality shortId too short",
+                f"{REALITY}&sid=" + "a" * 34,
+                "reality shortId is not whole hex bytes, 0-16 characters",
             ),
-            (
-                "vless://12345678-1234-1234-1234-123456789012@h.example.com:443?security=reality&sid="
-                + "a" * 34,
-                "reality shortId too long",
-            ),
-            (
-                "vless://12345678-1234-1234-1234-123456789012@h.example.com:443?security=reality&sid=zz",
-                "reality shortId invalid chars",
-            ),
+            (f"{REALITY}&sid=abc", "reality shortId is not whole hex bytes, 0-16 characters"),
             (
                 "vless://12345678-1234-1234-1234-123456789012@h.example.com:443?flow=xtls-rprx-direct-udp443",
-                "unsupported flow: xtls-rprx-direct-udp443",
-            ),
-            (
-                "vless://12345678-1234-1234-1234-123456789012@h.example.com:443?security=reality&type=ws",
-                "reality with unsupported transport: ws",
+                "flow xray does not support: xtls-rprx-direct-udp443",
             ),
         ],
     )
@@ -278,11 +337,45 @@ class TestTheOlderRules:
 
     def test_a_complete_reality_config_is_testable(self) -> None:
         """The rules reject the broken field, not the whole protocol."""
-        url = (
-            "vless://12345678-1234-1234-1234-123456789012@h.example.com:443"
-            "?security=reality&type=raw&pbk=key&sid=ab&sni=h.example.com"
-        )
+        url = f"{REALITY}&type=raw&pbk={PBK}&sid=ab&sni=h.example.com"
 
+        assert _xray_incompatible_reason(url) == ""
+
+    @pytest.mark.parametrize(
+        ("field", "value"),
+        [
+            ("sid", ""),  # no shortId at all is the common case, and it is legal
+            ("sid", "0123456789abcdef"),  # 16 hex fills xray's 8-byte buffer
+            ("sid", "ABCDEF"),  # hex is matched case-insensitively upstream
+            ("pbk", PBK),
+        ],
+    )
+    def test_a_value_xrays_decoder_accepts_is_testable(self, field: str, value: str) -> None:
+        assert _xray_incompatible_reason(f"{REALITY}&{field}={value}&sni=h.example.com") == ""
+
+    def test_reality_over_any_transport_xray_can_name_is_testable(self) -> None:
+        """The old rule refused ws/grpc against nothing in xray.
+
+        `RealityConfig.Build()` for a client never looks at the transport, and
+        `StreamConfig` resolves the two independently, so refusing reality over ws
+        dropped configs xray loads and connects with.
+        """
+        for transport in ("ws", "grpc", "xhttp", "splithttp", "tcp", "raw", "httpupgrade"):
+            assert _xray_incompatible_reason(f"{REALITY}&pbk={PBK}&type={transport}") == ""
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "trojan://pass@h.example.com:443?pbk=key&sid=zz",
+            "ss://aes-256-gcm:p@h.example.com:443?sid=zz",
+        ],
+    )
+    def test_the_reality_bounds_apply_only_where_reality_settings_are_built(self, url: str) -> None:
+        """A `pbk=`/`sid=` outside `security=reality` is text xray never reads.
+
+        The parsers build realitySettings only for that security value, so an
+        unscoped check would refuse configs that load and connect unchanged.
+        """
         assert _xray_incompatible_reason(url) == ""
 
     def test_the_uuid_rule_is_scoped_to_vless(self) -> None:
@@ -396,7 +489,7 @@ class TestTheRulesThatStay:
         assert "UUID" in reason
 
     def test_a_flow_removed_from_xray_is_refused(self) -> None:
-        assert "unsupported flow" in _xray_incompatible_reason(VLESS_DEAD_FLOW)
+        assert "flow xray does not support" in _xray_incompatible_reason(VLESS_DEAD_FLOW)
 
     def test_a_wellformed_vless_config_is_not_refused(self) -> None:
         assert _xray_incompatible_reason(VLESS_OK) == ""

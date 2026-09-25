@@ -19,6 +19,7 @@ callers, so it is the seam that closes.
 """
 
 import re
+from urllib.parse import unquote
 
 from utils.logger import log
 from utils.security_filter import extract_ss_credentials, is_xray_cipher
@@ -29,29 +30,55 @@ _RE_UUID = re.compile(
     re.I,
 )
 
-# Flow values removed or unsupported in current xray
-_UNSUPPORTED_FLOWS = frozenset(
+# The flows xray's VLESS account builder accepts. `infra/conf/vless.go` switches
+# on "", `vless.XRV` and `vless.XRV + "-udp443"` and returns
+# `"flow" doesn't support "..." in this version` for everything else, which is a
+# config-load failure. An allowlist because the rejected set is open-ended: the
+# denylist this replaces both banned `-udp443` (accepted) and let
+# `xtls-rprx-splice-anything` through to xray.
+_VLESS_FLOWS = frozenset({"", "xtls-rprx-vision", "xtls-rprx-vision-udp443"})
+
+# Transport names `TransportProtocol.Build()` resolves at v26.3.27. `splithttp`
+# is an accepted alias of `xhttp`, and `kcp`/`mkcp` still build (they get no
+# removal error, unlike h2/h3/http/quic), so refusing either was a false refusal.
+_XRAY_TRANSPORTS = frozenset(
     {
-        "xtls-rprx-direct",
-        "xtls-rprx-direct-udp443",
-        "xtls-rprx-splice",
-        "xtls-rprx-splice-udp443",
-        "xtls-rprx-vision-udp443",
-        "xtls-rprx-origin",
+        "raw",
+        "tcp",
+        "xhttp",
+        "splithttp",
+        "kcp",
+        "mkcp",
+        "grpc",
+        "ws",
+        "websocket",
+        "httpupgrade",
+        "hysteria",
     }
 )
 
-# Valid shortId: 2-32 hex characters
-_RE_SHORTID_VALID = re.compile(r"^[0-9a-f]{2,32}$", re.I)
+# Transports xray has deleted. `transport_internet.go` returns
+# `PrintRemovedFeatureError` for these names, and any name outside
+# `_XRAY_TRANSPORTS` falls to `default:` and returns
+# `Config: unknown transport protocol:` — both are config-load failures, so in
+# batch mode one such URL costs every other config in the chunk.
+_REMOVED_TRANSPORTS = frozenset({"h2", "h3", "http", "quic"})
 
-# Supported Reality transports (xray URL type= maps to raw transport)
-_REALITY_TRANSPORTS = frozenset({"raw", "tcp", "xhttp", "grpc"})
+# Reality's client decodes `shortId` with `hex.Decode` into an 8-byte buffer
+# after rejecting `len > 16`, so: at most 16 hex characters, an even count, and
+# empty is legal (it is the common case — most panels ship no shortId).
+_RE_SHORTID = re.compile(r"^(?:[0-9a-f]{2}){0,8}$", re.I)
 
-# Transports xray has deleted. `infra/conf/transport_internet.go` returns
-# `PrintRemovedFeatureError` for these names — a config-load failure, not a
-# failed handshake — so in batch mode one such URL costs every other config in
-# the chunk. They are refused whatever protocol carries them.
-_REMOVED_TRANSPORTS = frozenset({"h2", "h3", "http", "quic", "mkcp", "ray"})
+# `publicKey` goes through `base64.RawURLEncoding.DecodeString` with the result
+# required to be exactly 32 bytes. Raw URL alphabet, unpadded: 43 characters of
+# `A-Za-z0-9_-`. A standard-alphabet key (the `+`, `/`, `=` a panel sometimes
+# emits) fails that decode and xray errors `invalid "password"` at load.
+_RE_REALITY_PBK = re.compile(r"^[A-Za-z0-9_-]{43}$")
+
+# `pinnedPeerCertSha256` is hex-decoded into 32 bytes by `transport_internet.go`
+# after every `:` is stripped from the value, so the check is: drop the colons,
+# then 64 hex characters and nothing else.
+_RE_PIN_SHA256 = re.compile(r"^[0-9a-f]{64}$", re.I)
 
 # Stream-level `security=` values xray's loader knows. Anything else is
 # `Unknown security "..."`, and `xtls` specifically is a removed feature; both
@@ -59,6 +86,19 @@ _REMOVED_TRANSPORTS = frozenset({"h2", "h3", "http", "quic", "mkcp", "ray"})
 # (an `ss://` URL may carry `security=` meaning the cipher, not the transport).
 _STREAM_SECURITY_VALUES = frozenset({"", "none", "tls", "reality"})
 _STREAM_SECURITY_SCHEMES = ("vless://", "trojan://", "vmess://")
+
+
+def _query_value(cfg: str, key: str) -> str | None:
+    """A URL query parameter, percent-decoded, or None when the URL has none.
+
+    Shared because seven rules read a parameter by hand and disagreed about the
+    tail — one split on `#`, another did not — which is how a rule ends up
+    judging text that was never part of the parameter. Parameter names are
+    matched case-insensitively because YAML converters emit both `pbk` and `PBK`;
+    the *value* keeps its original case, since a base64 key is case-sensitive.
+    """
+    match = re.search(rf"(?:\?|&){key}=([^&#]*)", cfg, re.IGNORECASE)
+    return None if match is None else unquote(match.group(1))
 
 
 def filter_xray_compatible(configs: list[str]) -> tuple[list[str], list[tuple[str, str]]]:
@@ -115,6 +155,17 @@ def _xray_incompatible_reason(cfg: str) -> str:
     ):
         return "hysteria2 needs verification off (xray removed allowInsecure)"
 
+    # A malformed pin is worse than no pin: xray strips the colons from
+    # `pinnedPeerCertSha256`, hex-decodes it and requires 32 bytes, so a short or
+    # non-hex value aborts the load. Checked on every Hysteria2 URL that carries
+    # one, including a node that verifies, because that is the shape the parser
+    # emits — and the value this module's own tests used to pin (`deadbeef`) is
+    # one xray rejects.
+    if cfg_lower.startswith(("hysteria2://", "hy2://")):
+        pin = _query_value(cfg, "pinSHA256")
+        if pin is not None and not _RE_PIN_SHA256.match(pin.replace(":", "")):
+            return "hysteria2 pinSHA256 is not 32 bytes of hex"
+
     # ── Shadowsocks cipher xray's loader does not know ────────────
     # `unknown cipher method` is a load failure, so a chunk of configs dies with
     # it. The set of methods that break is open-ended — `aes-192-gcm`, `table`,
@@ -157,64 +208,37 @@ def _xray_incompatible_reason(cfg: str) -> str:
     if "encryption=none=@" in cfg or "encryption=none=/" in cfg:
         return "garbage encryption value"
 
-    # ── Flow validation (VLESS) — prefix match against deprecated flows ──
-    if "flow=" in cfg_lower:
-        flow_match = re.search(r"[?&]flow=([^&#]+)", cfg_lower)
-        if flow_match:
-            flow_val = flow_match.group(1).lower().split("&")[0].split("#")[0]
-            from urllib.parse import unquote
+    # ── VLESS flow: three values load, everything else is a load failure ──
+    # Scoped to vless because that is the only account builder that reads a flow:
+    # trojan's rule is further down, and vmess has no flow field.
+    if cfg_lower.startswith("vless://"):
+        flow = _query_value(cfg, "flow")
+        if flow is not None and flow.lower() not in _VLESS_FLOWS:
+            return f"flow xray does not support: {flow}"
 
-            flow_val = unquote(flow_val)
-            # Check if flow starts with a deprecated prefix (catches
-            # both exact matches and malformed variants like
-            # xtls-rprx-vision-udp443-udp443-udp443)
-            for deprecated in _UNSUPPORTED_FLOWS:
-                if flow_val == deprecated or flow_val.startswith(deprecated + "-"):
-                    return f"unsupported flow: {flow_val}"
+    # ── Reality's own fields, bounded the way its client builder bounds them ──
+    # Scoped to `security=reality`: the parsers emit realitySettings only for it,
+    # so a `pbk=` or `sid=` on any other URL is text xray never reads, and
+    # refusing it would drop a config that loads fine.
+    if "security=reality" in cfg_lower:
+        pbk = _query_value(cfg, "pbk") or _query_value(cfg, "password")
+        if pbk and not _RE_REALITY_PBK.match(pbk):
+            return "reality publicKey is not 32 bytes of raw url base64"
+        sid = _query_value(cfg, "sid")
+        if sid is not None and not _RE_SHORTID.match(sid):
+            return "reality shortId is not whole hex bytes, 0-16 characters"
 
-    # ── Reality password (no spaces) — checks both password= and pbk= ─
-    if "password=" in cfg or "pbk=" in cfg:
-        for param in ("password", "pbk"):
-            pw_match = re.search(rf"(?:^|[?&]){param}=([^&#]+)", cfg)
-            if pw_match:
-                pw_val = pw_match.group(1)
-                from urllib.parse import unquote
-
-                pw_val = unquote(pw_val)
-                if " " in pw_val:
-                    return f"reality {param} contains space"
-
-    # ── Reality shortId length ────────────────────────────────────
-    if "sid=" in cfg:
-        sid_match = re.search(r"sid=([^&#]+)", cfg)
-        if sid_match:
-            sid_val = sid_match.group(1)
-            from urllib.parse import unquote
-
-            sid_val = unquote(sid_val)
-            if not _RE_SHORTID_VALID.match(sid_val):
-                if len(sid_val) < 2:
-                    return "reality shortId too short"
-                if len(sid_val) > 32:
-                    return "reality shortId too long"
-                return "reality shortId invalid chars"
-
-    # ── Reality transport compatibility ───────────────────────────
-    if "security=reality" in cfg_lower and "type=" in cfg_lower:
-        type_match = re.search(r"[?&]type=([^&#]+)", cfg_lower)
-        if type_match:
-            transport = type_match.group(1).lower().split("&")[0].split("#")[0]
-            if transport not in _REALITY_TRANSPORTS:
-                return f"reality with unsupported transport: {transport}"
-
-    # ── Transport and security names xray's loader rejects ────────
-    # Not a slow handshake: `infra/conf/transport_internet.go` fails while
-    # building the transport, which takes down the whole shared process.
-    transport_match = re.search(r"[?&]type=([^&#]+)", cfg_lower)
-    if transport_match:
-        transport = transport_match.group(1).lower().split("&")[0].split("#")[0]
-        if transport in _REMOVED_TRANSPORTS:
-            return f"transport removed from xray: {transport}"
+    # ── Transport and security names xray's loader cannot resolve ──
+    # Not a slow handshake: `TransportProtocol.Build()` returns a removed-feature
+    # error for the deleted names and `Config: unknown transport protocol:` for
+    # anything it does not list, and both abort the shared process in batch mode.
+    transport = _query_value(cfg, "type")
+    if transport:
+        name = transport.lower()
+        if name in _REMOVED_TRANSPORTS:
+            return f"transport removed from xray: {name}"
+        if name not in _XRAY_TRANSPORTS:
+            return f"unknown transport protocol: {name}"
 
     if cfg_lower.startswith(_STREAM_SECURITY_SCHEMES):
         security_match = re.search(r"[?&]security=([^&#]+)", cfg_lower)

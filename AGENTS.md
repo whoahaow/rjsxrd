@@ -124,6 +124,7 @@ rjsxrd/
 │   │   ├── test_pipeline_e2e.py
 │   │   ├── test_process_registry.py
 │   │   ├── test_progress.py
+│   │   ├── test_protocol_parsers.py
 │   │   ├── test_proxy_monitor.py
 │   │   ├── test_purge_stale_urls.py
 │   │   ├── test_scripts_import.py
@@ -571,7 +572,8 @@ Measured at `5165416c`: **975 tests** across 37 test files (full suite in ~70s).
 - `test_file_utils.py` - 70 file utils tests
 - `test_fetch_guard_scope.py` - 70 destination-guard tests (refused ranges, the allowlist, the warning-filter walk)
 - `test_fetch_posture.py` - 55 fetch-security tests (refusals, the token host set, the run conditions)
-- `test_xray_tester.py` - 45 Xray tester + security edge case tests
+- `test_xray_tester.py` - 10 tester lifecycle tests (signals, startup timeout, fragment stage)
+- `test_protocol_parsers.py` - 44 URL-to-outbound tests, split out of the tester file
 - `test_vpn_config.py` - 35 VPNConfig typed dataclass tests
 - `test_security_filter.py` - 35 security filter tests
 - `test_ip_verifier.py` - 35 IP verifier tests

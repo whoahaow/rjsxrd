@@ -1,4 +1,4 @@
-"""Two rules every reader of a base64 VPN link has to agree on.
+"""The rules every reader of a VPN link has to agree on.
 
 A share link is `scheme://payload[#remark][?params]`, and for `vmess://`, `ssr://`
 and the encoded `ss://` forms the payload is base64. Base64 decoders here are the
@@ -17,11 +17,14 @@ cipher for the allowlist, no `allowInsecure` for the security filter, and a dedu
 made from the raw blob instead of the server's address. The node is then published as
 secure, never verified, and duplicated under each spelling of its name.
 
-Cut the tail before padding, and speak both alphabets. Those are the two rules.
+The query half of a link has its own rule, and it is xray's: which spellings of a
+parameter name and value it resolves case-insensitively. Cut the tail before padding,
+speak both alphabets, and fold only what upstream folds.
 """
 
 import base64
 import binascii
+from urllib.parse import parse_qs
 
 
 def base64_payload(url: str) -> str:
@@ -64,3 +67,24 @@ def decode_base64_token(token: str) -> str | None:
         except (ValueError, TypeError, binascii.Error):
             continue
     return None
+
+
+def query_parameters(query: str) -> dict[str, list[str]]:
+    """A query string parsed with its parameter names folded to lowercase.
+
+    Three readers look at these names and disagreed about case: the compatibility
+    filter matched them with `re.IGNORECASE` from the start, on the documented reason
+    that YAML converters emit both `pbk` and `PBK`, while both outbound builders
+    indexed `parse_qs` output with literal lowercase keys. A URL spelled
+    `?Security=tls&Type=ws&SNI=…` therefore certified as encrypted by one reader and
+    built as `security: none, network: tcp` by the other two -- a node dialed over the
+    wrong wire, which comes back as a dead server rather than as a parse error.
+
+    Values are left exactly as they arrived. A publicKey and a shortId are base64 and
+    hex, where case is data; the fields whose case xray itself folds are folded by
+    `xray_stream_settings`, which cites the line that folds them.
+    """
+    folded: dict[str, list[str]] = {}
+    for name, values in parse_qs(query).items():
+        folded.setdefault(name.lower(), []).extend(values)
+    return folded

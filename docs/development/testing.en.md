@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 ```
 
 Every test module declares its marker (`pytestmark`), so `-m unit` and
-`-m integration` actually select something: 1475 and 15 tests out of 1490
+`-m integration` actually select something: 1481 and 15 tests out of 1496
 (measured with `pytest --collect-only -q` under each marker). Only the two
 modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) carry `integration`. Pure logic needs
@@ -37,7 +37,7 @@ third network call, the case fails on `seen == []` instead of passing quietly.
 
 ## Test structure
 
-**1490 tests** in 42 files. A full run takes around 70–80 seconds on the
+**1496 tests** in 42 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
@@ -49,7 +49,7 @@ load, so measure with `pytest -q` on your own machine.
 | `test_extract_host_port.py` | 35 | `extract_host_port` per URL shape: the scheme dispatch, the encoded vmess/ssr/`ss://` addresses, bracketed IPv6 |
 | `test_xray_tester.py` | 10 | Signals, startup-timeout and hang-safety, the TLS fragment stage, temp-config leak |
 | `test_protocol_parsers.py` | 44 | `_url_to_outbound()` per URL shape: dispatch, rejected ciphers and plugins, SSR passwords, no parser for v1/TUIC |
-| `test_stream_settings_builders.py` | 25 | the `streamSettings` blocks against the keys `StreamConfig` reads: transport aliases, the fingerprint with its fallback, the shared vmess builder |
+| `test_stream_settings_builders.py` | 31 | the `streamSettings` blocks against the keys `StreamConfig` reads: transport aliases, the fingerprint with its fallback, the shared vmess builder |
 | `test_vpn_config.py` | 42 | VPNConfig typed dataclasses |
 | `test_security_filter.py` | 88 | `has_insecure_setting`, all protocols and edge cases, 2022 key length validation, the xray cipher allowlist, `extract_ss_credentials` |
 | `test_logger.py` | 30 | Logging, levels, format |

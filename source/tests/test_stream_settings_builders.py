@@ -273,3 +273,93 @@ class TestVMessJSONUsesTheSharedBuilder:
 
         assert parse_vmess_to_outbound(url, "tag") is None
         assert parse_url(url) is None
+
+
+class TestSpellingCaseOfParameters:
+    """xray folds some of these names and values, and silently accepts the rest.
+
+    `TransportProtocol.Build()` is `switch strings.ToLower(string(p))` and
+    `StreamConfig.Build()` is `switch strings.ToLower(c.Security)`
+    (`transport_internet.go:999` and `:1763`, v26.3.27), so `type=WS` and `security=TLS`
+    are the same config to xray. The builders compared the URL's spelling to lowercase
+    literals instead, so a capitalized link dropped to the defaults -- `network: tcp,
+    security: none` -- and was tested over plaintext against a node speaking TLS. That
+    answer comes back as a dead server, and the security filter, which had folded the
+    string it read, had already filed the same node as encrypted.
+
+    Parameter *names* fold for the reason the compatibility filter already documents:
+    YAML converters emit both `pbk` and `PBK`. Values that are data do not: a publicKey
+    is base64 and a gRPC service name is a string the server chose.
+    """
+
+    VLESS_BASE = "vless://12345678-1234-1234-1234-123456789012@ws.example.com:443"
+    PBK = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+
+    def _both(self, url: str) -> tuple[dict[str, Any], dict[str, Any]]:
+        from utils.protocol_parsers import parse_url_to_outbound
+        from utils.vpn_config import parse_url
+
+        legacy = parse_url_to_outbound(url, "proxy")
+        typed = parse_url(url)
+        assert legacy is not None, f"legacy declined {url}"
+        typed_out = typed.to_xray_outbound() if typed is not None else None
+        assert typed_out is not None, f"typed declined {url}"
+        return legacy["streamSettings"], typed_out["streamSettings"]
+
+    def test_a_capitalized_security_and_transport_still_build_tls_over_ws(self):
+        legacy, typed = self._both(f"{self.VLESS_BASE}?security=TLS&type=WS&sni=ws.example.com")
+
+        assert legacy["security"] == "tls", legacy
+        assert legacy["network"] == "ws", legacy
+        assert legacy["wsSettings"]["path"] == "/"
+        assert typed == legacy
+
+    def test_capitalized_parameter_names_read_the_same_values(self):
+        lower_legacy, _ = self._both(
+            f"{self.VLESS_BASE}?security=tls&type=ws&path=%2Fnode"
+            "&host=cdn.example.com&sni=ws.example.com&fp=chrome"
+        )
+        upper_legacy, upper_typed = self._both(
+            f"{self.VLESS_BASE}?Security=tls&Type=ws&Path=%2Fnode"
+            "&Host=cdn.example.com&SNI=ws.example.com&FP=chrome"
+        )
+
+        assert upper_legacy == lower_legacy, (upper_legacy, lower_legacy)
+        assert upper_typed == lower_legacy
+
+    def test_reality_under_any_capitalization_still_builds_reality_settings(self):
+        for spelling in ("security=reality", "Security=REALITY", "SECURITY=Reality"):
+            legacy, typed = self._both(
+                f"{self.VLESS_BASE}?{spelling}&pbk={self.PBK}&sni=ws.example.com&type=tcp"
+            )
+
+            assert legacy["security"] == "reality", legacy
+            assert legacy["realitySettings"]["publicKey"] == self.PBK
+            assert typed == legacy
+
+    def test_a_public_key_is_case_sensitive_data_and_stays_that_way(self):
+        """Folding `pbk` would corrupt the key xray decodes as raw base64."""
+        mixed = "aaCAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+        legacy, typed = self._both(
+            f"{self.VLESS_BASE}?security=reality&PBK={mixed}&sni=ws.example.com"
+        )
+
+        assert legacy["realitySettings"]["publicKey"] == mixed
+        assert typed["realitySettings"]["publicKey"] == mixed
+
+    def test_a_grpc_service_name_survives_both_the_name_and_its_own_case(self):
+        legacy, typed = self._both(
+            f"{self.VLESS_BASE}?security=tls&type=grpc&ServiceName=MyService"
+        )
+
+        assert legacy["grpcSettings"]["serviceName"] == "MyService"
+        assert typed["grpcSettings"]["serviceName"] == "MyService"
+
+    def test_the_fingerprint_is_folded_because_xray_folds_it(self):
+        """`config.Fingerprint = strings.ToLower(c.Fingerprint)` (`:702`)."""
+        legacy, typed = self._both(
+            f"{self.VLESS_BASE}?security=tls&type=ws&sni=ws.example.com&fp=Chrome"
+        )
+
+        assert legacy["tlsSettings"]["fingerprint"] == "chrome"
+        assert typed["tlsSettings"]["fingerprint"] == "chrome"

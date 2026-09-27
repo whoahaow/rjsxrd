@@ -331,6 +331,16 @@ Used by `file_utils.py` (host/port, the dedup key, the encoded `ss://` form),
 `security_filter.py` (the vmess verdict, the SSR cipher), `protocol_parsers.py` and
 `vpn_config.py` (both outbound builders).
 
+`query_parameters(query)` is the same idea for the clear-text half of a link: it parses
+the query with the parameter **names** folded to lowercase and leaves every **value**
+alone. The compatibility filter had matched names case-insensitively from the start, on
+the documented reason that YAML converters emit both `pbk` and `PBK`, while both builders
+indexed literal lowercase keys — so `?Security=tls&Type=ws` certified as encrypted by one
+reader and built as `security: none, network: tcp` by the other two. Values keep their
+case: a publicKey is base64 and a gRPC service name is chosen by the server. The fields
+xray itself folds (`security`, the transport name, the fingerprint) are folded in
+`xray_stream_settings`, beside the upstream line that folds them.
+
 ## protocol_parsers.py — protocol parsers
 
 Moved out of `utils/xray_tester.py` to reduce the god-module. All six protocol parsers live here:

@@ -286,6 +286,8 @@ rjsxrd/
 
 #### `utils/url_payload.py` - Where a Base64 Payload Stops
 - `base64_payload(url)` - the URL up to its first `#` or `?`, whichever comes first
+- `query_parameters(query)` - `parse_qs` with the parameter **names** folded, values untouched
+- `decode_base64_token(token)` - one token, urlsafe alphabet tried first
 - Used by every decoder of the base64 forms (`vmess://`, `ssr://`, the encoded `ss://`): `file_utils` (host/port, dedup key), `security_filter` (the vmess verdict, the SSR cipher), `protocol_parsers` and `vpn_config` (both outbound builders)
 - Not for `vless://`/`trojan://`: there the `?` introduces the parameters that *are* the configuration. Only the base64 forms may be cut, because neither `#` nor `?` is in a base64 alphabet
 - **Why it exists:** the decoders are the lenient kind — `b64decode` discards characters outside its alphabet instead of raising. A node name appended as `#remark` was therefore folded into the payload before the padding was computed, and the corrupted decode cost five different answers for one node: no host for the SNI whitelist, no outbound for the verifier, no cipher for the allowlist, no `allowInsecure` for the security filter, and a dedup key made from the raw blob. Which nodes broke depended on the length of the leftover characters, so it looked intermittent
@@ -773,7 +775,7 @@ Configs pass through these filters in order before reaching Xray:
    - Hysteria2 with `insecure=1` and no `pinSHA256` — xray removed `allowInsecure`, so such a node has no config shape
    - Hysteria2 with a `pinSHA256` that is not 32 bytes of hex — the TLS builder strips colons, hex-decodes and requires exactly 32 bytes, so a short hash aborts the load
    - A `type=` xray's transport builder cannot resolve: `h2`, `h3`, `http`, `quic` return a removal error and any other unregistered spelling returns `unknown transport protocol`. `splithttp` is an accepted alias of `xhttp`, and `kcp`/`mkcp` still build, so all four are testable
-   - An unknown stream `security=` on vless/trojan/vmess — only `tls`, `reality`, `none` load. Scoped to those schemes because `security=` on an `ss://` URL names the cipher
+   - An unknown stream `security=` on vless/trojan/vmess — only `tls`, `reality`, `none` load. Scoped to those schemes because `security=` on an `ss://` URL names the cipher. Parameter names are folded to lowercase by every reader (`query_parameters`), matching this rule's own case-insensitive matching, and `security`/`type`/`fp` values are folded where xray folds them
    - A non-empty `flow=` on a trojan URL — `trojan.go` returns a removed-feature error for any flow
    - A `flow=` on VLESS other than `xtls-rprx-vision` or its `-udp443` variant — `vless.go` switches on those and errors on the rest, which is why `xtls-rprx-direct*` and `xtls-rprx-splice*` are refused while `-udp443` is not
    - A Shadowsocks/SSR cipher outside `SS_XRAY_CIPHERS` — `cipherFromString` returns

@@ -17,10 +17,10 @@ import base64
 import json
 from dataclasses import dataclass
 from typing import Any
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import unquote, urlparse
 
 from utils.security_filter import is_xray_cipher
-from utils.url_payload import base64_payload
+from utils.url_payload import base64_payload, query_parameters
 from utils.xray_helpers import xray_fingerprint
 from utils.xray_stream_settings import (
     _WS_NAMES,
@@ -288,9 +288,15 @@ def _parse_vless(url: str) -> VLESSConfig | None:
     # VLESS requires uuid@host:port format — reject if no @
     if "@" not in parsed.netloc:
         return None
-    params = parse_qs(parsed.query)
+    params = query_parameters(parsed.query)
     uuid = parsed.netloc.split("@")[0]
 
+    # xray folds the spelling of both fields before matching it
+    # (`StreamConfig.Build`: `switch strings.ToLower(c.Security)`,
+    # `TransportProtocol.Build`: `switch strings.ToLower(string(p))`), so the
+    # comparison here has to fold too -- `security=TLS` was otherwise read as no
+    # encryption at all and the node was dialled in plaintext.
+    security = params.get("security", [""])[0].lower()
     return VLESSConfig(
         host=parsed.hostname,
         port=parsed.port,
@@ -298,17 +304,17 @@ def _parse_vless(url: str) -> VLESSConfig | None:
         uuid=uuid,
         flow=params.get("flow", [""])[0],
         encryption=params.get("encryption", ["none"])[0],
-        tls=params.get("security", [""])[0] in ("tls", "reality"),
+        tls=security in ("tls", "reality"),
         sni=params.get("sni", [""])[0],
-        reality=params.get("security", [""])[0] == "reality",
+        reality=security == "reality",
         public_key=params.get("pbk", [""])[0],
         short_id=params.get("sid", [""])[0],
         fingerprint=params.get("fp", [""])[0],
         mode=params.get("mode", [""])[0],
-        transport=params.get("type", ["tcp"])[0],
+        transport=params.get("type", ["tcp"])[0].lower(),
         ws_path=params.get("path", [""])[0],
         ws_host=params.get("host", [""])[0],
-        grpc_service_name=params.get("serviceName", [""])[0],
+        grpc_service_name=params.get("servicename", [""])[0],
     )
 
 
@@ -360,27 +366,28 @@ def _parse_trojan(url: str) -> TrojanConfig | None:
     parsed = urlparse(url)
     if not parsed.hostname or not parsed.port:
         return None
-    params = parse_qs(parsed.query)
+    params = query_parameters(parsed.query)
     password = (parsed.username or parsed.password or "").split("@")[0] if parsed.username else ""
     if "@" in parsed.netloc:
         password = parsed.netloc.split("@")[0]
 
+    security = params.get("security", [""])[0].lower()  # folded, as upstream folds it
     return TrojanConfig(
         host=parsed.hostname,
         port=parsed.port,
         remark=parsed.fragment or "",
         password=password,
-        tls=params.get("security", [""])[0] in ("tls", "reality"),
+        tls=security in ("tls", "reality"),
         sni=params.get("sni", [""])[0],
         flow=params.get("flow", [""])[0],
-        reality=params.get("security", [""])[0] == "reality",
+        reality=security == "reality",
         public_key=params.get("pbk", [""])[0],
         # shortId is how a reality server routes the handshake: dropping it makes
         # the node reject us, so the test reported a working node as dead.
         short_id=params.get("sid", [""])[0],
         fingerprint=params.get("fp", [""])[0],
         mode=params.get("mode", [""])[0],
-        transport=params.get("type", ["tcp"])[0],
+        transport=params.get("type", ["tcp"])[0].lower(),
         ws_path=params.get("path", [""])[0],
         ws_host=params.get("host", [""])[0],
     )
@@ -438,7 +445,7 @@ def _parse_hysteria2(url: str) -> Hysteria2Config | None:
     parsed = urlparse(url)
     if not parsed.hostname or not parsed.port:
         return None
-    params = {k.lower(): v for k, v in parse_qs(parsed.query).items()}
+    params = query_parameters(parsed.query)
 
     def param(name: str, default: str = "") -> str:
         return params.get(name, [default])[0]

@@ -98,21 +98,35 @@ class TestGitHubHandlerInit:
         assert handler.repo is not None
 
     def test_defaults_to_the_real_client_without_calling_it(self):
-        """The default client is the PyGithub one, and building it stays offline.
+        """The default client is the PyGithub one, and building it opens no connection.
 
-        `GitHubHandler.__init__` runs `get_repo()` immediately, which is the first
-        request the library makes: unpatched, this test reached api.github.com and
-        failed on a read timeout rather than on anything the code did wrong. The
-        suite is offline by contract, so the seam is stubbed here — and the
-        assertion names the concrete class, because `_GitHubClient` is also the
-        type of the fake this file passes in everywhere else.
+        `GitHubHandler.__init__` resolves the repository *and* reads the rate limit,
+        and both are live requests. Stubbing only the first left one DNS lookup for
+        api.github.com inside this test -- measured, not assumed -- which is how a
+        `unit` run quietly acquires the network dependency the suite is meant to be
+        free of. So name resolution is refused for the duration of the case: if the
+        constructor ever grows another call, it fails here instead of reaching GitHub
+        and passing.
         """
-        with patch("utils.github_handler._PyGithubClient.get_repo", return_value=None) as get_repo:
+        seen = []
+
+        def refuse_resolution(host, *args, **kwargs):
+            seen.append(str(host))
+            raise OSError("the unit suite does not resolve names")
+
+        with (
+            patch("utils.github_handler._PyGithubClient.get_repo", return_value=None),
+            patch(
+                "utils.github_handler._PyGithubClient.get_rate_limiting",
+                return_value=(None, None),
+            ),
+            patch("socket.getaddrinfo", side_effect=refuse_resolution),
+        ):
             handler = GitHubHandler()
 
         assert isinstance(handler._client, _PyGithubClient)
         assert handler.repo is None
-        assert get_repo.called
+        assert seen == [], f"the default client resolved {seen} while being constructed"
 
     def test_handles_repo_not_found(self):
         fake = FakeGitHubClient()

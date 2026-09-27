@@ -29,9 +29,11 @@ modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) carry `integration`. Pure logic needs
 no network and lives in the unit modules, including `test_fetcher_unit.py`,
 which took the 15 pure-logic tests out of `test_fetcher.py`.
-`GitHubHandler()` calls the API inside its constructor, so the default-client test
-patches `get_repo` — otherwise the unit run depends on api.github.com and fails on a
-read timeout instead of checking the code.
+`GitHubHandler()` calls the API inside its constructor — both the repository and the
+rate limit — so the default-client test stubs both and refuses `socket.getaddrinfo` for
+the duration of the case. Stubbing one of the two left a single DNS lookup for
+api.github.com in a `unit` run, measured rather than assumed. If the constructor grows a
+third network call, the case fails on `seen == []` instead of passing quietly.
 
 ## Test structure
 

@@ -20,6 +20,34 @@ from urllib.parse import unquote
 
 from utils.xray_helpers import xray_fingerprint
 
+# The transport name pairs `TransportProtocol.Build()` resolves to the same
+# protocol: "ws"/"websocket" and "xhttp"/"splithttp" are aliases upstream, so both
+# spellings have to reach the same settings block. Emitting the URL's own spelling
+# is fine -- xray normalizes it -- but dispatching on it is what decides whether the
+# path and host get sent at all.
+_WS_NAMES = frozenset({"ws", "websocket"})
+_XHTTP_NAMES = frozenset({"xhttp", "splithttp"})
+
+# The modes `SplitHTTPConfig.Build()` accepts besides the empty default.
+_XHTTP_MODES = frozenset({"auto", "stream-up", "stream-one", "packet-up"})
+
+# The vmess JSON writes its transport security four ways in the wild: the strings
+# "tls"/"none", a bare JSON boolean, and — since Xray added it — "reality".
+# `StreamConfig` matches `security` against a *string*, so a `true` reaching the
+# JSON comes back as `Unknown security "true"` and the config never loads.
+_TLS_ON = frozenset({"tls", "1", "true", "yes", "on"})
+_TLS_OFF = frozenset({"", "none", "off", "0", "false", "no"})
+
+
+def vmess_security(raw: object) -> str:
+    """The `security` spelling xray reads, from a vmess object's `tls` field."""
+    value = str(raw if raw is not None else "").strip().lower()
+    if value in _TLS_OFF:
+        return "none"
+    if value in _TLS_ON:
+        return "tls"
+    return value
+
 
 def apply_tls_fragment(stream: dict[str, Any]) -> None:
     """Attach TLS ClientHello fragmentation, in the shape xray reads.
@@ -98,9 +126,13 @@ def _make_httpupgrade_settings(path: str, host: str) -> dict:
 
 
 def _make_xhttp_settings(path: str, host: str, mode: str) -> dict:
-    """Build xhttpSettings dict. `network: splithttp` and `xhttp` share it."""
+    """Build xhttpSettings dict. `network: splithttp` and `xhttp` share it.
+
+    Only the modes `SplitHTTPConfig.Build()` accepts are emitted; an unknown one is
+    `unsupported mode` there, and omitting the field makes xray default to `auto`.
+    """
     settings: dict[str, Any] = {"path": unquote(path), "host": unquote(host)}
-    if mode in ("auto", "stream-up", "stream-one", "packet-up"):
+    if mode in _XHTTP_MODES:
         settings["mode"] = mode
     return settings
 
@@ -132,12 +164,12 @@ def _make_stream_settings(
             return None
         stream["realitySettings"] = reality
 
-    if network == "ws":
+    if network in _WS_NAMES:
         stream["wsSettings"] = _make_ws_settings(
             params.get("path", ["/"])[0],
             params.get("host", [default_host])[0],
         )
-    elif network in ("xhttp", "splithttp"):
+    elif network in _XHTTP_NAMES:
         stream["xhttpSettings"] = _make_xhttp_settings(
             params.get("path", ["/"])[0],
             params.get("host", [default_host])[0],

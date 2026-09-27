@@ -170,7 +170,7 @@ Concurrent testing of a batch of configs.
 | Protocol | Method (xray_tester) | Parser capabilities |
 |----------|---------------------|---------------------|
 | VLESS | `_parse_vless_to_outbound()` | TLS, Reality, WS, gRPC, HTTPUpgrade |
-| VMess | `_parse_vmess_to_outbound()` | TLS, WS, gRPC, h2 |
+| VMess | `_parse_vmess_to_outbound()` | TLS, WS, gRPC, httpupgrade, xhttp (h2 removed from xray; reality declined) |
 | Trojan | `_parse_trojan_to_outbound()` | TLS, Reality, WS, gRPC, HTTPUpgrade |
 | Shadowsocks | `_parse_shadowsocks_to_outbound()` | AEAD only |
 | SSR | `_parse_ssr_to_outbound()` | Conversion → Shadowsocks |
@@ -268,7 +268,7 @@ Moved out of `utils/xray_tester.py` to reduce the god-module. All six protocol p
 
 - `parse_vless_to_outbound()` — TLS, Reality, WS, gRPC, HTTPUpgrade (97→33 lines, uses shared helpers)
 - `parse_trojan_to_outbound()` — TLS, Reality, WS, gRPC, HTTPUpgrade (103→32 lines, uses shared helpers)
-- `parse_vmess_to_outbound()` — TLS, WS, gRPC (93 lines, base64 JSON); no h2 branch, xray deleted that transport
+- `parse_vmess_to_outbound()` — TLS, WS, gRPC, httpupgrade, xhttp through the shared builder; a boolean `"tls": true` from an older export is normalised to `"tls"`; no h2 branch, xray deleted that transport
 - `parse_shadowsocks_to_outbound()` — only the ciphers in `SS_XRAY_CIPHERS`, emitted lowercased
 - `parse_ssr_to_outbound()` — conversion → Shadowsocks (uses `_clean_url_part`), same cipher allowlist
 - `parse_hysteria2_to_outbound()` — the outbound xray documents: `protocol: "hysteria"`, `version: 2`, TLS, `finalmask.udp` for salamander obfuscation
@@ -295,6 +295,8 @@ v26.3.27). `utils/vpn_config.py` builds the same blocks on the typed path, and
 - `_make_stream_settings(network, security, params, host)` — the whole block: tls or reality plus the transport settings
 - `_make_tls_settings()`, `_make_reality_settings()`, `_make_ws_settings()`, `_make_grpc_settings()`, `_make_httpupgrade_settings()`, `_make_xhttp_settings()` — the section builders
 - `apply_tls_fragment(stream)` — the `finalmask.tcp` stage that makes `ENABLE_FRAGMENT` real; the verifier calls it, not a URL parser
+- `_WS_NAMES` / `_XHTTP_NAMES` — the transport pairs `TransportProtocol.Build()` resolves to one protocol; dispatching on the literal `"ws"` left `type=websocket` with no settings block, so its path and host never reached the handshake
+- `vmess_security(raw)` — reads a vmess object's `tls` field, which arrives as `"tls"`, `"none"`, a bare JSON `true`, or `"reality"`. `StreamConfig` matches `security` as a string, so a `true` reaching the outbound was `Unknown security "true"` — a load failure, not a failed connection
 
 Two shapes are deliberate. `wsSettings`, `httpupgradeSettings` and `xhttpSettings`
 carry `host` rather than a `headers` map: xray honors a host hidden in `headers`

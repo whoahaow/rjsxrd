@@ -129,11 +129,13 @@ than lost. Whatever a handler returns goes through one IPv6 normalisation —
 `[2001:db8::1]` is what the URL says, `2001:db8::1` is what `ipaddress.ip_address()`
 and the TCP ping accept, and the CIDR whitelist check calls exactly that.
 
-Known gap: a URL with no port (`ss://method:pw@host`, `trojan://pw@host`) returns
-`None` here, while the verifier's parser fills in `443`. Such a node is tested and
-published, but never reaches the bypass files. Closing the gap means choosing between
-guessing the port in the extractor and making the parsers refuse a portless URL, and
-no decision has been made.
+Known gap, and it is `ss://`-specific: a URL with no port
+(`ss://method:pw@host`) returns `None` here while `parse_shadowsocks_to_outbound()`
+fills in `443` for the same string, so such a node is tested and published but never
+reaches the bypass files. A portless `trojan://` does not have this problem — probed,
+`parse_trojan_to_outbound()` returns `None` too, so the node is simply never verified.
+Closing the ss gap means choosing between guessing the port in the extractor and making
+the parser refuse a portless URL, and no decision has been made.
 
 ### `deduplicate_configs(configs) -> list`
 

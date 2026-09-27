@@ -42,6 +42,7 @@ def _decode_if_base64(content: str) -> str:
                 "ss://",
                 "ssr://",
                 "hysteria://",
+                "hysteria2://",
                 "hy2://",
                 "tuic://",
             ]

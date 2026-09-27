@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 ```
 
 Every test module declares its marker (`pytestmark`), so `-m unit` and
-`-m integration` actually select something: 1492 and 15 tests out of 1507
+`-m integration` actually select something: 1501 and 15 tests out of 1516
 (measured with `pytest --collect-only -q` under each marker). Only the two
 modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) carry `integration`. Pure logic needs
@@ -37,13 +37,14 @@ third network call, the case fails on `seen == []` instead of passing quietly.
 
 ## Test structure
 
-**1507 tests** in 42 files. A full run takes around 70–80 seconds on the
+**1516 tests** in 43 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
 | File | Tests | Scope |
 |------|--------|---------|
 | `test_config_processor.py` | 86 | Processing pipeline, `prepare_config_content`, `_add_unique`, `write_configs_file` |
+| `test_content_sniffing.py` | 9 | `try_decode_base64_content` and `_decode_if_base64` against SUPPORTED_PROTOCOLS: a scheme missing from the list leaves a whole subscription undecoded |
 | `test_file_utils.py` | 79 | `deduplicate_configs`, `is_valid_vpn_config_url`, `filter_secure_configs`, the SNI/CIDR filter's chunking |
 | `test_remark_invariance.py` | 273 | a `#name` remark changes no reader's verdict: host/port, both outbound builders, the security verdict, the dedup key, the compat filter |
 | `test_extract_host_port.py` | 35 | `extract_host_port` per URL shape: the scheme dispatch, the encoded vmess/ssr/`ss://` addresses, bracketed IPv6 |

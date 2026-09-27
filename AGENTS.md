@@ -409,7 +409,7 @@ rjsxrd/
 ### ShadowsocksR
 - Parse SSR format, check encryption method
 - **Converted to basic Shadowsocks** (protocol/obfs features lost; no warning is logged)
-- Same cipher allowlist as Shadowsocks, reached through `extract_ss_credentials()`. `aes-256-cfb` is what ssserver defaulted to, so most SSR nodes are refused verification for that reason alone
+- Same cipher allowlist as Shadowsocks, reached through `extract_ss_credentials()`. The payload is urlsafe base64, so it is decoded by `decode_base64_token()` — reading it with the standard alphabet drops `-` and `_` instead of failing, and 90 of 600 generated payloads lost their cipher verdict that way, every one of them hiding `aes-256-cfb`. `aes-256-cfb` is what ssserver defaulted to, so most SSR nodes are refused verification for that reason alone
 - Empty passwords REJECTED
 
 ### Hysteria2
@@ -609,7 +609,7 @@ correct a count here without correcting the guard's file too.
 - `test_protocol_parsers.py` - 44 URL-to-outbound tests, split out of the tester file
 - `test_stream_settings_builders.py` - 25 `streamSettings` tests, split out of the parsers file: xray's own key names, the transport aliases, the fingerprint fallback, the shared vmess builder
 - `test_vpn_config.py` - 35 VPNConfig typed dataclass tests
-- `test_security_filter.py` - 84 security filter tests (all protocols and edge cases, 2022 key length validation, the xray cipher allowlist, `extract_ss_credentials` across all four encodings)
+- `test_security_filter.py` - 88 security filter tests (all protocols and edge cases, 2022 key length validation, the xray cipher allowlist, `extract_ss_credentials` across all four encodings)
 - `test_ip_verifier.py` - 35 IP verifier tests
 - `test_logger.py` - 30 logger tests
 - `test_yaml_converter.py` - 28 YAML converter tests

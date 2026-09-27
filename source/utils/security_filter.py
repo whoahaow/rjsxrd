@@ -107,8 +107,11 @@ def extract_ss_credentials(config_line: str) -> tuple[str, str] | None:
     the base64 credentials of `ss://b64(method:password)@host`, the whole config inside
     one token as `ss://b64(method:password@host:port)`, and the `ssr://` payload -- so
     every consumer that judges a cipher reads the same decode instead of re-deriving it
-    and disagreeing. Returns None when the line is not an SS/SSR URL or cannot be
-    decoded: that means "no verdict here", not "insecure".
+    and disagreeing. Both base64 spellings are read through `decode_base64_token`,
+    because an SSR payload is urlsafe and reading it with the standard alphabet drops
+    two characters per affected byte instead of failing. Returns None when the line is
+    not an SS/SSR URL or cannot be decoded: that means "no verdict here", not
+    "insecure".
 
     The third form is the one a cipher allowlist must not miss. Its address sits inside
     the token, so the URL carries no `@` and neither clear-text branch applies; reading
@@ -141,11 +144,13 @@ def extract_ss_credentials(config_line: str) -> tuple[str, str] | None:
             return method.strip().lower(), password
 
         if lower.startswith("ssr://"):
-            payload = base64_payload(config_line)
-            padding = len(payload) % 4
-            decoded = base64.b64decode(
-                payload + "=" * (4 - padding) if padding else payload
-            ).decode("utf-8")
+            # The payload is urlsafe base64, and `b64decode` of the standard alphabet
+            # does not reject `-` and `_` -- it drops them. Every field then sits
+            # somewhere else in the shifted window, the six parts are no longer the
+            # six fields, and the answer came back as no answer at all.
+            decoded = decode_base64_token(base64_payload(config_line))
+            if decoded is None:
+                return None
             parts = decoded.split(":")
             if len(parts) < 6:
                 return None

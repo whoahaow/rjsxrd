@@ -298,7 +298,7 @@ Split out of `protocol_parsers.py` when that file passed the module-size ceiling
 Pure builders: no URL parsing, no protocol knowledge, one job — emit keys xray's
 `StreamConfig` reads (checked against `infra/conf/transport_internet.go` at
 v26.3.27). `utils/vpn_config.py` builds the same blocks on the typed path, and
-`test_protocol_parsers.py` asserts the two agree key for key.
+`test_stream_settings_builders.py` asserts the two agree key for key.
 
 - `_make_stream_settings(network, security, params, host)` — the whole block: tls or reality plus the transport settings
 - `_make_tls_settings()`, `_make_reality_settings()`, `_make_ws_settings()`, `_make_grpc_settings()`, `_make_httpupgrade_settings()`, `_make_xhttp_settings()` — the section builders

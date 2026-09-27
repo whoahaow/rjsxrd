@@ -12,6 +12,7 @@ import pytest
 from utils.github_handler import (
     GitHubHandler,
     _GitHubClient,
+    _PyGithubClient,
 )
 
 pytestmark = pytest.mark.unit
@@ -96,9 +97,22 @@ class TestGitHubHandlerInit:
         assert handler._client is fake
         assert handler.repo is not None
 
-    def test_defaults_to_pygithub_client(self):
-        handler = GitHubHandler()
-        assert isinstance(handler._client, _GitHubClient)
+    def test_defaults_to_the_real_client_without_calling_it(self):
+        """The default client is the PyGithub one, and building it stays offline.
+
+        `GitHubHandler.__init__` runs `get_repo()` immediately, which is the first
+        request the library makes: unpatched, this test reached api.github.com and
+        failed on a read timeout rather than on anything the code did wrong. The
+        suite is offline by contract, so the seam is stubbed here — and the
+        assertion names the concrete class, because `_GitHubClient` is also the
+        type of the fake this file passes in everywhere else.
+        """
+        with patch("utils.github_handler._PyGithubClient.get_repo", return_value=None) as get_repo:
+            handler = GitHubHandler()
+
+        assert isinstance(handler._client, _PyGithubClient)
+        assert handler.repo is None
+        assert get_repo.called
 
     def test_handles_repo_not_found(self):
         fake = FakeGitHubClient()

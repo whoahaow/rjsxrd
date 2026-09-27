@@ -597,8 +597,13 @@ def parse_ssr_to_outbound(url: str, tag: str = "proxy") -> dict | None:
             return None
 
         # Only the method has an xray equivalent: SSR's protocol and obfs layers
-        # are dropped, the outbound built below is plain Shadowsocks.
-        method = parts[3]
+        # are dropped, the outbound built below is plain Shadowsocks. Lowercased
+        # because the allowlist test folds case while xray's own lookup of the 2022
+        # methods in `shadowaead_2022.List` does not -- an uppercase spelling passes
+        # `is_xray_cipher()` and then fails the config load, which in batch mode takes
+        # the rest of its chunk with it. The `ss://` parser already folded; this is the
+        # same cipher arriving in two cases from two paths.
+        method = parts[3].strip().lower()
 
         # The password is base64 with the padding usually stripped, so it is
         # re-padded before decoding. The re-padding cannot depend on the branch

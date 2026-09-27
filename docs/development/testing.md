@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # С отчётом о покрытии
 ```
 
 Маркеры проставлены на каждом тестовом модуле (`pytestmark`), поэтому `-m unit`
-и `-m integration` действительно что-то выбирают: 1491 и 15 тестов из 1506
+и `-m integration` действительно что-то выбирают: 1492 и 15 тестов из 1507
 (замер — `pytest --collect-only -q` с тем и другим маркером). Сеть трогают
 только два модуля (`test_fetcher.py`, `test_ip_checker.py`) — они помечены
 `integration`. Чистая логика сети не требует и лежит в unit-модулях, включая
@@ -36,7 +36,7 @@ api.github.com, и это измерено, а не предполагается
 
 ## Структура тестов
 
-Всего **1506 тестов** в 42 файлах. Полный прогон на машине разработки (Windows,
+Всего **1507 тестов** в 42 файлах. Полный прогон на машине разработки (Windows,
 Python 3.12) занимает около 70–80 секунд; время зависит от диска и загрузки
 машины, поэтому ориентируйтесь на `pytest -q` у себя.
 
@@ -47,7 +47,7 @@ Python 3.12) занимает около 70–80 секунд; время зав
 | `test_remark_invariance.py` | 273 | ремарк `#name` не меняет вердикт ни одного читателя: host/port, оба строителя outbound, вердикт безопасности, ключ дедупликации, compat-фильтр |
 | `test_extract_host_port.py` | 35 | `extract_host_port` по каждой форме URL: dispatch по схеме, кодированные vmess/ssr/`ss://`-адреса, IPv6 в скобках |
 | `test_xray_tester.py` | 10 | Сигналы, startup-timeout и hang-safety, TLS fragment stage, утечка temp-конфига |
-| `test_protocol_parsers.py` | 44 | `_url_to_outbound()` по каждой форме URL: dispatch, отклонённые шифры и плагины, SSR-пароли, отсутствие парсера у v1/TUIC |
+| `test_protocol_parsers.py` | 45 | `_url_to_outbound()` по каждой форме URL: dispatch, отклонённые шифры и плагины, SSR-пароли, отсутствие парсера у v1/TUIC |
 | `test_stream_settings_builders.py` | 31 | блоки `streamSettings` против ключей, которые читает `StreamConfig`: алиасы транспортов, fingerprint с fallback, общий builder для vmess |
 | `test_vpn_config.py` | 42 | VPNConfig typed dataclass'ы |
 | `test_security_filter.py` | 88 | `has_insecure_setting`, все протоколы и edge-кейсы, 2022 key length validation, allowlist шифров xray, `extract_ss_credentials` |

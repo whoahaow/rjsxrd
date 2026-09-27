@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 ```
 
 Every test module declares its marker (`pytestmark`), so `-m unit` and
-`-m integration` actually select something: 1139 and 15 tests out of 1154
+`-m integration` actually select something: 1144 and 15 tests out of 1159
 (measured with `pytest --collect-only -q` under each marker). Only the two
 modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) carry `integration`. Pure logic needs
@@ -32,7 +32,7 @@ which took the 15 pure-logic tests out of `test_fetcher.py`.
 
 ## Test structure
 
-**1154 tests** in 39 files. A full run takes around 70–80 seconds on the
+**1159 tests** in 39 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
@@ -51,7 +51,7 @@ load, so measure with `pytest -q` on your own machine.
 | `test_simple_tester.py` | 25 | `extract_host_port` + `SimpleTester` (TCP ping) |
 | `test_process_registry.py` | 25 | ProcessRegistry, cleanup, callbacks |
 | `test_git_auto_cleaner.py` | 24 | Auto-cleaning of auto-commits |
-| `test_health_check.py` | 22 | Health check: DNS fallback, disk, memory, token |
+| `test_health_check.py` | 27 | Health check: DNS fallback, disk, memory, token |
 | `test_github_handler.py` | 22 | GitHub API, rate limits, 409 conflicts, batch |
 | `test_xray_batch.py` | 21 | BatchRunner, shared xray, port allocation |
 | `test_xray_compat_filter.py` | 93 | `filter_xray_compatible`: which configs reach verification; accepted and refused transport names, flows and ciphers, the pbk/sid/pinSHA256 bounds |

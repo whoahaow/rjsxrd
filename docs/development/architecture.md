@@ -53,7 +53,7 @@ main.py                          # Точка входа, CLI, оркестра�
   │   ├── resource_monitor.py    #   Мониторинг CPU/RAM/сети
   │   ├── download_xray.py       #   Установщик Xray-core
   │   ├── url_stats.py           #   Статистика URL (JSON-хранилище)
-  │   ├── health_check.py        #   Health check перед запуском
+  │   ├── health_check.py        #   Health check перед запуском + версия Xray
   │   ├── _sni_worker.py         # SNI/CIDR worker (внутренний)
   │   ├── system_specs.py        # SystemSpecs — автодетект ресурсов
   │   ├── psutil_available.py    # единый import psutil
@@ -75,7 +75,7 @@ main.py                          # Точка входа, CLI, оркестра�
   │   ├── benchmark_configs.py
   │   ├── test_telegram_proxies.py
   │   └── setup-vps.sh
-  └── tests/                     # 1154 теста в 39 файлах
+  └── tests/                     # 1159 тестов в 39 файлах
 ```
 
 ## Пайплайн обработки

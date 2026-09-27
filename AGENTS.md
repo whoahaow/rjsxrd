@@ -786,9 +786,13 @@ Configs pass through these filters in order before reaching Xray:
      or whose `sid` is not 0-16 hex in whole bytes (it decodes into an 8-byte buffer;
      an empty shortId is legal and common). Scoped to `security=reality`: a `pbk=` on
      any other URL is text xray never reads
-   - Deliberately **not** refused: Reality over any transport xray can name. The old
-     rule allowed only raw/tcp/xhttp/grpc, but the client builder never inspects the
-     transport and `StreamConfig` resolves the two apart, so it dropped working nodes
+   - Reality over a transport `StreamConfig.Build()` rejects: only `raw`/`tcp`, `xhttp`/
+     `splithttp` and `grpc` load with `security=reality`; over `ws`, `httpupgrade`,
+     `kcp`/`mkcp` or `hysteria` it returns `REALITY only supports RAW, XHTTP and gRPC for
+     now.` — a config-load failure, so one such URL would cost the whole batch chunk
+     (`transport_internet.go:1777-1780` at v26.3.27). An absent `type=` is `tcp` and loads
+   - Hysteria2 over any transport is still fine: what was removed above is the *transport*
+     allowlist for reality only, not a return to refusing hysteria2
 5. **Xray verification** — actual speed/latency testing
 
 ### Security Filtering (`has_insecure_setting()`)

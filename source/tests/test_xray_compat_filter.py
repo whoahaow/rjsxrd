@@ -353,15 +353,38 @@ class TestTheOlderRules:
     def test_a_value_xrays_decoder_accepts_is_testable(self, field: str, value: str) -> None:
         assert _xray_incompatible_reason(f"{REALITY}&{field}={value}&sni=h.example.com") == ""
 
-    def test_reality_over_any_transport_xray_can_name_is_testable(self) -> None:
-        """The old rule refused ws/grpc against nothing in xray.
+    def test_reality_over_a_transport_it_rejects_is_refused(self) -> None:
+        """`StreamConfig.Build()` inspects the resolved transport when security is reality.
 
-        `RealityConfig.Build()` for a client never looks at the transport, and
-        `StreamConfig` resolves the two independently, so refusing reality over ws
-        dropped configs xray loads and connects with.
+        `transport_internet.go:1777-1780` at v26.3.27: with `security=reality`, any
+        config whose protocol name is not `tcp`, `splithttp` or `grpc` returns
+        `REALITY only supports RAW, XHTTP and gRPC for now.` That is a config-load
+        failure, so in batch mode one such URL costs every other config sharing the
+        process. `TransportProtocol.Build()` (`:998-1006`) is what turns the URL's
+        spelling into those names, and it lowercases first -- so the accepted spellings
+        are exactly raw, tcp, xhttp, splithttp and grpc, in either case, and everything
+        else that still builds (ws, httpupgrade, kcp, hysteria) is refused here rather
+        than handed to xray.
+
+        This rule was removed on the reading that reality's *client* builder never looks
+        at the transport. That is true of `RealityConfig.Build()` and irrelevant: the
+        check is one level up, in the stream config both directions share.
         """
-        for transport in ("ws", "grpc", "xhttp", "splithttp", "tcp", "raw", "httpupgrade"):
+        for transport in ("raw", "tcp", "xhttp", "splithttp", "grpc", "TCP", "XHttp"):
             assert _xray_incompatible_reason(f"{REALITY}&pbk={PBK}&type={transport}") == ""
+
+        for transport in ("ws", "websocket", "httpupgrade", "kcp", "mkcp", "hysteria", "WS"):
+            reason = _xray_incompatible_reason(f"{REALITY}&pbk={PBK}&type={transport}")
+
+            assert "reality" in reason, f"{transport}: {reason}"
+
+    def test_a_transport_rule_that_is_not_reality_leaves_ws_alone(self) -> None:
+        """The refusal belongs to reality, not to WebSocket."""
+        assert _xray_incompatible_reason(f"{REALITY}&pbk={PBK}") == ""  # no type= means tcp
+        plain_ws = (
+            "vless://12345678-1234-1234-1234-123456789012@w.example.com:443?security=tls&type=ws"
+        )
+        assert _xray_incompatible_reason(plain_ws) == ""
 
     @pytest.mark.parametrize(
         "url",

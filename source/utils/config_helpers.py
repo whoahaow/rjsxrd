@@ -138,6 +138,7 @@ def try_decode_base64_content(content: str) -> str | None:
                 "ss://",
                 "ssr://",
                 "hysteria://",
+                "hysteria2://",
                 "hy2://",
                 "tuic://",
             ]

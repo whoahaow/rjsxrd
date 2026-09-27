@@ -107,6 +107,7 @@ rjsxrd/
 │   │   ├── test_config_processor.py
 │   │   ├── test_config_tagger.py
 │   │   ├── test_content_sniffing.py
+│   │   ├── test_content_sniffing.py
 │   │   ├── test_docs_figures.py
 │   │   ├── test_executor_cache.py
 │   │   ├── test_extract_host_port.py
@@ -643,6 +644,7 @@ correct a count here without correcting the guard's file too.
 - `test_proxy_monitor.py` - 19 proxy monitor tests
 - `test_pipeline_e2e.py` - 19 offline pipeline harness tests
 - `test_content_sniffing.py` - 9 base64 subscription-sniffing tests
+- `test_content_sniffing.py` - 9 base64 subscription-sniffing tests (every scheme in `SUPPORTED_PROTOCOLS`)
 - `test_config_tagger.py` - 18 ConfigTagger tests
 - `test_executor_cache.py` - 17 ExecutorCache tests
 - `test_managed_process.py` - 15 ManagedProcess lifecycle tests

@@ -114,8 +114,14 @@ Filters configs by whitelist files:
 1. Loads domains from `whitelist-all.txt`
 2. Loads CIDR from `cidrwhitelist.txt`
 3. Extracts host:port from each config
-4. Keeps only those whose host/ip matches the whitelist
-5. If `filter_secure=True` — additionally filters out insecure ones
+4. Keeps only those whose host **is** a listed domain or a subdomain of one — matched on
+   the label boundary. The Aho-Corasick automaton answers for substrings, and `xmail.ru`
+   contains `mail.ru` without being reachable through a whitelist that lists it
+5. Keeps those whose host is a literal IP inside the CIDR whitelist
+6. If `filter_secure=True` — additionally filters out insecure ones
+
+The check runs on the connection address, not on the `sni`/`peer` parameter the node
+will put on the wire, which is the other half of what a mobile whitelist sees.
 
 ### `extract_host_port(config_line) -> (host, port)`
 

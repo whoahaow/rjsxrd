@@ -443,13 +443,27 @@ rjsxrd/
 1. Load domains from `whitelist-all.txt` (hundreds: Avito, Yandex, Mail.ru, etc.)
 2. Load CIDR ranges from `cidrwhitelist.txt`
 3. Extract host/port from config
-4. Check against whitelist
-5. Filter non-matching configs
+4. Check against the domain whitelist on the **label boundary** — the host must be a
+   listed domain or a subdomain of one. The automaton answers for substrings, and a
+   substring is not a domain: `xmail.ru` and `mail.ru.vps.example.net` both contain
+   `mail.ru`, and a phone whose whitelist allows that domain lets neither through
+5. Check the CIDR whitelist when the host is a literal IP
+6. Filter non-matching configs
 
 An extraction failure is silent in the worst way: a config whose host cannot be read
 is not in the bypass files, but it is still in every other file, so it looks filtered
 rather than lost. `extract_host_port()` has to understand every address encoding the
 verifier understands, which is why the encoded `ss://` blob form is tested against it.
+
+What the filter checks is the **connection address**, not the SNI the node will
+actually send. A `vless://…@server.example:443?sni=www.cloudflare.com` presents
+`www.cloudflare.com` on the wire and is reachable through a whitelist that lists it, yet
+the filter judges `server.example` and can never admit it — while the reverse shape
+(`sni=some.random.host`, address whitelisted) is kept. In the committed bypass corpus 0
+of 2700 nodes had a whitelisted address domain and 1101 had a whitelisted `sni`, so the
+filter's SNI half decides nothing today. Unchanged so far: which field decides bypass
+eligibility changes what the `bypass/` files mean and how large they are, so it is a
+decision rather than a fix.
 
 **Result:**
 - `bypass/` - Secure configs (security + SNI/CIDR filtered)
@@ -601,7 +615,7 @@ snapshot for orientation: its per-file numbers are not kept in step, so do not
 correct a count here without correcting the guard's file too.
 - `test_config_processor.py` - 86 processor tests
 - `test_fetcher_unit.py` - 83 fetcher unit tests
-- `test_file_utils.py` - 59 file utils tests (dedup, URL validation, the SNI/CIDR chunking)
+- `test_file_utils.py` - 71 file utils tests (dedup, URL validation, the SNI/CIDR chunking)
 - `test_extract_host_port.py` - 20 host/port tests, split out of the file-utils file: the scheme dispatch, the encoded vmess/ssr/`ss://` addresses, bracketed IPv6
 - `test_fetch_guard_scope.py` - 70 destination-guard tests (refused ranges, the allowlist, the warning-filter walk)
 - `test_fetch_posture.py` - 55 fetch-security tests (refusals, the token host set, the run conditions)

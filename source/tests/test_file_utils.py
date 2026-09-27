@@ -659,3 +659,59 @@ class TestSniWorkerModule:
         # Should import from utils.file_utils (allowed) but not re-import itself
         assert "from utils._sni_worker import" not in source
         assert "from utils import _sni_worker" not in source
+
+
+class TestSniWhitelistMatchesOnLabelBoundaries:
+    """The whitelist holds domains, and a domain inside another name is not that name.
+
+    `find_matches_as_strings` answers for substrings, which is what makes an Aho-Corasick
+    automaton fast and what made the check wrong: `xmail.ru` contains `mail.ru`, and
+    `mail.ru.vps.example.net` begins with it, yet a phone whose whitelist allows
+    `mail.ru` lets neither through, because the SNI on the wire is the whole name. Every
+    such node was published in `bypass/` as if it were reachable by a whitelist that
+    never matches it.
+
+    Run against the real automaton rather than a mock: the mock in
+    `TestSniFilterActuallyFilters` exists to prove the right package is imported, and a
+    stubbed matcher cannot tell a boundary from a substring.
+    """
+
+    DOMAINS = ["mail.ru", "avito.ru", "00.img.avito.st"]
+
+    def _kept(self, host: str) -> bool:
+        from ahocorasick_rs import AhoCorasick
+
+        from utils._sni_worker import _filter_sni_cidr_chunk
+
+        automaton = AhoCorasick([d.lower() for d in self.DOMAINS])
+        config = f"vless://12345678-1234-1234-1234-123456789012@{host}:443?security=tls"
+
+        return _filter_sni_cidr_chunk(([config], automaton, set(), False)) == [config]
+
+    @pytest.mark.parametrize(
+        "host",
+        [
+            "mail.ru",
+            "smtp.mail.ru",
+            "a.b.mail.ru",
+            "00.img.avito.st",
+            "x.00.img.avito.st",
+            "AVITO.RU",
+        ],
+    )
+    def test_a_whitelisted_domain_or_a_subdomain_of_one_is_kept(self, host):
+        assert self._kept(host), host
+
+    @pytest.mark.parametrize(
+        "host",
+        [
+            "xmail.ru",
+            "notavito.ru",
+            "mail.ru.vps.example.net",
+            "mail.ru.example.com",
+            "avito.ru.evil.io",
+            "img.avito.st",
+        ],
+    )
+    def test_a_host_that_merely_holds_a_whitelisted_domain_is_dropped(self, host):
+        assert not self._kept(host), host

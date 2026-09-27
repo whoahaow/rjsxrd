@@ -43,9 +43,17 @@ def _filter_sni_cidr_chunk(args) -> list[str]:
             except (ValueError, ipaddress.AddressValueError):
                 ip = None
 
-            if host and automaton and automaton.find_matches_as_strings(host.lower()):
-                result.append(config)
-                continue
+            host_lower = host.lower()
+            if host and automaton:
+                # The automaton finds substrings, and a substring is not a domain:
+                # `xmail.ru` contains `mail.ru` and `mail.ru.vps.example.net` starts
+                # with it, but neither presents `mail.ru` as SNI, so a mobile whitelist
+                # that allows that domain does not allow this connection. Matching on
+                # the label boundary is what "this host is under that domain" means.
+                matches = automaton.find_matches_as_strings(host_lower)
+                if any(host_lower == m or host_lower.endswith("." + m) for m in matches):
+                    result.append(config)
+                    continue
             if ip and cidr_whitelist and ip in cidr_whitelist:
                 result.append(config)
                 continue

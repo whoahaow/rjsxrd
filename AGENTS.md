@@ -249,7 +249,7 @@ rjsxrd/
 #### `utils/security_filter.py` - Security Filtering
 - `has_insecure_setting()` - Security check for all protocols (cached via lru_cache)
 - `filter_secure_configs()` - Parallel security filtering via ProcessPoolExecutor
-- `SS_XRAY_CIPHERS`/`SS_WEAK_CIPHERS`/`SS_PLAINTEXT_CIPHERS` + `is_xray_cipher()` + `extract_ss_credentials()` - the cipher allowlist xray's loader defines, the names flagged insecure, and the one decoder every consumer reads a Shadowsocks/SSR method through (`SS_SECURE_CIPHERS` is the allowlist minus the plaintext pair)
+- `SS_XRAY_CIPHERS`/`SS_WEAK_CIPHERS`/`SS_PLAINTEXT_CIPHERS` + `is_xray_cipher()` + `extract_ss_credentials()` - the cipher allowlist xray's loader defines, the names flagged insecure, and the one decoder every consumer reads a Shadowsocks/SSR method through: all four encodings, including `ss://base64(method:password@host:port)`, whose address sits inside the token so the URL carries no `@` (`SS_SECURE_CIPHERS` is the allowlist minus the plaintext pair)
 
 #### `utils/system_specs.py` - System Auto-Detection
 - `SystemSpecs.detect()` - Detect total RAM, CPU cores, WSL, container cgroup limits
@@ -609,7 +609,7 @@ correct a count here without correcting the guard's file too.
 - `test_protocol_parsers.py` - 44 URL-to-outbound tests, split out of the tester file
 - `test_stream_settings_builders.py` - 25 `streamSettings` tests, split out of the parsers file: xray's own key names, the transport aliases, the fingerprint fallback, the shared vmess builder
 - `test_vpn_config.py` - 35 VPNConfig typed dataclass tests
-- `test_security_filter.py` - 35 security filter tests
+- `test_security_filter.py` - 84 security filter tests (all protocols and edge cases, 2022 key length validation, the xray cipher allowlist, `extract_ss_credentials` across all four encodings)
 - `test_ip_verifier.py` - 35 IP verifier tests
 - `test_logger.py` - 30 logger tests
 - `test_yaml_converter.py` - 28 YAML converter tests

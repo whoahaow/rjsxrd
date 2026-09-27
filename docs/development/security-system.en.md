@@ -69,6 +69,18 @@ sets live in `source/utils/security_filter.py` and are read through
 parsers. Both the typed parser and the legacy one lowercase the method before
 emitting it, because xray looks the 2022 names up case-sensitively.
 
+**Which spelling the cipher arrives in.** `extract_ss_credentials()` is the single
+decoder, and there are four spellings to cover: `method:password@host:port`,
+`b64(method:password)@host:port`, `b64(method:password@host:port)` — SIP003, where the
+address is inside the token and the URL carries no `@` at all — and the SSR payload.
+The third went unread until 2026-09-27, and unread is not neutral here: a URL the
+decoder cannot read gets no verdict, and no verdict is what the pipeline records as
+clean. A `none` tunnel in that form therefore landed in `all-secure.txt` and
+`ss-secure.txt` and entered the secure SNI/CIDR tier, while the verifier decoded the
+very same string into `method: none` and connected. The compatibility filter reads
+through the same decoder, so a blob carrying a cipher xray cannot load is now refused
+by name instead of being handed to the batch.
+
 ### ShadowsocksR
 
 Converted to Shadowsocks (SSR protocol and obfuscation are lost, and nothing is

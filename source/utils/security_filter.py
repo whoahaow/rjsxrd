@@ -7,7 +7,7 @@ import json
 import re
 from functools import lru_cache
 
-from utils.url_payload import base64_payload
+from utils.url_payload import base64_payload, decode_base64_token
 
 # Unified weak cipher sets (single source of truth)
 SS_WEAK_CIPHERS = {
@@ -103,31 +103,41 @@ def is_xray_cipher(method: str) -> bool:
 def extract_ss_credentials(config_line: str) -> tuple[str, str] | None:
     """The cipher method and password a Shadowsocks or SSR URL carries.
 
-    Covers the three encodings in circulation — plain `ss://method:password@host`,
-    the base64 `ss://b64(method:password)@host`, and the `ssr://` payload — so
-    every consumer that judges a cipher reads the same decode instead of
-    re-deriving it and disagreeing. Returns None when the line is not an SS/SSR
-    URL or cannot be decoded: that means "no verdict here", not "insecure".
+    Covers the four encodings in circulation -- plain `ss://method:password@host`,
+    the base64 credentials of `ss://b64(method:password)@host`, the whole config inside
+    one token as `ss://b64(method:password@host:port)`, and the `ssr://` payload -- so
+    every consumer that judges a cipher reads the same decode instead of re-deriving it
+    and disagreeing. Returns None when the line is not an SS/SSR URL or cannot be
+    decoded: that means "no verdict here", not "insecure".
+
+    The third form is the one a cipher allowlist must not miss. Its address sits inside
+    the token, so the URL carries no `@` and neither clear-text branch applies; reading
+    only those two let a `none` tunnel -- which loads in xray and encrypts nothing --
+    answer "no verdict", and no verdict is what the pipeline records as clean.
     """
     lower = config_line.lower()
     try:
         if lower.startswith("ss://"):
-            body = config_line[5:]
-            body = body.split("#")[0]
-            body = body.split("?")[0]
+            body = base64_payload(config_line)
             if ":" in body and "@" in body and body.index(":") < body.index("@"):
                 method, _, rest = body.partition(":")
                 return method.strip().lower(), rest.split("@")[0]
-            if "@" not in body:
+
+            if "@" in body:
+                decoded = decode_base64_token(body.split("@")[0])
+                if decoded is None or ":" not in decoded:
+                    return None
+                method, _, password = decoded.partition(":")
+                return method.strip().lower(), password
+
+            # No `@` in the URL at all: the address is in the token with the credentials.
+            decoded = decode_base64_token(body)
+            if decoded is None or "@" not in decoded:
                 return None
-            encoded = body.split("@")[0]
-            padding = 4 - len(encoded) % 4
-            decoded = base64.b64decode(encoded + "=" * padding if padding != 4 else encoded).decode(
-                "utf-8"
-            )
-            if ":" not in decoded:
+            credentials, _, address = decoded.rpartition("@")
+            if ":" not in credentials or ":" not in address:
                 return None
-            method, _, password = decoded.partition(":")
+            method, _, password = credentials.partition(":")
             return method.strip().lower(), password
 
         if lower.startswith("ssr://"):

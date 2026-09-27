@@ -87,6 +87,15 @@ encrypted" test that it was. The search still runs over the whole string — a `
 that follows a fragment counts — because the only mistake allowed here is letting an
 unencrypted tunnel into the secure tier, not the other way round.
 
+A `vmess://` node keeps its settings inside base64, where no parameter boundary
+applies, so the payload is cut at its first `#` or `?` before decoding
+(`utils/url_payload.py`). The decoders discard characters outside the base64 alphabet
+instead of raising, so without that cut the node's own name was decoded as part of its
+configuration — and a `vmess://` link with `allowInsecure` inside the payload and a
+remark after it read as secure. That is the one case where the parameter-boundary rule
+above is not enough: for the base64 forms the remark has to be removed before anything
+is judged.
+
 ### TUIC
 
 Not supported by Xray-core — the parser returns `None`. The `skip-cert-verify` parameter is considered insecure.

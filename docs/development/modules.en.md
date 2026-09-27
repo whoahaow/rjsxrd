@@ -276,6 +276,25 @@ Moved out of `config_processor.py`. Contains:
 
 Cached singleton via `get_specs()` — import-safe lazy init.
 
+## url_payload.py — where a base64 payload stops
+
+`base64_payload(url)` returns the URL up to its first `#` or `?`, whichever comes
+first. Only the base64 forms may be read this way — on a `vless://` or `trojan://`
+link the `?` introduces the parameters that *are* the configuration.
+
+The decoders here are the lenient kind: `b64decode` and `urlsafe_b64decode` discard
+characters outside their alphabet rather than raising, and neither `#` nor `?` is in
+that alphabet. A link carrying a node name therefore had that name folded into the
+payload before the padding was computed, and the corrupted decode cost five different
+answers for one node: no host for the SNI whitelist, no outbound for the verifier, no
+cipher for the allowlist, no `allowInsecure` for the security filter, and a dedup key
+made from the raw blob instead of the server's address. Which nodes broke depended on
+the length of the leftover characters, so the failure looked intermittent.
+
+Used by `file_utils.py` (host/port, the dedup key, the encoded `ss://` form),
+`security_filter.py` (the vmess verdict, the SSR cipher), `protocol_parsers.py` and
+`vpn_config.py` (both outbound builders).
+
 ## protocol_parsers.py — protocol parsers
 
 Moved out of `utils/xray_tester.py` to reduce the god-module. All six protocol parsers live here:

@@ -7,6 +7,8 @@ import json
 import re
 from functools import lru_cache
 
+from utils.url_payload import base64_payload
+
 # Unified weak cipher sets (single source of truth)
 SS_WEAK_CIPHERS = {
     "rc4",
@@ -129,7 +131,7 @@ def extract_ss_credentials(config_line: str) -> tuple[str, str] | None:
             return method.strip().lower(), password
 
         if lower.startswith("ssr://"):
-            payload = config_line[6:]
+            payload = base64_payload(config_line)
             padding = len(payload) % 4
             decoded = base64.b64decode(
                 payload + "=" * (4 - padding) if padding else payload
@@ -257,7 +259,7 @@ def _check_vmess_json(config_line: str, config_lower: str) -> bool:
     """Check for insecure settings in vmess base64 JSON configuration."""
     if config_lower.startswith("vmess://"):
         try:
-            payload = config_line[8:]
+            payload = base64_payload(config_line)
             rem = len(payload) % 4
             if rem:
                 payload += "=" * (4 - rem)

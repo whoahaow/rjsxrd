@@ -20,6 +20,7 @@ from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
 from utils.security_filter import is_xray_cipher
+from utils.url_payload import base64_payload
 from utils.xray_helpers import xray_fingerprint
 from utils.xray_stream_settings import (
     _WS_NAMES,
@@ -313,7 +314,7 @@ def _parse_vless(url: str) -> VLESSConfig | None:
 
 def _parse_vmess(url: str) -> VMessConfig | None:
     """Parse vmess:// from base64-encoded JSON."""
-    payload = url[8:]  # strip 'vmess://'
+    payload = base64_payload(url)
     rem = len(payload) % 4
     if rem:
         payload += "=" * (4 - rem)

@@ -106,6 +106,7 @@ rjsxrd/
 │   │   ├── conftest.py            # Pytest fixtures
 │   │   ├── test_config_processor.py
 │   │   ├── test_config_tagger.py
+│   │   ├── test_content_sniffing.py
 │   │   ├── test_docs_figures.py
 │   │   ├── test_executor_cache.py
 │   │   ├── test_extract_host_port.py
@@ -622,7 +623,7 @@ correct a count here without correcting the guard's file too.
 - `test_fetch_guard_scope.py` - 70 destination-guard tests (refused ranges, the allowlist, the warning-filter walk)
 - `test_fetch_posture.py` - 55 fetch-security tests (refusals, the token host set, the run conditions)
 - `test_xray_tester.py` - 10 tester lifecycle tests (signals, startup timeout, fragment stage)
-- `test_protocol_parsers.py` - 44 URL-to-outbound tests, split out of the tester file
+- `test_protocol_parsers.py` - 45 URL-to-outbound tests, split out of the tester file
 - `test_stream_settings_builders.py` - 25 `streamSettings` tests, split out of the parsers file: xray's own key names, the transport aliases, the fingerprint fallback, the shared vmess builder
 - `test_vpn_config.py` - 35 VPNConfig typed dataclass tests
 - `test_security_filter.py` - 88 security filter tests (all protocols and edge cases, 2022 key length validation, the xray cipher allowlist, `extract_ss_credentials` across all four encodings)
@@ -641,6 +642,7 @@ correct a count here without correcting the guard's file too.
 - `test_telegram_proxy_scraper.py` - 21 Telegram proxy scraper tests
 - `test_proxy_monitor.py` - 19 proxy monitor tests
 - `test_pipeline_e2e.py` - 19 offline pipeline harness tests
+- `test_content_sniffing.py` - 9 base64 subscription-sniffing tests
 - `test_config_tagger.py` - 18 ConfigTagger tests
 - `test_executor_cache.py` - 17 ExecutorCache tests
 - `test_managed_process.py` - 15 ManagedProcess lifecycle tests

@@ -510,6 +510,27 @@ class TestXraySecurityEdgeCases:
         result = tester._url_to_outbound(f"ssr://{payload}", "tag")
         assert result is None, "SSR with rc4-md5 should be rejected (weak cipher)"
 
+    def test_ssr_emits_the_method_in_the_case_xray_looks_it_up(self):
+        """The allowlist check folds case; the emitted value has to arrive folded too.
+
+        `is_xray_cipher()` lowercases before matching, so an uppercase spelling passes
+        it, and xray then looks the Shadowsocks 2022 names up case-sensitively in
+        `shadowaead_2022.List` -- an outbound carrying `AES-256-GCM` is
+        `unknown cipher method` at config load, which in batch mode costs the whole
+        chunk its results. The `ss://` parser already lowercases; this one did not, so
+        the same cipher spelled the same way built a loadable config on one path and an
+        unloadable one on the other.
+        """
+        import base64
+
+        from utils.protocol_parsers import parse_ssr_to_outbound
+
+        payload = base64.b64encode(b"server.com:8388:origin:AES-256-GCM:plain:password123").decode()
+        out = parse_ssr_to_outbound(f"ssr://{payload}", "tag")
+
+        assert out is not None
+        assert out["settings"]["servers"][0]["method"] == "aes-256-gcm"
+
     def test_hysteria_v1_with_insecure_flag_builds_no_outbound(self):
         """SECURITY: `insecure=1` is not a reason to build a v1 outbound.
 

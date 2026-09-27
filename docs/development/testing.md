@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # С отчётом о покрытии
 ```
 
 Маркеры проставлены на каждом тестовом модуле (`pytestmark`), поэтому `-m unit`
-и `-m integration` действительно что-то выбирают: 1466 и 15 тестов из 1481
+и `-m integration` действительно что-то выбирают: 1474 и 15 тестов из 1489
 (замер — `pytest --collect-only -q` с тем и другим маркером). Сеть трогают
 только два модуля (`test_fetcher.py`, `test_ip_checker.py`) — они помечены
 `integration`. Чистая логика сети не требует и лежит в unit-модулях, включая
@@ -36,14 +36,14 @@ api.github.com, и это измерено, а не предполагается
 
 ## Структура тестов
 
-Всего **1481 тест** в 42 файлах. Полный прогон на машине разработки (Windows,
+Всего **1489 тестов** в 42 файлах. Полный прогон на машине разработки (Windows,
 Python 3.12) занимает около 70–80 секунд; время зависит от диска и загрузки
 машины, поэтому ориентируйтесь на `pytest -q` у себя.
 
 | Файл | Тестов | Область |
 |------|--------|---------|
 | `test_config_processor.py` | 86 | Пайплайн обработки, `prepare_config_content`, `_add_unique`, `write_configs_file` |
-| `test_file_utils.py` | 71 | `deduplicate_configs`, `is_valid_vpn_config_url`, `filter_secure_configs`, чанкование SNI/CIDR-фильтра |
+| `test_file_utils.py` | 79 | `deduplicate_configs`, `is_valid_vpn_config_url`, `filter_secure_configs`, чанкование SNI/CIDR-фильтра |
 | `test_remark_invariance.py` | 273 | ремарк `#name` не меняет вердикт ни одного читателя: host/port, оба строителя outbound, вердикт безопасности, ключ дедупликации, compat-фильтр |
 | `test_extract_host_port.py` | 35 | `extract_host_port` по каждой форме URL: dispatch по схеме, кодированные vmess/ssr/`ss://`-адреса, IPv6 в скобках |
 | `test_xray_tester.py` | 10 | Сигналы, startup-timeout и hang-safety, TLS fragment stage, утечка temp-конфига |

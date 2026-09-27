@@ -4,7 +4,6 @@ Provides file I/O, config deduplication, SNI/CIDR filtering, and subscription he
 Security validation extracted to utils/security_filter.py.
 """
 
-import base64
 import ipaddress
 import json
 import math
@@ -12,11 +11,12 @@ import os
 import re
 from functools import lru_cache
 from typing import Any
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 from config.settings import SNI_DOMAINS, SOURCE_CONFIG_DIR
 from utils.executor_cache import get_file_io_executor, get_regex_executor
 from utils.logger import log
+from utils.security_filter import extract_ss_credentials
 from utils.url_payload import base64_payload, decode_base64_token
 
 # ahocorasick-rs (Rust binding) for fast SNI domain matching. Per-haystack
@@ -368,32 +368,61 @@ def deduplicate_configs(configs: list[str]) -> list[str]:
 
 @lru_cache(maxsize=131072)
 def _get_dedup_key(config: str) -> tuple | None:
+    """The fields that make a node the node it is: address, credential, transport.
+
+    The remark is the only thing allowed to differ, and the credential is the one thing
+    that may not be dropped. Keying on `(protocol, host, port, params)` alone left the
+    userinfo out of the tuple -- which is where VLESS keeps its id and Trojan its
+    password -- so every user of one server measured as one node and all but the first
+    spelling to arrive were dropped, silently, from `all.txt` and from the progressive
+    bypass seal that reads this same key. The vmess half had the opposite hole: it keyed
+    on the id only, so one id reached over WebSocket, over gRPC and over plain TCP was
+    one entry, and only the transport that happened to come first was ever tested.
+
+    Both spellings of a Shadowsocks node have to agree too, so the credential comes from
+    `extract_ss_credentials()` and the address from `extract_host_port()` -- the two
+    readers every other module already uses -- rather than from the base64 text, which
+    differs per encoding for one and the same server.
+    """
     try:
+        lower = config.lower()
+        if lower.startswith(("ss://", "ssr://")):
+            credentials = extract_ss_credentials(config)
+            address = extract_host_port(config)
+            if credentials and address:
+                scheme = "ss" if lower.startswith("ss://") else "ssr"
+                return (scheme, *address, *credentials)
+            # A config whose cipher cannot be read keeps the generic key below: no
+            # verdict here is not a licence to merge it with an unrelated node.
+
         # VMess: host/port live in the base64-encoded JSON payload,
         # not in the URL itself (urlparse sees the b64 string as netloc).
-        # Key on (add, port, id) — ignore ps (the remark/name).
-        if config.lower().startswith("vmess://"):
-            payload = base64_payload(config)
-            rem = len(payload) % 4
-            if rem:
-                payload += "=" * (4 - rem)
+        if lower.startswith("vmess://"):
+            decoded = decode_base64_token(base64_payload(config))
             try:
-                decoded = base64.b64decode(payload).decode("utf-8", errors="ignore")
-                if decoded.startswith("{"):
+                if decoded and decoded.startswith("{"):
                     j = json.loads(decoded)
                     return (
                         "vmess",
                         j.get("add", ""),
-                        int(j.get("port", 0) or 0),
+                        _read_port(j.get("port")),
                         j.get("id", ""),
+                        str(j.get("net", "")).lower(),
+                        str(j.get("tls") or j.get("security") or "").lower(),
+                        str(j.get("host", "")).lower(),
+                        str(j.get("path", "")),
                     )
-            except (ValueError, TypeError, json.JSONDecodeError, UnicodeDecodeError):
+            except (ValueError, TypeError, json.JSONDecodeError):
                 pass  # fall through to generic key (handles malformed vmess)
 
         protocol = config.split("://")[0].lower()  # lowercase for case-insensitive dedup
         parsed = urlparse(config)
         host = parsed.hostname or ""
         port = parsed.port or 0
+        # The credential, in whichever slot the scheme puts it. Percent-encoding is
+        # unfolded first: `p%40ss` and `p@ss` are one password, and a key that split them
+        # would publish the same node twice under two spellings.
+        credential = unquote(parsed.username or "") + ":" + unquote(parsed.password or "")
         params = parse_qs(parsed.query)
         for k in list(params):
             if k.lower() in ("remark", "#"):
@@ -401,11 +430,12 @@ def _get_dedup_key(config: str) -> tuple | None:
         # Normalize param keys and values to lowercase so that
         # ?security=TLS&type=WS and ?security=tls&type=ws produce the
         # same dedup key. This catches duplicates from sources that
-        # randomly capitalize parameter names/values.
+        # randomly capitalize parameter names/values. A password is not a parameter name:
+        # it is case-sensitive, and it stays that way above.
         frozen = frozenset(
             (k.lower(), tuple(v.lower() for v in vs)) for k, vs in sorted(params.items())
         )
-        return (protocol, host, port, frozen)
+        return (protocol, host, port, credential, frozen)
     except (ValueError, TypeError):
         return None
 

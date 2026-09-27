@@ -135,6 +135,18 @@ than lost. Whatever a handler returns goes through one IPv6 normalisation —
 `[2001:db8::1]` is what the URL says, `2001:db8::1` is what `ipaddress.ip_address()`
 and the TCP ping accept, and the CIDR whitelist check calls exactly that.
 
+A port the config does not actually state answers `None` rather than raising. Clash
+exports write `"443,8443"` in the port field, share links write `""` and `0`, and a
+number above the wire's own limit appears in scraped data; `urlparse().port` refuses the
+last on the generic path, so the three handlers that read the number themselves hold the
+same line. The raise is not a local failure: `_sni_worker` swallows it and loses one
+config, `simple_tester` has no guard at all, and `verify_config_file` catches `ValueError`
+around the whole file — one bad line costs every good one in it.
+
+All three decode through `decode_base64_token()` in `utils/url_payload.py`, which is also
+what `extract_ss_credentials()` uses: one alphabet policy, one padding repair, so the
+address and the cipher of one node cannot come from two different decodes.
+
 Known gap, and it is `ss://`-specific: a URL with no port
 (`ss://method:pw@host`) returns `None` here while `parse_shadowsocks_to_outbound()`
 fills in `443` for the same string, so such a node is tested and published but never

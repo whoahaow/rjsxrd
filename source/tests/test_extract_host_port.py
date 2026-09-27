@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import base64
 import ipaddress
+import json
 
 import pytest
 
@@ -121,6 +122,53 @@ def _ss_url(payload: bytes, *, pad: bool = True) -> str:
 _SS_BLOB_IPV6 = _ss_url(b"aes:pw@[2001:db8::9]:8388")
 _SSR_IPV6 = "ssr://" + _b64url(b"[2001:db8::8]:8388:origin:aes-256-gcm:plain:cw")
 _VMESS_IPV6 = "vmess://" + _b64url(b'{"add":"[2001:db8::7]","port":"443","id":"x"}')
+
+
+class TestPortsThatAreNotPorts:
+    """A handler that raises hands its exception to whoever happened to be iterating.
+
+    `extract_host_port()` is documented to answer with a pair or None, and every caller
+    treats None as "this config has no readable address". A raise is a different
+    animal: `_sni_worker` swallows it and loses one config, `simple_tester` has no guard
+    at all, and `verify_config_file` catches `ValueError` around the whole file and
+    returns an empty result -- one line with a clash multi-port field zeroes a
+    verification pass. The producers are real: `_convert_vmess_to_url` writes
+    `str(config["port"])`, and clash states several ports as `"443,8443"`.
+    """
+
+    @pytest.mark.parametrize(
+        "port",
+        ["443,8443", "8443 443", "http", "", "0", "-1", "99999", "65536", None],
+    )
+    def test_vmess_answers_none_for_a_port_it_cannot_use(self, port):
+        payload = _b64url(json.dumps({"add": "p.example.com", "port": port, "id": "x"}).encode())
+
+        assert extract_host_port(f"vmess://{payload}") is None
+
+    def test_a_vmess_port_that_is_a_number_in_a_string_still_works(self):
+        payload = _b64url(json.dumps({"add": "p.example.com", "port": "2082", "id": "x"}).encode())
+
+        assert extract_host_port(f"vmess://{payload}") == ("p.example.com", 2082)
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            _ss_url(b"aes-256-gcm:pw@65536.example.com:65536"),
+            "ss://" + _b64url(b"aes-256-gcm:pw@p.example.com:99999"),
+            "ssr://" + _b64url(b"p.example.com:70000:origin:aes-256-gcm:plain:cw"),
+            "vless://12345678-1234-1234-1234-123456789012@p.example.com:70000",
+        ],
+    )
+    def test_no_scheme_gives_a_port_above_the_wire_limit(self, url):
+        """The generic path already refuses these through `urlparse.port`; the
+        base64 forms read the number themselves and have to hold the same line."""
+        assert extract_host_port(url) is None
+
+    def test_the_top_of_the_range_is_still_a_port(self):
+        assert extract_host_port("ss://" + _b64url(b"aes-256-gcm:pw@p.example.com:65535")) == (
+            "p.example.com",
+            65535,
+        )
 
 
 class TestEncodedShadowsocksBlob:

@@ -190,13 +190,25 @@ def _check_ss_2022_key(method: str, password: str) -> bool:
     return False
 
 
-# Pre-compiled regex patterns for security checks
-_ALLOWINSECURE_PATTERN = re.compile(r"allowinsecure=([^&?#]+)")
-_INSECURE_PATTERN = re.compile(r"insecure=([^&?#]+)")
-_SKIPCERT_PATTERN = re.compile(r"skip-cert-verify=([^&?#]+)")
+# Pre-compiled regex patterns for security checks.
+#
+# Every one of them is anchored at a parameter boundary (`?` or `&`) and closed by
+# the next one, because a bare substring search reads a node's remark as a
+# setting: `vless://…#tls-node-security=none` is not a config asking for no
+# encryption, and flagging it costs a working node its place in the secure files.
+# The search still runs over the whole URL rather than only the query — a
+# `?security=none` that happens to follow the fragment is treated as the parameter
+# it reads like, because guessing the other way would let an unencrypted tunnel
+# into the secure tier. Being wrong here is only ever allowed in that direction.
+_ALLOWINSECURE_PATTERN = re.compile(r"(?:\?|&)allowinsecure=([^&?#]+)")
+_INSECURE_PATTERN = re.compile(r"(?:\?|&)insecure=([^&?#]+)")
+_SKIPCERT_PATTERN = re.compile(r"(?:\?|&)skip-cert-verify=([^&?#]+)")
 # Catch-all: match `?insecure=1`, `&insecure=1`, `#insecure=1`, or bare param
 _INSECURE_CATCH_RE = re.compile(r"(?:\?|&)insecure=1(?:&|#|$)")
 _VERIFY_CATCH_RE = re.compile(r"(?:\?|&)verify=0(?:&|#|$)")
+_SECURITY_NONE_RE = re.compile(r"(?:\?|&)security=none(?:&|#|$)")
+_ENCRYPTION_NONE_RE = re.compile(r"(?:\?|&)encryption=none(?:&|#|$)")
+_SECURITY_ENCRYPTED_RE = re.compile(r"(?:\?|&)security=(?:tls|reality)(?:&|#|$)")
 
 
 def _check_insecure_general(config_lower: str) -> bool:
@@ -224,25 +236,20 @@ def _check_insecure_general(config_lower: str) -> bool:
 
 def _check_security_none(config_lower: str) -> bool:
     """Check for security=none (no encryption)."""
-    return "security=none" in config_lower
+    return bool(_SECURITY_NONE_RE.search(config_lower))
 
 
 def _check_encryption_none(config_lower: str) -> bool:
     """Check for encryption=none in VLESS configs (when not using TLS/REALITY)."""
     return bool(
-        "encryption=none" in config_lower
-        and "security=tls" not in config_lower
-        and "security=reality" not in config_lower
+        _ENCRYPTION_NONE_RE.search(config_lower) and not _SECURITY_ENCRYPTED_RE.search(config_lower)
     )
 
 
 def _check_vless_no_tls(config_lower: str) -> bool:
     """VLESS without TLS/REALITY = no encryption = insecure."""
     return bool(
-        config_lower.startswith("vless://")
-        and not config_lower.startswith("vmess://")
-        and "security=tls" not in config_lower
-        and "security=reality" not in config_lower
+        config_lower.startswith("vless://") and not _SECURITY_ENCRYPTED_RE.search(config_lower)
     )
 
 

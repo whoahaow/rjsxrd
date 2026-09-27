@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 ```
 
 Every test module declares its marker (`pytestmark`), so `-m unit` and
-`-m integration` actually select something: 1134 and 15 tests out of 1149
+`-m integration` actually select something: 1139 and 15 tests out of 1154
 (measured with `pytest --collect-only -q` under each marker). Only the two
 modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) carry `integration`. Pure logic needs
@@ -32,7 +32,7 @@ which took the 15 pure-logic tests out of `test_fetcher.py`.
 
 ## Test structure
 
-**1149 tests** in 39 files. A full run takes around 70–80 seconds on the
+**1154 tests** in 39 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
@@ -43,7 +43,7 @@ load, so measure with `pytest -q` on your own machine.
 | `test_xray_tester.py` | 10 | Signals, startup-timeout and hang-safety, the TLS fragment stage, temp-config leak |
 | `test_protocol_parsers.py` | 69 | `_url_to_outbound()` per URL shape: dispatch, rejected ciphers and plugins, SSR passwords, no parser for v1/TUIC |
 | `test_vpn_config.py` | 42 | VPNConfig typed dataclasses |
-| `test_security_filter.py` | 71 | `has_insecure_setting`, all protocols and edge cases, 2022 key length validation, the xray cipher allowlist, `extract_ss_credentials` |
+| `test_security_filter.py` | 76 | `has_insecure_setting`, all protocols and edge cases, 2022 key length validation, the xray cipher allowlist, `extract_ss_credentials` |
 | `test_logger.py` | 30 | Logging, levels, format |
 | `test_yaml_converter.py` | 32 | Clash/Surge YAML to VPN URL conversion |
 | `test_smart_eta.py` | 27 | SmartETA: 3-way estimate (window, global, EMA) + timeout floor |

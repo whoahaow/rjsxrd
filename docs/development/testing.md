@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # С отчётом о покрытии
 ```
 
 Маркеры проставлены на каждом тестовом модуле (`pytestmark`), поэтому `-m unit`
-и `-m integration` действительно что-то выбирают: 1144 и 15 тестов из 1159
+и `-m integration` действительно что-то выбирают: 1153 и 15 тестов из 1168
 (замер — `pytest --collect-only -q` с тем и другим маркером). Сеть трогают
 только два модуля (`test_fetcher.py`, `test_ip_checker.py`) — они помечены
 `integration`. Чистая логика сети не требует и лежит в unit-модулях, включая
@@ -31,14 +31,15 @@ pytest --cov=fetchers --cov=utils  # С отчётом о покрытии
 
 ## Структура тестов
 
-Всего **1159 тестов** в 39 файлах. Полный прогон на машине разработки (Windows,
+Всего **1168 тестов** в 40 файлах. Полный прогон на машине разработки (Windows,
 Python 3.12) занимает около 70–80 секунд; время зависит от диска и загрузки
 машины, поэтому ориентируйтесь на `pytest -q` у себя.
 
 | Файл | Тестов | Область |
 |------|--------|---------|
 | `test_config_processor.py` | 86 | Пайплайн обработки, `prepare_config_content`, `_add_unique`, `write_configs_file` |
-| `test_file_utils.py` | 70 | `extract_host_port`, `deduplicate_configs`, `is_valid_vpn_config_url`, `filter_secure_configs` |
+| `test_file_utils.py` | 59 | `deduplicate_configs`, `is_valid_vpn_config_url`, `filter_secure_configs`, чанкование SNI/CIDR-фильтра |
+| `test_extract_host_port.py` | 20 | `extract_host_port` по каждой форме URL: dispatch по схеме, кодированные vmess/ssr/`ss://`-адреса, IPv6 в скобках |
 | `test_xray_tester.py` | 10 | Сигналы, startup-timeout и hang-safety, TLS fragment stage, утечка temp-конфига |
 | `test_protocol_parsers.py` | 69 | `_url_to_outbound()` по каждой форме URL: dispatch, отклонённые шифры и плагины, SSR-пароли, отсутствие парсера у v1/TUIC |
 | `test_vpn_config.py` | 42 | VPNConfig typed dataclass'ы |

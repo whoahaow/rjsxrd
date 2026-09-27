@@ -6,6 +6,7 @@ import tempfile
 import pytest
 
 from utils.file_utils import (
+    _get_dedup_key,
     apply_sni_cidr_filter,
     deduplicate_configs,
     is_valid_vpn_config_url,
@@ -659,6 +660,86 @@ class TestSniWorkerModule:
         # Should import from utils.file_utils (allowed) but not re-import itself
         assert "from utils._sni_worker import" not in source
         assert "from utils import _sni_worker" not in source
+
+
+class TestDedupKeyIdentifiesTheNodeNotTheServer:
+    """Two users on one server are two nodes, and the key has to say so.
+
+    The generic branch keyed on `(protocol, host, port, params)` and threw the userinfo
+    away -- which is where VLESS keeps its id and Trojan its password. Six configs from
+    three sources that share a host measured as three, and the loser of each pair is not
+    marked anywhere: it is simply not in the file. The same key drives the progressive
+    bypass seal, so the loss is in the verified output, not only in `all.txt`.
+
+    The mirror case is the vmess branch, which keys on the id and nothing else, so one
+    id reached over WebSocket, over gRPC and over plain TCP measured as one node and only
+    the spelling that arrived first was ever tested -- while a different `ps` label, the
+    one field that genuinely means nothing, stayed deduplicated.
+    """
+
+    def test_distinct_vless_ids_on_one_server_all_survive(self):
+        configs = [
+            f"vless://{u}@s.example.com:443?security=tls#n{i}"
+            for i, u in enumerate(
+                ("11111111-1111-1111-1111-111111111111", "22222222-2222-2222-2222-222222222222")
+            )
+        ]
+
+        assert len(deduplicate_configs(configs)) == 2
+
+    def test_distinct_trojan_passwords_on_one_server_all_survive(self):
+        configs = [
+            "trojan://pass-one@s.example.com:443?security=tls",
+            "trojan://pass-two@s.example.com:443?security=tls",
+        ]
+
+        assert len(deduplicate_configs(configs)) == 2
+
+    def test_a_different_cipher_or_password_is_a_different_node(self):
+        configs = [
+            "ss://aes-256-gcm:pw1@s.example.com:443",
+            "ss://aes-256-gcm:pw2@s.example.com:443",
+            "ss://chacha20-ietf-poly1305:pw1@s.example.com:443",
+        ]
+
+        assert len(deduplicate_configs(configs)) == 3
+
+    def test_one_node_spelled_with_two_names_is_still_one_entry(self):
+        """The case the deduplication exists for, pinned so the fix does not widen it."""
+        same = "vless://11111111-1111-1111-1111-111111111111@s.example.com:443?security=tls"
+
+        assert len(deduplicate_configs([same + "#Office", same + "#Home", same])) == 1
+
+    @pytest.mark.parametrize("second", ["grpc", "tcp"])
+    def test_one_vmess_id_over_two_transports_is_two_nodes(self, second):
+        import base64
+        import json
+
+        def encode(net):
+            obj = {"add": "s.example.com", "port": "443", "id": "abc", "ps": "n", "net": net}
+            return "vmess://" + base64.b64encode(json.dumps(obj).encode()).decode()
+
+        assert len(deduplicate_configs([encode("ws"), encode(second)])) == 2
+
+    def test_vmess_relabelled_is_still_one_node(self):
+        import base64
+        import json
+
+        def encode(ps):
+            obj = {"add": "s.example.com", "port": "443", "id": "abc", "ps": ps, "net": "ws"}
+            return "vmess://" + base64.b64encode(json.dumps(obj).encode()).decode()
+
+        assert len(deduplicate_configs([encode("Office"), encode("Home")])) == 1
+
+    def test_the_key_survives_a_port_it_cannot_read(self):
+        """A malformed port must not raise out of the dedup pass either."""
+        import base64
+        import json
+
+        obj = {"add": "s.example.com", "port": "443,8443", "id": "abc"}
+        url = "vmess://" + base64.b64encode(json.dumps(obj).encode()).decode()
+
+        assert _get_dedup_key(url) is not None
 
 
 class TestSniWhitelistMatchesOnLabelBoundaries:

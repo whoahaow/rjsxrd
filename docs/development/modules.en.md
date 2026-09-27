@@ -157,7 +157,18 @@ the parser refuse a portless URL, and no decision has been made.
 
 ### `deduplicate_configs(configs) -> list`
 
-Removes duplicates based on content (ignoring the name/remark). O(n) in memory.
+Removes duplicates based on content, ignoring the name/remark and nothing else. O(n) in
+memory. `_get_dedup_key()` is the rule, and it keys on the address, the credential and the
+transport: the userinfo is where VLESS keeps its id and Trojan its password, so leaving it
+out made every user of one server the same node, and the one that survived was whichever a
+source published first -- with no trace of the loss but the missing line. The vmess branch
+had the mirror hole: keyed on the id alone, one id over WebSocket, over gRPC and over plain
+TCP was one entry, so a server offering three transports got tested on one of them.
+
+Both spellings of a Shadowsocks node agree because the key reads its cipher through
+`extract_ss_credentials()` and its address through `extract_host_port()` -- the same
+readers the filters use -- rather than keying on the base64 text, which differs per
+encoding for one and the same server.
 
 ### `filter_secure_configs(configs) -> list`
 

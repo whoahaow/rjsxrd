@@ -158,6 +158,45 @@ class TestBuildShadowsocksR:
     def test_ssr_missing_fields(self):
         assert _build_shadowsocksr_url({"server": "x.com"}) == ""
 
+    def test_the_emitted_link_is_the_base64_form_every_reader_expects(self):
+        """`ssr://` means "decode this token", not "these are the fields".
+
+        The converter used to write `ssr://host:port:protocol:cipher:obfs:b64pass`
+        with the fields in the open, which starts with the right scheme and is not a
+        parseable link: `_decode_ssr_host_port` base64-decodes what it finds and gets
+        a hostname back, `extract_ss_credentials` sees none of the six colon-separated
+        fields, and both outbound builders return None. The node reached the published
+        files as an untestable, unfilterable string -- `aes-256-cfb` and all.
+        """
+        import base64
+
+        from utils.file_utils import deduplicate_configs, extract_host_port
+        from utils.protocol_parsers import parse_ssr_to_outbound
+        from utils.security_filter import extract_ss_credentials, has_insecure_setting
+
+        url = _build_shadowsocksr_url(
+            {
+                "server": "ssr.host",
+                "port": 1080,
+                "password": "secret",
+                "cipher": "aes-256-cfb",
+                "name": "Руз 1",
+            }
+        )
+        token = url[len("ssr://") :]
+        assert ":" not in token and "/" not in token, f"fields left in the open: {url}"
+
+        decoded = base64.urlsafe_b64decode(token + "=" * (-len(token) % 4)).decode()
+        assert decoded.startswith("ssr.host:1080:origin:aes-256-cfb:plain:")
+
+        assert extract_host_port(url) == ("ssr.host", 1080)
+        assert extract_ss_credentials(url) == ("aes-256-cfb", "")
+        # The cipher is what ssserver defaulted to and xray cannot load it: the whole
+        # point of encoding the link is that these verdicts arrive at all.
+        assert has_insecure_setting(url) is True
+        assert parse_ssr_to_outbound(url, "tag") is None
+        assert len(deduplicate_configs([url, url + "#again"])) == 1
+
 
 class TestBuildTUIC:
     """Build TUIC URL from config dict."""

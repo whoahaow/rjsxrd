@@ -295,17 +295,24 @@ def _build_shadowsocksr_url(config: dict[str, Any]) -> str:
         if not all([server, port, password, cipher]):
             return ""
 
-        # Build the SSR URL format
-        # ssr://server:port:protocol:method:obfs:base64encode(password)/?remarks=base64encode(remarks)&protoparam=base64encode(protoparam)&obfsparam=base64encode(obfsparam)
+        # The SSR link is one urlsafe-base64 token: the colon-separated fields,
+        # their `/?` parameter tail, and the password base64'd inside all of that.
+        # Emitting those fields in the open leaves a string that starts with `ssr://`
+        # and is not one -- every reader decodes the authority as base64, finds the
+        # `:` and `_` of a hostname are not the alphabet's, and answers None. So the
+        # node is published without ever being verified, and the security filter
+        # cannot see the cipher to call it weak.
+        def _b64(value: str) -> str:
+            return base64.urlsafe_b64encode(value.encode()).decode().rstrip("=")
 
-        params = f"{server}:{port}:{protocol}:{cipher}:{obfs}:{base64.b64encode(password.encode()).decode()}"
-
-        # Add query parameters
+        fields = f"{server}:{port}:{protocol}:{cipher}:{obfs}:{_b64(password)}"
         query_parts = []
         if "name" in config:
-            query_parts.append(f"remarks={base64.b64encode(config['name'].encode()).decode()}")
+            query_parts.append(f"remarks={_b64(str(config['name']))}")
+        if query_parts:
+            fields += "/?" + "&".join(query_parts)
 
-        return f"ssr://{params}/?" + "&".join(query_parts)
+        return f"ssr://{_b64(fields)}"
     except (TypeError, ValueError) as e:
         log(f"Error building ShadowsocksR URL: {e}")
         return ""

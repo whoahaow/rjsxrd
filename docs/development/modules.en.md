@@ -77,6 +77,19 @@ Looks for configs in repositories with a date-based naming scheme:
 4. Converts each proxy object into a VPN URL of the required format
 5. Validates the result via `is_valid_vpn_config_url()`
 
+The SSR builder has to encode, not spell out. An `ssr://` link is one urlsafe-base64
+token holding `host:port:protocol:cipher:obfs:b64(password)` and its `/?` parameter tail;
+writing those fields in the open produces a string that carries the right scheme and is
+not an SSR URL — the host/port extractor, the cipher decoder and both outbound builders
+all answer None, so the config gets published without ever being verified or filtered,
+and a weak cipher inside it reads as "no verdict". The round trip through all four
+readers is pinned in `test_yaml_converter.py`.
+
+Also note what the converter passes on: clash's `network: http` is not xray's spelling of
+anything, and `grpc`/`xhttp`/`httpupgrade` proxies lose their `path`/`host` here (only the
+`ws` branch carries them), so those nodes reach the corpus as defaults rather than as the
+proxy that was described.
+
 ### sstap_scraper.py — sstap.org scraping
 
 Extracts VPN configs from the https://sstap.org/node-real-time-update/ page via regular expressions.

@@ -77,6 +77,16 @@ decoder `ss://` uses, so the allowlist above applies here too. That matters:
 `aes-256-cfb` is what ssserver defaulted to, so most SSR nodes are refused
 verification for that reason alone.
 
+### Parameter names
+
+Every check looks for a parameter: `?` or `&` before the name, then `&`, `#` or the end of the
+string after the value. Some of these used to be plain substring searches over the whole URL,
+which was wrong in both directions: `#node-security=none` marked a working config insecure and
+took it out of the secure files, while `#say-security=tls` in a remark convinced the "is this
+encrypted" test that it was. The search still runs over the whole string — a `?security=none`
+that follows a fragment counts — because the only mistake allowed here is letting an
+unencrypted tunnel into the secure tier, not the other way round.
+
 ### TUIC
 
 Not supported by Xray-core — the parser returns `None`. The `skip-cert-verify` parameter is considered insecure.

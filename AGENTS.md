@@ -418,6 +418,7 @@ rjsxrd/
 ### General
 - `verify=0`, `verify=false`
 - `insecure=1/true/yes/on`
+- Every parameter above is matched at a query boundary — `?` or `&` before the name, `&`/`#`/end after the value. Text inside a node's remark is not a setting, in either direction: see `docs/development/security-system.md`, "General"/"Parameter names" for why the search still covers the whole string
 
 ---
 

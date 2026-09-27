@@ -354,3 +354,40 @@ class TestExtractSsCredentials:
         configs it cannot read.
         """
         assert extract_ss_credentials(url) is None
+
+
+class TestParameterBoundaries:
+    """A setting is a query parameter, not a substring of the URL.
+
+    These checks used to search the whole string for `security=none` and friends,
+    so a node's remark could set one off and cost a working config its place in the
+    secure files. The direction of the fix is what matters: a parameter is still
+    read from anywhere in the string — a `?security=none` that follows a fragment
+    counts — because the one mistake not allowed here is letting an unencrypted
+    tunnel into the secure tier.
+    """
+
+    def test_a_remark_that_names_a_setting_is_not_one(self):
+        assert (
+            has_insecure_setting("vless://uuid@host:443?security=tls#node-security=none") is False
+        )
+
+    def test_a_remark_cannot_vouch_for_the_transport(self):
+        """The opposite case, and the one that used to be a false negative.
+
+        The remark's `security=tls` text satisfied the "is this encrypted" search,
+        so a vless URL with no security parameter at all read as secure.
+        """
+        assert has_insecure_setting("vless://uuid@host:443#say-security=tls") is True
+
+    def test_security_none_after_a_fragment_still_counts(self):
+        assert has_insecure_setting("vless://uuid@host:443#name?security=none") is True
+
+    def test_encryption_none_with_reality_is_not_flagged(self):
+        url = "vless://uuid@host:443?encryption=none&security=reality"
+
+        assert has_insecure_setting(url) is False
+
+    def test_allow_insecure_is_read_as_a_parameter(self):
+        assert has_insecure_setting("vless://uuid@host:443?allowInsecure=1&security=tls") is True
+        assert has_insecure_setting("vless://uuid@host:443#allowInsecure=1x?security=tls") is False

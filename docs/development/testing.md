@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # С отчётом о покрытии
 ```
 
 Маркеры проставлены на каждом тестовом модуле (`pytestmark`), поэтому `-m unit`
-и `-m integration` действительно что-то выбирают: 1134 и 15 тестов из 1149
+и `-m integration` действительно что-то выбирают: 1139 и 15 тестов из 1154
 (замер — `pytest --collect-only -q` с тем и другим маркером). Сеть трогают
 только два модуля (`test_fetcher.py`, `test_ip_checker.py`) — они помечены
 `integration`. Чистая логика сети не требует и лежит в unit-модулях, включая
@@ -31,7 +31,7 @@ pytest --cov=fetchers --cov=utils  # С отчётом о покрытии
 
 ## Структура тестов
 
-Всего **1149 тестов** в 39 файлах. Полный прогон на машине разработки (Windows,
+Всего **1154 теста** в 39 файлах. Полный прогон на машине разработки (Windows,
 Python 3.12) занимает около 70–80 секунд; время зависит от диска и загрузки
 машины, поэтому ориентируйтесь на `pytest -q` у себя.
 
@@ -42,7 +42,7 @@ Python 3.12) занимает около 70–80 секунд; время зав
 | `test_xray_tester.py` | 10 | Сигналы, startup-timeout и hang-safety, TLS fragment stage, утечка temp-конфига |
 | `test_protocol_parsers.py` | 69 | `_url_to_outbound()` по каждой форме URL: dispatch, отклонённые шифры и плагины, SSR-пароли, отсутствие парсера у v1/TUIC |
 | `test_vpn_config.py` | 42 | VPNConfig typed dataclass'ы |
-| `test_security_filter.py` | 71 | `has_insecure_setting`, все протоколы и edge-кейсы, 2022 key length validation, allowlist шифров xray, `extract_ss_credentials` |
+| `test_security_filter.py` | 76 | `has_insecure_setting`, все протоколы и edge-кейсы, 2022 key length validation, allowlist шифров xray, `extract_ss_credentials` |
 | `test_logger.py` | 30 | Логирование, уровни, формат |
 | `test_yaml_converter.py` | 32 | Конвертация Clash/Surge YAML в VPN URL |
 | `test_smart_eta.py` | 27 | SmartETA: 3-way estimate (window, global, EMA) + timeout floor |

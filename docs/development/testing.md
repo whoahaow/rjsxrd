@@ -28,6 +28,9 @@ pytest --cov=fetchers --cov=utils  # С отчётом о покрытии
 только два модуля (`test_fetcher.py`, `test_ip_checker.py`) — они помечены
 `integration`. Чистая логика сети не требует и лежит в unit-модулях, включая
 `test_fetcher_unit.py`, куда переехали 15 тестов из `test_fetcher.py`.
+`GitHubHandler()` дёргает API прямо в конструкторе, поэтому тест дефолтного клиента
+патчит `get_repo` — иначе unit-прогон зависит от api.github.com и падает по таймауту
+чтения вместо того, чтобы проверить код.
 
 ## Структура тестов
 
@@ -52,7 +55,7 @@ Python 3.12) занимает около 70–80 секунд; время зав
 | `test_process_registry.py` | 25 | ProcessRegistry, cleanup, callbacks |
 | `test_git_auto_cleaner.py` | 24 | Авто-очистка auto-коммитов |
 | `test_health_check.py` | 27 | Health check: DNS fallback, диск, память, токен |
-| `test_github_handler.py` | 22 | GitHub API, rate limits, 409 conflicts, batch |
+| `test_github_handler.py` | 22 | GitHub API через фейковый клиент, rate limits, 409 conflicts, batch; настоящий клиент проверяется без запроса к api.github.com |
 | `test_xray_batch.py` | 21 | BatchRunner, shared xray, port allocation |
 | `test_xray_compat_filter.py` | 93 | `filter_xray_compatible`: какие конфиги доходят до верификации; принятые и отклонённые имена транспортов, flow'ы, шифры, границы pbk/sid/pinSHA256 |
 | `test_telegram_proxy_scraper.py` | 21 | Извлечение MTProto и SOCKS5 из контента |

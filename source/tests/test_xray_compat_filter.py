@@ -472,6 +472,24 @@ class TestTheShadowsocksCipherAllowlist:
             f"ss://{blob}@h.example.com:443"
         )
 
+    def test_the_form_whose_address_is_inside_the_blob_is_read_too(self) -> None:
+        """SIP003 keeps `method:password@host:port` in one token, `@` and all.
+
+        The URL has no `@`, so a rule that only reads the two clear forms never sees
+        the cipher -- and "never sees it" was recorded as "loads fine": these configs
+        were verified with a method xray cannot build, and the `none` among them was
+        certified secure. Same cipher, same verdict, whichever spelling carried it.
+        """
+        for cipher, expected in (
+            ("rc4-md5", "unknown shadowsocks cipher: rc4-md5"),
+            ("aes-192-gcm", "unknown shadowsocks cipher: aes-192-gcm"),
+            ("aes-256-gcm", ""),
+            ("none", ""),  # loads in xray; calling it insecure is the other filter's job
+        ):
+            blob = base64.b64encode(f"{cipher}:secretpw@h.example.com:443".encode()).decode()
+
+            assert _xray_incompatible_reason(f"ss://{blob}") == expected, cipher
+
     def test_a_shadowsocksr_cipher_is_judged_the_same_way(self) -> None:
         """SSR configs get converted to plain Shadowsocks, so the same switch runs.
 

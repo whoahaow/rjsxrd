@@ -343,7 +343,8 @@ class TestExtractSsCredentials:
             "vless://12345678-1234-1234-1234-123456789012@h.example.com:443",
             "ss://!!!not-base64!!!@h.example.com:443",
             "ssr://aGVsbG8",  # decodes to fewer than the six fields SSR has
-            "ss://YWJjZA==",  # base64 with no "@" — the host is inside the blob
+            "ss://YWJjZA==",  # base64 of "abcd": no cipher name in it to read
+            "ss://YWVzLTI1Ni1nY206cHc",  # method and password, but no address either
         ],
     )
     def test_no_verdict_is_none_rather_than_a_guess(self, url):
@@ -354,6 +355,66 @@ class TestExtractSsCredentials:
         configs it cannot read.
         """
         assert extract_ss_credentials(url) is None
+
+
+class TestShadowsocksBlobCipher:
+    """`ss://base64(method:password@host:port)` hides the cipher from no one but us.
+
+    The address of this form sits inside the token, so there is no `@` in the URL and
+    the two clear-text branches both step aside. Reading only those two meant a node
+    built on `none` -- which loads in xray and encrypts nothing -- answered "no
+    verdict", and no verdict is what the pipeline records as clean: the tunnel went
+    into `all-secure.txt` and `ss-secure.txt` while the verifier on the other side of
+    the same URL happily decoded the cipher it had just been certified.
+    """
+
+    @staticmethod
+    def _blob(creds: str, *, pad: bool = True) -> str:
+        token = base64.b64encode(creds.encode()).decode()
+        return "ss://" + (token if pad else token.rstrip("="))
+
+    def test_a_plaintext_cipher_inside_the_blob_is_insecure(self):
+        for method in ("none", "plain"):
+            url = self._blob(f"{method}:pw@h.example.com:443")
+            assert extract_ss_credentials(url) == (method, "pw"), method
+            assert has_insecure_setting(url) is True, method
+
+    def test_a_legacy_cipher_inside_the_blob_is_insecure(self):
+        for method in ("aes-256-cfb", "rc4-md5", "salsa20"):
+            url = self._blob(f"{method}:pw@h.example.com:443")
+            assert extract_ss_credentials(url) == (method, "pw"), method
+            assert has_insecure_setting(url) is True, method
+
+    def test_an_aead_cipher_inside_the_blob_stays_secure(self):
+        for method in ("aes-256-gcm", "chacha20-ietf-poly1305", "xchacha20-poly1305"):
+            url = self._blob(f"{method}:pw@h.example.com:443")
+            assert extract_ss_credentials(url) == (method, "pw"), method
+            assert has_insecure_setting(url) is False, method
+
+    def test_the_verdict_does_not_depend_on_the_blob_being_padded(self):
+        padded = self._blob("none:pw@h.example.com:443")
+        bare = self._blob("none:pw@h.example.com:443", pad=False)
+
+        assert extract_ss_credentials(padded) == extract_ss_credentials(bare)
+        assert has_insecure_setting(bare) is True
+
+    def test_a_password_holding_the_separator_still_splits_at_the_last_one(self):
+        """`p@ss:80` is a password, not two fields: the address starts after the last @."""
+        url = self._blob("aes-256-gcm:p@ss@h.example.com:443")
+
+        assert extract_ss_credentials(url) == ("aes-256-gcm", "p@ss")
+
+    def test_the_two_clear_forms_keep_the_answers_they_already_had(self):
+        assert extract_ss_credentials("ss://none:pw@h.example.com:443") == ("none", "pw")
+        creds = base64.b64encode(b"none:pw").decode()
+        assert extract_ss_credentials(f"ss://{creds}@h.example.com:443") == ("none", "pw")
+        assert has_insecure_setting("ss://none:pw@h.example.com:443") is True
+
+    def test_a_remark_or_parameter_after_the_blob_changes_nothing(self):
+        url = self._blob("none:pw@h.example.com:443")
+
+        assert extract_ss_credentials(url + "#\u041d\u043e\u0434\u0430") == ("none", "pw")
+        assert extract_ss_credentials(url + "?plugin=obfs-local") == ("none", "pw")
 
 
 class TestParameterBoundaries:

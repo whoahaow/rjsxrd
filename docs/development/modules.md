@@ -141,7 +141,7 @@
 - **`filter_secure_configs(configs) -> list`** — параллельная фильтрация через ProcessPoolExecutor (8 workers).
 - **`SS_XRAY_CIPHERS` / `SS_WEAK_CIPHERS` / `SS_PLAINTEXT_CIPHERS` / `SS_SECURE_CIPHERS`** — единый источник истины по шифрам Shadowsocks: что загружает xray, что считается слабым, что означает «без шифрования». `SS_SECURE_CIPHERS` вычитается из первого списка. Читают это `protocol_parsers.py`, `vpn_config.py` и `xray_compat.py` — через `is_xray_cipher()`.
 - **`is_xray_cipher(method) -> bool`** — принимает метод, который `cipherFromString` в xray знает; всё остальное для xray `unknown cipher method`, то есть падение загрузки конфига.
-- **`extract_ss_credentials(config_line) -> tuple | None`** — один декодер трёх форм (`method:pass@host`, `b64(method:pass)@host`, payload SSR), чтобы парсеры и оба фильтра читали один и тот же шифр. `None` — «вердикта нет», а не «небезопасно».
+- **`extract_ss_credentials(config_line) -> tuple | None`** — один декодер четырёх форм (`method:pass@host`, `b64(method:pass)@host`, `b64(method:pass@host:port)`, где адрес лежит внутри токена, и payload SSR), чтобы парсеры и оба фильтра читали один и тот же шифр. `None` — «вердикта нет», а не «небезопасно»: именно поэтому третья форма должна была быть прочитана, потому что непрочитанный шифр записывается как чистый.
 - **`_SS_2022_KEY_LENGTHS`** — маппинг 2022-blake3 шифров на ожидаемую длину ключа (16/32 байт); он же список методов 2022, которые принимает xray.
 
 ## xray_tester.py — верификация через Xray-core

@@ -153,7 +153,7 @@ Moved out of `file_utils.py`. Contains:
 - **`filter_secure_configs(configs) -> list`** — parallel filtering via ProcessPoolExecutor (8 workers).
 - **`SS_XRAY_CIPHERS` / `SS_WEAK_CIPHERS` / `SS_PLAINTEXT_CIPHERS` / `SS_SECURE_CIPHERS`** — the single source of truth for Shadowsocks ciphers: what xray loads, what counts as weak, what means "no encryption". `SS_SECURE_CIPHERS` is derived from the first two. Read by `protocol_parsers.py`, `vpn_config.py` and `xray_compat.py` through `is_xray_cipher()`.
 - **`is_xray_cipher(method) -> bool`** — true for the methods `cipherFromString` in xray knows; anything else is `unknown cipher method` there, which fails the config load.
-- **`extract_ss_credentials(config_line) -> tuple | None`** — one decoder for the three encodings in circulation (`method:pass@host`, `b64(method:pass)@host`, and the SSR payload), so the parsers and both filters read the same method. `None` means "no verdict", not "insecure".
+- **`extract_ss_credentials(config_line) -> tuple | None`** — one decoder for the four encodings in circulation (`method:pass@host`, `b64(method:pass)@host`, `b64(method:pass@host:port)` where the address sits inside the token, and the SSR payload), so the parsers and both filters read the same method. `None` means "no verdict", not "insecure" — which is exactly why the third form had to be added: a cipher nobody reads is a cipher recorded as clean.
 - **`_SS_2022_KEY_LENGTHS`** — mapping of 2022-blake3 ciphers to the expected key length (16/32 bytes); it is also the list of 2022 methods xray accepts.
 
 ## xray_tester.py — verification via Xray-core

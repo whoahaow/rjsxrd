@@ -133,6 +133,7 @@ rjsxrd/
 │   │   ├── test_security_filter.py
 │   │   ├── test_simple_tester.py
 │   │   ├── test_smart_eta.py
+│   │   ├── test_stream_settings_builders.py
 │   │   ├── test_telegram_proxy_processor.py
 │   │   ├── test_telegram_proxy_scraper.py
 │   │   ├── test_telegram_proxy_verifier.py
@@ -595,7 +596,8 @@ correct a count here without correcting the guard's file too.
 - `test_fetch_guard_scope.py` - 70 destination-guard tests (refused ranges, the allowlist, the warning-filter walk)
 - `test_fetch_posture.py` - 55 fetch-security tests (refusals, the token host set, the run conditions)
 - `test_xray_tester.py` - 10 tester lifecycle tests (signals, startup timeout, fragment stage)
-- `test_protocol_parsers.py` - 55 URL-to-outbound tests, split out of the tester file
+- `test_protocol_parsers.py` - 44 URL-to-outbound tests, split out of the tester file
+- `test_stream_settings_builders.py` - 25 `streamSettings` tests, split out of the parsers file: xray's own key names, the transport aliases, the fingerprint fallback, the shared vmess builder
 - `test_vpn_config.py` - 35 VPNConfig typed dataclass tests
 - `test_security_filter.py` - 35 security filter tests
 - `test_ip_verifier.py` - 35 IP verifier tests

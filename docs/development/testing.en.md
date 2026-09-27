@@ -35,7 +35,7 @@ read timeout instead of checking the code.
 
 ## Test structure
 
-**1168 tests** in 40 files. A full run takes around 70–80 seconds on the
+**1168 tests** in 41 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
@@ -45,7 +45,8 @@ load, so measure with `pytest -q` on your own machine.
 | `test_file_utils.py` | 59 | `deduplicate_configs`, `is_valid_vpn_config_url`, `filter_secure_configs`, the SNI/CIDR filter's chunking |
 | `test_extract_host_port.py` | 20 | `extract_host_port` per URL shape: the scheme dispatch, the encoded vmess/ssr/`ss://` addresses, bracketed IPv6 |
 | `test_xray_tester.py` | 10 | Signals, startup-timeout and hang-safety, the TLS fragment stage, temp-config leak |
-| `test_protocol_parsers.py` | 69 | `_url_to_outbound()` per URL shape: dispatch, rejected ciphers and plugins, SSR passwords, no parser for v1/TUIC |
+| `test_protocol_parsers.py` | 44 | `_url_to_outbound()` per URL shape: dispatch, rejected ciphers and plugins, SSR passwords, no parser for v1/TUIC |
+| `test_stream_settings_builders.py` | 25 | the `streamSettings` blocks against the keys `StreamConfig` reads: transport aliases, the fingerprint with its fallback, the shared vmess builder |
 | `test_vpn_config.py` | 42 | VPNConfig typed dataclasses |
 | `test_security_filter.py` | 76 | `has_insecure_setting`, all protocols and edge cases, 2022 key length validation, the xray cipher allowlist, `extract_ss_credentials` |
 | `test_logger.py` | 30 | Logging, levels, format |

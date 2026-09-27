@@ -34,7 +34,7 @@ pytest --cov=fetchers --cov=utils  # С отчётом о покрытии
 
 ## Структура тестов
 
-Всего **1168 тестов** в 40 файлах. Полный прогон на машине разработки (Windows,
+Всего **1168 тестов** в 41 файле. Полный прогон на машине разработки (Windows,
 Python 3.12) занимает около 70–80 секунд; время зависит от диска и загрузки
 машины, поэтому ориентируйтесь на `pytest -q` у себя.
 
@@ -44,7 +44,8 @@ Python 3.12) занимает около 70–80 секунд; время зав
 | `test_file_utils.py` | 59 | `deduplicate_configs`, `is_valid_vpn_config_url`, `filter_secure_configs`, чанкование SNI/CIDR-фильтра |
 | `test_extract_host_port.py` | 20 | `extract_host_port` по каждой форме URL: dispatch по схеме, кодированные vmess/ssr/`ss://`-адреса, IPv6 в скобках |
 | `test_xray_tester.py` | 10 | Сигналы, startup-timeout и hang-safety, TLS fragment stage, утечка temp-конфига |
-| `test_protocol_parsers.py` | 69 | `_url_to_outbound()` по каждой форме URL: dispatch, отклонённые шифры и плагины, SSR-пароли, отсутствие парсера у v1/TUIC |
+| `test_protocol_parsers.py` | 44 | `_url_to_outbound()` по каждой форме URL: dispatch, отклонённые шифры и плагины, SSR-пароли, отсутствие парсера у v1/TUIC |
+| `test_stream_settings_builders.py` | 25 | блоки `streamSettings` против ключей, которые читает `StreamConfig`: алиасы транспортов, fingerprint с fallback, общий builder для vmess |
 | `test_vpn_config.py` | 42 | VPNConfig typed dataclass'ы |
 | `test_security_filter.py` | 76 | `has_insecure_setting`, все протоколы и edge-кейсы, 2022 key length validation, allowlist шифров xray, `extract_ss_credentials` |
 | `test_logger.py` | 30 | Логирование, уровни, формат |

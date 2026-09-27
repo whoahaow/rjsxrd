@@ -292,7 +292,7 @@ Hysteria2 xray добавил в v26.1.13, а пайплайн берёт `relea
 Чистые строители: никакого разбора URL и никаких знаний о протоколах, одна задача —
 выдать ключи, которые читает `StreamConfig` xray (проверено по
 `infra/conf/transport_internet.go` на v26.3.27). `utils/vpn_config.py` строит те же
-блоки на typed-пути, и `test_protocol_parsers.py` сверяет их ключ в ключ.
+блоки на typed-пути, и `test_stream_settings_builders.py` сверяет их ключ в ключ.
 
 - `_make_stream_settings(network, security, params, host)` — весь блок: tls или reality плюс настройки транспорта
 - `_make_tls_settings()`, `_make_reality_settings()`, `_make_ws_settings()`, `_make_grpc_settings()`, `_make_httpupgrade_settings()`, `_make_xhttp_settings()` — строители секций

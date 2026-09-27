@@ -111,6 +111,14 @@ Before running, the generator performs 5 checks via `health_check.py`:
 | Xray-core | whether the binary exists, whether it is executable | 🟡 warning |
 | GitHub token | not empty, longer than 10 characters | 🟡 warning |
 
+One more line goes to the log: the version of the binary itself. It is asked of `xray version`
+when the binary is found and executable, and compared against the release the refusal rules were
+read from (`v26.3.27` — `RULES_VERIFIED_AGAINST` in `utils/xray_compat.py`). The binary comes from
+`releases/latest` unless `XRAY_VERSION` is set, so a mismatch is not a failed check but a sign to
+re-read the rules: it is visible in the log of the run where things start drifting. It is
+deliberately not a check — a newer xray can still verify configs, and there is no reason to stop
+publishing over a bookkeeping difference.
+
 The internet check does not block the run — on its failure, the generator continues to work with a warning.
 
 With `--tcp-ping` or `--skip-xray`, the generator does not require Xray-core.

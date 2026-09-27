@@ -79,7 +79,7 @@ rjsxrd/
 │   │   ├── bypass_builder.py       # Bypass config verification pipeline
 │   │   ├── file_writer.py          # Config file writing helpers
 │   │   ├── xray_batch.py           # BatchRunner for concurrent Xray testing
-│   │   ├── xray_compat.py          # Configs xray cannot load, refused before verification
+│   │   ├── xray_compat.py          # Configs xray cannot load, refused before verification (rules read at v26.3.27)
 │   │   ├── xray_helpers.py         # Pure helper functions for Xray testing
 │   │   ├── xray_stream_settings.py   # streamSettings section builders shared by the parsers and the verifier
 │   │   ├── ip_verifier.py         # IP verify + proxy setup (single+chain), merged from ip_checker
@@ -219,7 +219,7 @@ rjsxrd/
 - **Progressive upload**: In API mode, creates `upload_fn` that calls `GitHubHandler.upload_file()` and passes it into the pipeline for pre-verify + during-verify uploads
 - Handles signal handlers for graceful shutdown (stop monitors → cleanup via ProcessRegistry → exit)
 - Activates ResourceMonitor for CPU/RAM/network tracking with end-of-run report
-- Runs health check (internet, Xray, GitHub API) before starting
+- Runs health check (internet, Xray, GitHub API) before starting, and logs the xray binary's version against `RULES_VERIFIED_AGAINST` — the release the compat rules were read from
 
 #### `processors/config_processor.py` - Pipeline Orchestrator
 - `download_all_configs()` - Parallel fetching from all sources
@@ -599,7 +599,7 @@ correct a count here without correcting the guard's file too.
 - `test_simple_tester.py` - 25 TCP ping tests (extract_host_port + SimpleTester)
 - `test_process_registry.py` - 25 ProcessRegistry tests
 - `test_git_auto_cleaner.py` - 24 auto-commit cleaner tests
-- `test_health_check.py` - 22 health check tests (DNS fallback, disk, memory)
+- `test_health_check.py` - 27 health check tests (DNS fallback, disk, memory, the xray version report)
 - `test_github_handler.py` - 22 GitHub handler tests (adapter pattern)
 - `test_xray_batch.py` - 21 BatchRunner tests
 - `test_telegram_proxy_scraper.py` - 21 Telegram proxy scraper tests
@@ -730,7 +730,10 @@ Configs pass through these filters in order before reaching Xray:
 2. **SNI/CIDR filter** — `apply_sni_cidr_filter()` separates bypass configs
 3. **Security filter** — `has_insecure_setting()` flags insecure configs for unsecure output files
 4. **Xray compatibility filter** 🔒 — `filter_xray_compatible()` in `utils/xray_compat.py`
-   Removes configs that would **crash xray at startup** even though they parse successfully:
+   Every rule below was read from xray-core's `infra/conf/*.go` at `RULES_VERIFIED_AGAINST`
+   (`v26.3.27`); the health check logs when the binary a run actually uses is another release, since
+   the download follows `releases/latest` unless `XRAY_VERSION` pins it. It removes configs that would
+   **crash xray at startup** even though they parse successfully:
    - Hysteria v1 (`hysteria://`, `hy1://`) — xray's hysteria outbound rejects `version != 2`
    - Hysteria2 with `insecure=1` and no `pinSHA256` — xray removed `allowInsecure`, so such a node has no config shape
    - Hysteria2 with a `pinSHA256` that is not 32 bytes of hex — the TLS builder strips colons, hex-decodes and requires exactly 32 bytes, so a short hash aborts the load
@@ -784,6 +787,9 @@ Edit `source/config/settings.py` or use env vars:
 - `FRAGMENT_INTERVAL` - Fragment pacing range; xray's field for it is `delay` (default: 10-20)
 - `XRAY_STARTUP_TIMEOUT` - Max seconds to wait for xray to bind port (default: 3)
 - Environment overrides: `ASYNC_CONCURRENCY_LINUX=100 FETCH_TIMEOUT=4 python3 main.py`
+- `XRAY_VERSION` — pins the xray-core release `download_xray.py` fetches. Unset, it follows
+  `releases/latest`, which means the release can move under the rules in `utils/xray_compat.py`;
+  those were read at `v26.3.27`, and the startup health check says in the log when the two differ.
 
 ### Change Update Frequency
 Edit `.github/workflows/frequent_update.yml`:

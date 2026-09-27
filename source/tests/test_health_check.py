@@ -12,6 +12,7 @@ from utils.health_check import (
     check_internet_connectivity,
     check_memory,
     check_xray_binary,
+    check_xray_version,
     health_check,
 )
 
@@ -188,3 +189,75 @@ class TestHealthCheck:
         results = health_check()
         for key, value in results.items():
             assert isinstance(value, bool), f"{key} is not bool: {type(value)}"
+
+
+class TestCheckXrayVersion:
+    """What the run logs about the xray build it is verifying with.
+
+    The compatibility rules and the outbound shapes were read from one release of
+    xray-core; the binary comes from `releases/latest` unless `XRAY_VERSION` pins
+    it. When those two stop being the same program, a renamed field or a deleted
+    transport changes what is published while every rule keeps refusing on a reading
+    nobody re-checked — so the log has to carry the version of the run that drifted.
+
+    Offline: `xray version` is a subprocess, and it is stubbed here. The assertion
+    is about the message, not the probe.
+    """
+
+    @staticmethod
+    def _stub_probe(monkeypatch, version):
+        monkeypatch.setattr("utils.download_xray.get_current_xray_version", lambda path: version)
+
+    def test_the_pinned_release_logs_no_warning(self, monkeypatch):
+        from utils.xray_compat import RULES_VERIFIED_AGAINST
+
+        self._stub_probe(monkeypatch, RULES_VERIFIED_AGAINST)
+        with patch("utils.health_check.log") as logged:
+            version = check_xray_version("/nonexistent/xray")
+
+        assert version == RULES_VERIFIED_AGAINST
+        lines = [call.args[0] for call in logged.call_args_list]
+        assert not [line for line in lines if line.startswith("WARNING")], lines
+
+    def test_a_newer_binary_is_named_against_the_rules(self, monkeypatch):
+        from utils.xray_compat import RULES_VERIFIED_AGAINST
+
+        self._stub_probe(monkeypatch, "v26.9.9")
+        with patch("utils.health_check.log") as logged:
+            assert check_xray_version("/nonexistent/xray") == "v26.9.9"
+
+        warning = [c.args[0] for c in logged.call_args_list if c.args[0].startswith("WARNING")]
+        assert len(warning) == 1, warning
+        assert "v26.9.9" in warning[0] and RULES_VERIFIED_AGAINST in warning[0]
+        assert "XRAY_VERSION" in warning[0]
+
+    def test_an_older_binary_is_warned_about_separately(self, monkeypatch):
+        self._stub_probe(monkeypatch, "v1.0.0")
+        with patch("utils.health_check.log") as logged:
+            check_xray_version("/nonexistent/xray")
+
+        warning = [c.args[0] for c in logged.call_args_list if c.args[0].startswith("WARNING")]
+        assert len(warning) == 1 and "older" in warning[0], warning
+
+    def test_an_unreadable_version_is_still_reported(self, monkeypatch):
+        """Silence is the failure mode: an unknown version means invisible drift."""
+        self._stub_probe(monkeypatch, None)
+        with patch("utils.health_check.log") as logged:
+            assert check_xray_version("/nonexistent/xray") is None
+
+        warning = [c.args[0] for c in logged.call_args_list if c.args[0].startswith("WARNING")]
+        assert len(warning) == 1 and "unknown" in warning[0], warning
+
+    def test_health_check_does_not_probe_a_missing_binary(self, monkeypatch):
+        """No path, or a path that is not executable: nothing to ask for a version."""
+        called = []
+        monkeypatch.setattr("utils.health_check.check_xray_version", called.append)
+
+        with patch("utils.health_check.socket.create_connection", MagicMock()):
+            health_check()
+            assert not called
+
+            missing = "/definitely/not/here/xray"
+            assert check_xray_binary(missing) is False
+            health_check(xray_path=missing)
+            assert not called

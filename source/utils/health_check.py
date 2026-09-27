@@ -106,6 +106,48 @@ def check_xray_binary(xray_path: str) -> bool:
     return os.access(xray_path, os.X_OK)
 
 
+def check_xray_version(xray_path: str) -> str | None:
+    """Log which xray build this run verifies against.
+
+    Every refusal in `utils/xray_compat.py` and every outbound shape in the parsers
+    was read from xray-core's source at one release, `RULES_VERIFIED_AGAINST`. The
+    binary itself comes from `releases/latest` unless `XRAY_VERSION` pins it, so a
+    new xray can rename a field or delete a transport between two runs and leave
+    rules nobody re-checked still deciding what gets published. This makes the run
+    that drifts identifiable in the log; it changes no verdict.
+
+    Returns the detected version, or None when the binary will not say — which is
+    also a warning, because then the drift would be invisible.
+    """
+    from pathlib import Path
+
+    from utils.download_xray import _compare_versions, get_current_xray_version
+    from utils.xray_compat import RULES_VERIFIED_AGAINST
+
+    version = get_current_xray_version(Path(xray_path))
+    if version is None:
+        log(
+            f"WARNING: xray version unknown; the compat rules are written for {RULES_VERIFIED_AGAINST}"
+        )
+        return None
+
+    order = _compare_versions(version, RULES_VERIFIED_AGAINST)
+    if order == 0:
+        log(f"Xray {version}: matches the release the compatibility rules were read from")
+    elif order > 0:
+        log(
+            f"WARNING: xray {version} is newer than {RULES_VERIFIED_AGAINST}, which every rule in "
+            "utils/xray_compat.py and every outbound shape was read against. Re-check them, or pin "
+            f"XRAY_VERSION={RULES_VERIFIED_AGAINST}."
+        )
+    else:
+        log(
+            f"WARNING: xray {version} is older than {RULES_VERIFIED_AGAINST}: shapes the parsers emit "
+            "may not exist in it (the hysteria outbound, finalmask)."
+        )
+    return version
+
+
 def check_github_token(token: str) -> bool:
     """Validate GitHub token format.
 
@@ -140,6 +182,12 @@ def health_check(xray_path: str | None = None, github_token: str | None = None) 
         "xray_installed": check_xray_binary(xray_path) if xray_path else False,
         "github_token": check_github_token(github_token or GITHUB_TOKEN),
     }
+
+    # Not a pass/fail item: a version this run has never seen is still a version
+    # that can verify configs, and failing the run over it would stop publishing
+    # because of a bookkeeping mismatch. It is reported, and the log is the record.
+    if xray_path and results["xray_installed"]:
+        check_xray_version(xray_path)
 
     # Log warnings for failed checks
     for check, passed in results.items():

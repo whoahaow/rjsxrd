@@ -53,7 +53,7 @@ main.py                          # Entry point, CLI, orchestration
   │   ├── resource_monitor.py    #   CPU/RAM/network monitoring
   │   ├── download_xray.py       #   Xray-core installer
   │   ├── url_stats.py           #   URL statistics (JSON store)
-  │   ├── health_check.py        #   Health check before running
+  │   ├── health_check.py        #   Health check before running, and the xray version
   │   ├── _sni_worker.py         # SNI/CIDR worker (internal)
   │   ├── system_specs.py        # SystemSpecs — resource auto-detection
   │   ├── psutil_available.py    # unified psutil import
@@ -75,7 +75,7 @@ main.py                          # Entry point, CLI, orchestration
   │   ├── benchmark_configs.py
   │   ├── test_telegram_proxies.py
   │   └── setup-vps.sh
-  └── tests/                     # 1154 tests in 39 files
+  └── tests/                     # 1159 tests in 39 files
 ```
 
 ## Processing pipeline

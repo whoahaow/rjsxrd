@@ -30,6 +30,14 @@ from urllib.parse import unquote
 from utils.logger import log
 from utils.security_filter import extract_ss_credentials, is_xray_cipher
 
+# The xray-core release every rule here and every outbound shape in the parsers was
+# read from. The binary is downloaded from `releases/latest` unless `XRAY_VERSION`
+# pins it, so a new release can delete a transport or rename a field while these
+# patterns keep refusing on a reading that no longer describes the program being
+# run. `health_check.check_xray_version()` compares the two at startup and says in
+# the log which one this run trusted.
+RULES_VERIFIED_AGAINST = "v26.3.27"
+
 # Regex for validating UUIDs (standard format: 8-4-4-4-12 hex)
 _RE_UUID = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",

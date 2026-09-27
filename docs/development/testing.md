@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # С отчётом о покрытии
 ```
 
 Маркеры проставлены на каждом тестовом модуле (`pytestmark`), поэтому `-m unit`
-и `-m integration` действительно что-то выбирают: 1139 и 15 тестов из 1154
+и `-m integration` действительно что-то выбирают: 1144 и 15 тестов из 1159
 (замер — `pytest --collect-only -q` с тем и другим маркером). Сеть трогают
 только два модуля (`test_fetcher.py`, `test_ip_checker.py`) — они помечены
 `integration`. Чистая логика сети не требует и лежит в unit-модулях, включая
@@ -31,7 +31,7 @@ pytest --cov=fetchers --cov=utils  # С отчётом о покрытии
 
 ## Структура тестов
 
-Всего **1154 теста** в 39 файлах. Полный прогон на машине разработки (Windows,
+Всего **1159 тестов** в 39 файлах. Полный прогон на машине разработки (Windows,
 Python 3.12) занимает около 70–80 секунд; время зависит от диска и загрузки
 машины, поэтому ориентируйтесь на `pytest -q` у себя.
 
@@ -50,7 +50,7 @@ Python 3.12) занимает около 70–80 секунд; время зав
 | `test_simple_tester.py` | 25 | `extract_host_port` + `SimpleTester` (TCP-пинг) |
 | `test_process_registry.py` | 25 | ProcessRegistry, cleanup, callbacks |
 | `test_git_auto_cleaner.py` | 24 | Авто-очистка auto-коммитов |
-| `test_health_check.py` | 22 | Health check: DNS fallback, диск, память, токен |
+| `test_health_check.py` | 27 | Health check: DNS fallback, диск, память, токен |
 | `test_github_handler.py` | 22 | GitHub API, rate limits, 409 conflicts, batch |
 | `test_xray_batch.py` | 21 | BatchRunner, shared xray, port allocation |
 | `test_xray_compat_filter.py` | 93 | `filter_xray_compatible`: какие конфиги доходят до верификации; принятые и отклонённые имена транспортов, flow'ы, шифры, границы pbk/sid/pinSHA256 |

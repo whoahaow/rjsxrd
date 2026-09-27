@@ -129,6 +129,12 @@ than lost. Whatever a handler returns goes through one IPv6 normalisation —
 `[2001:db8::1]` is what the URL says, `2001:db8::1` is what `ipaddress.ip_address()`
 and the TCP ping accept, and the CIDR whitelist check calls exactly that.
 
+Known gap: a URL with no port (`ss://method:pw@host`, `trojan://pw@host`) returns
+`None` here, while the verifier's parser fills in `443`. Such a node is tested and
+published, but never reaches the bypass files. Closing the gap means choosing between
+guessing the port in the extractor and making the parsers refuse a portless URL, and
+no decision has been made.
+
 ### `deduplicate_configs(configs) -> list`
 
 Removes duplicates based on content (ignoring the name/remark). O(n) in memory.

@@ -89,6 +89,14 @@ decoder `ss://` uses, so the allowlist above applies here too. That matters:
 `aes-256-cfb` is what ssserver defaulted to, so most SSR nodes are refused
 verification for that reason alone.
 
+The payload is urlsafe base64, and reading it with the standard alphabet was not a
+failure but a corruption: `b64decode` discards `-` and `_` rather than rejecting them,
+so every affected byte shifts and the six colon-separated fields are no longer six.
+Over 600 generated spec-correct payloads the cipher verdict went missing on 90 — and in
+all 90 the hidden method was `aes-256-cfb`, which is precisely the cipher this rule
+exists to catch, so those nodes were neither flagged insecure nor refused by name.
+Reading both spellings through `decode_base64_token()` takes that count to zero.
+
 ### Parameter names
 
 Every check looks for a parameter: `?` or `&` before the name, then `&`, `#` or the end of the

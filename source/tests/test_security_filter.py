@@ -417,6 +417,61 @@ class TestShadowsocksBlobCipher:
         assert extract_ss_credentials(url + "?plugin=obfs-local") == ("none", "pw")
 
 
+class TestSsrPayloadAlphabet:
+    """The SSR payload is urlsafe base64, and the standard decoder does not object.
+
+    `b64decode` discards `-` and `_` instead of raising on them, so a spec-correct
+    payload using them decoded to a shifted window: the six colon-separated fields were
+    no longer where the code expected them, the helper returned None, and None is read
+    upstream as "no cipher problem here". Measured over 600 generated payloads, the
+    verdict went missing on 90 of them -- and in every one of those the cipher the
+    payload stated was `aes-256-cfb`, which xray cannot load at all: the node reached
+    the batch instead of being refused by name.
+    """
+
+    # A real payload from that sweep: urlsafe, unpadded, and its method field is
+    # `aes-256-cfb` once decoded correctly.
+    LOSING = "ssr://bjEwLmV4YW1wbGUubmV0OjgzODg6b3JpZ2luOmFlcy0yNTYtY2ZiOnBsYWluOnhEdksxMndBaXBzPS8_b2Jmc3BhcmFtPSZwcm90b3BhcmFtPSZyZW1hcmtzPWRHVnpkQQ"
+
+    def test_a_payload_using_the_urlsafe_alphabet_is_still_read(self):
+        assert extract_ss_credentials(self.LOSING) == ("aes-256-cfb", "")
+
+    def test_such_a_node_is_not_certified_clean(self):
+        assert has_insecure_setting(self.LOSING) is True
+
+    def test_a_whole_token_sweep_keeps_the_cipher_verdict(self):
+        """The alphabet has to hold for every payload length, not the sampled ones."""
+        import base64 as _b64
+        import random
+
+        rng = random.Random(11)
+        for i in range(300):
+            pw = _b64.b64encode(bytes(rng.randrange(256) for _ in range(8))).decode()
+            raw = (
+                f"n{i}.example.net:8388:origin:aes-256-cfb:plain:{pw}"
+                "/?obfsparam=&protoparam=&remarks=dGVzdA"
+            ).encode()
+            url = "ssr://" + _b64.urlsafe_b64encode(raw).decode().rstrip("=")
+
+            assert extract_ss_credentials(url) == ("aes-256-cfb", ""), url
+            assert has_insecure_setting(url) is True, url
+
+    def test_truncation_gives_no_verdict_rather_than_a_wrong_one(self):
+        """A shifted decode window is worse than a missing one.
+
+        Dropping `-` and `_` moves every field, so a short payload can come back
+        reading as some cipher. Either the answer is the cipher the payload states or
+        there is no answer -- a third name is a verdict on a node nobody read.
+        """
+        raw = b"h.example.net:443:origin:aes-256-gcm:plain:cGFzc3dvcmQ"
+        token = base64.urlsafe_b64encode(raw).decode().rstrip("=")
+
+        for cut in range(1, len(token)):
+            verdict = extract_ss_credentials(f"ssr://{token[:cut]}")
+
+            assert verdict in (None, ("aes-256-gcm", "")), (cut, verdict)
+
+
 class TestParameterBoundaries:
     """A setting is a query parameter, not a substring of the URL.
 

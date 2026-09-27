@@ -44,15 +44,18 @@ def base64_payload(url: str) -> str:
 def decode_base64_token(token: str) -> str | None:
     """One base64 token decoded, or None when it is not base64 text at all.
 
-    Both alphabets are tried -- standard (`+`, `/`) and urlsafe (`-`, `_`) -- because
-    the two are mixed in the wild: a share link may carry either, and one reader that
-    tries only the other silently corrupts the result rather than failing. Padding is
-    recomputed, since links are published with and without it.
+    The urlsafe alphabet is tried first, and the order is the whole point: the two
+    alphabets are not symmetric. `urlsafe_b64decode` translates `-` and `_` and still
+    accepts `+` and `/`, so it reads either spelling, while `b64decode` *discards*
+    `-` and `_` as characters outside its alphabet -- a urlsafe token fed to it comes
+    back with two bits of every affected byte missing, which is a corrupted decode
+    that raises nothing. The second attempt is a fallback for a token the first
+    rejects outright, not an alphabet sweep.
 
-    Decoding is deliberately strict about *this* step and lenient about the next: an
-    unpadded tail is repaired, but `errors="ignore"` means non-UTF-8 bytes are dropped.
-    The callers read fields out of the result by separator, so a dropped byte yields a
-    missing field rather than a wrong one, and a missing field is a `None` verdict.
+    Padding is recomputed because links are published with and without it. The decode
+    drops bytes that are not UTF-8: the callers read fields by separator, so a lost
+    byte costs them a field and yields a `None` verdict rather than a plausible wrong
+    one.
     """
     padded = token + "=" * (-len(token) % 4)
     for decoder in (base64.urlsafe_b64decode, base64.b64decode):

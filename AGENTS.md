@@ -630,7 +630,7 @@ correct a count here without correcting the guard's file too.
 - `test_security_filter.py` - 88 security filter tests (all protocols and edge cases, 2022 key length validation, the xray cipher allowlist, `extract_ss_credentials` across all four encodings)
 - `test_ip_verifier.py` - 35 IP verifier tests
 - `test_logger.py` - 30 logger tests
-- `test_yaml_converter.py` - 28 YAML converter tests
+- `test_yaml_converter.py` - 33 YAML converter tests
 - `test_smart_eta.py` - 27 SmartETA tests
 - `test_git_updater.py` - 26 GitUpdater tests (init, pull, commit, push, retry)
 - `test_url_stats.py` - 25 URL stats tests

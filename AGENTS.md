@@ -241,7 +241,7 @@ rjsxrd/
 
 #### `utils/file_utils.py` - Core Utilities
 - `apply_sni_cidr_filter()` - SNI/CIDR whitelist filtering
-- `extract_host_port()` - Extract (host, port) from any protocol URL (vless, vmess, trojan, ss, ssr, hysteria, hysteria2, tuic). Both `ss://` encodings are read — including the SIP003 form whose `method:password@host:port` sits inside one base64 token with no `@` in the URL — and an IPv6 host comes back **unbracketed**, because `ipaddress.ip_address()` and the TCP ping both refuse `[2001:db8::1]`
+- `extract_host_port()` - Extract (host, port) from any protocol URL (vless, vmess, trojan, ss, ssr, hysteria, hysteria2, tuic). Both `ss://` encodings are read — including the SIP003 form whose `method:password@host:port` sits inside one base64 token with no `@` in the URL — and an IPv6 host comes back **unbracketed**, because `ipaddress.ip_address()` and the TCP ping both refuse `[2001:db8::1]`. A port the config does not state (`"443,8443"`, `0`, `99999`) answers `None` rather than raising: one escaping `ValueError` costs a whole file, because `verify_config_file` catches it around the entire pass
 - `deduplicate_configs()` - Remove duplicates ignoring name/remark
 - `prepare_config_content()` - Normalize & split glued configs
 - `is_valid_vpn_config_url()` - Validate protocol format
@@ -616,7 +616,7 @@ correct a count here without correcting the guard's file too.
 - `test_config_processor.py` - 86 processor tests
 - `test_fetcher_unit.py` - 83 fetcher unit tests
 - `test_file_utils.py` - 71 file utils tests (dedup, URL validation, the SNI/CIDR chunking)
-- `test_extract_host_port.py` - 20 host/port tests, split out of the file-utils file: the scheme dispatch, the encoded vmess/ssr/`ss://` addresses, bracketed IPv6
+- `test_extract_host_port.py` - 35 host/port tests, split out of the file-utils file: the scheme dispatch, the encoded vmess/ssr/`ss://` addresses, bracketed IPv6
 - `test_fetch_guard_scope.py` - 70 destination-guard tests (refused ranges, the allowlist, the warning-filter walk)
 - `test_fetch_posture.py` - 55 fetch-security tests (refusals, the token host set, the run conditions)
 - `test_xray_tester.py` - 10 tester lifecycle tests (signals, startup timeout, fragment stage)

@@ -17,7 +17,7 @@ from urllib.parse import parse_qs, urlparse
 from config.settings import SNI_DOMAINS, SOURCE_CONFIG_DIR
 from utils.executor_cache import get_file_io_executor, get_regex_executor
 from utils.logger import log
-from utils.url_payload import base64_payload
+from utils.url_payload import base64_payload, decode_base64_token
 
 # ahocorasick-rs (Rust binding) for fast SNI domain matching. Per-haystack
 # API: build the automaton once with all patterns, then check each
@@ -117,28 +117,39 @@ def split_and_replace_file(filepath: str, max_size_mb: float = 49.0) -> list[str
     return created
 
 
+def _read_port(value: object) -> int | None:
+    """The port a config states, or None when it does not state one.
+
+    A config's port arrives as a string, and share links and clash exports state things
+    like `"443,8443"`, `""` and `0` in that slot. Every handler answers None rather than
+    raising: `extract_host_port` is called over a whole corpus, and a `ValueError`
+    escaping it is swallowed by one caller, aborts a TCP pass for another, and is caught
+    around an entire file by `verify_config_file` -- where one bad line costs every good
+    one in it. The upper bound is the wire's own: `urlparse().port`, which the generic
+    path already goes through, refuses anything above 65535 by itself.
+    """
+    try:
+        port = int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+    return port if 0 < port <= 65535 else None
+
+
 def _decode_vmess_host_port(line: str) -> tuple[str, int] | None:
     """vmess:// — base64-decode the JSON payload and extract add/port."""
     if not line.lower().startswith("vmess://"):
         return None
-    payload = base64_payload(line)
-    rem = len(payload) % 4
-    if rem:
-        payload += "=" * (4 - rem)
-    try:
-        decoded = base64.b64decode(payload).decode("utf-8", errors="ignore")
-    except (ValueError, TypeError, UnicodeDecodeError):
-        return None
-    if not decoded.startswith("{"):
+    decoded = decode_base64_token(base64_payload(line))
+    if not decoded or not decoded.startswith("{"):
         return None
     try:
         j = json.loads(decoded)
     except (ValueError, json.JSONDecodeError):
         return None
     host = j.get("add", "")
-    port = j.get("port", 0)
+    port = _read_port(j.get("port"))
     if host and port:
-        return (host, int(port))
+        return (host, port)
     return None
 
 
@@ -155,18 +166,7 @@ def _decode_ssr_host_port(line: str) -> tuple[str, int] | None:
     """
     if not line.lower().startswith("ssr://"):
         return None
-    payload = base64_payload(line)
-    rem = len(payload) % 4
-    if rem:
-        payload += "=" * (4 - rem)
-    decoded = None
-    for decoder in (base64.urlsafe_b64decode, base64.b64decode):
-        try:
-            decoded = decoder(payload).decode("utf-8", errors="ignore")
-            if ":" in decoded:
-                break
-        except (ValueError, TypeError, UnicodeDecodeError):
-            continue
+    decoded = decode_base64_token(base64_payload(line))
     if not decoded or ":" not in decoded:
         return None
     # Strip query if present
@@ -184,12 +184,9 @@ def _decode_ssr_host_port(line: str) -> tuple[str, int] | None:
         if len(parts) < 2:
             return None
         host, port_str = parts[0], parts[1]
-    try:
-        port = int(port_str)
-        if host and port > 0:
-            return (host, port)
-    except ValueError:
-        pass
+    port = _read_port(port_str)
+    if host and port:
+        return (host, port)
     return None
 
 
@@ -211,25 +208,12 @@ def _decode_ss_host_port(line: str) -> tuple[str, int] | None:
     body = base64_payload(line)
     if "@" in body:
         return None
-    decoded = None
-    for decoder in (base64.urlsafe_b64decode, base64.b64decode):
-        padding = 4 - len(body) % 4
-        try:
-            decoded = decoder(body + "=" * padding if padding != 4 else body).decode(
-                "utf-8", errors="ignore"
-            )
-        except (ValueError, TypeError, UnicodeDecodeError):
-            continue
-        if "@" in decoded and ":" in decoded.rsplit("@", 1)[-1]:
-            break
+    decoded = decode_base64_token(body)
     if not decoded or "@" not in decoded:
         return None
     host, _, port_str = decoded.rsplit("@", 1)[-1].rpartition(":")
-    try:
-        port = int(port_str)
-    except ValueError:
-        return None
-    return (host, port) if host and port > 0 else None
+    port = _read_port(port_str)
+    return (host, port) if host and port else None
 
 
 def _unbracket(host_port: tuple[str, int] | None) -> tuple[str, int] | None:

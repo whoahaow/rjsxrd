@@ -265,10 +265,15 @@ URL before anything is built. `none` and `plain` mark where the two filters part
 `xray_compat.py` refuses what xray cannot load, `security_filter.py` flags what it
 loads with no encryption.
 
-Not refused: Hysteria2, and Reality over WebSocket or gRPC. xray added the
-Hysteria2 outbound in v26.1.13 and the pipeline runs `releases/latest`, and its
-Reality client builder never inspects the transport — refusing either discards
-configs xray loads and connects with.
+Not refused: Hysteria2 — xray added that outbound in v26.1.13 and the pipeline runs
+`releases/latest`, so refusing it discards configs xray loads and connects with. Reality
+is a narrower story: `StreamConfig.Build()` checks the resolved protocol name and answers
+`REALITY only supports RAW, XHTTP and gRPC for now.` over ws, httpupgrade, kcp and
+hysteria (`transport_internet.go:1777-1780`, v26.3.27), and those are refused before the
+config ever reaches the shared process. An earlier reading of the same rule — that
+reality's *client* builder never inspects the transport, so any transport loads — was
+wrong: the check is in the stream config both directions share, and it was admitted for a
+round on that basis.
 
 ## xray_helpers.py — pure Xray helpers
 

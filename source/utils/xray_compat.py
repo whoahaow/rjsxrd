@@ -82,6 +82,15 @@ _XRAY_TRANSPORTS = frozenset(
 # batch mode one such URL costs every other config in the chunk.
 _REMOVED_TRANSPORTS = frozenset({"h2", "h3", "http", "quic"})
 
+# The transports Reality loads over. `StreamConfig.Build()` compares the name
+# `TransportProtocol.Build()` resolved to `tcp`, `splithttp` or `grpc` and answers
+# `REALITY only supports RAW, XHTTP and gRPC for now.` for everything else
+# (`transport_internet.go:1777-1780`, v26.3.27) -- a config-load failure, so ws,
+# httpupgrade, kcp/mkcp and hysteria are refused here rather than handed to the shared
+# process. `splithttp` is in the set because that is what xhttp resolves to, and a rule
+# written against the spelling in the URL would refuse configs xray accepts.
+_REALITY_TRANSPORTS = frozenset({"raw", "tcp", "xhttp", "splithttp", "grpc"})
+
 # Reality's client decodes `shortId` with `hex.Decode` into an 8-byte buffer
 # after rejecting `len > 16`, so: at most 16 hex characters, an even count, and
 # empty is legal (it is the common case — most panels ship no shortId).
@@ -268,6 +277,15 @@ def _xray_incompatible_reason(cfg: str) -> str:
             return f"transport removed from xray: {name}"
         if name not in _XRAY_TRANSPORTS:
             return f"unknown transport protocol: {name}"
+        if name not in _REALITY_TRANSPORTS and "security=reality" in cfg_lower:
+            # `StreamConfig.Build()` inspects the resolved protocol name for reality
+            # (`transport_internet.go:1777-1780`, v26.3.27): anything that is not `tcp`,
+            # `splithttp` or `grpc` returns `REALITY only supports RAW, XHTTP and gRPC
+            # for now.` The names come from `TransportProtocol.Build()` (`:998-1024`),
+            # which is also what folds the spelling, so `ws`, `websocket`, `httpupgrade`,
+            # `kcp`, `mkcp` and `hysteria` all load-fail here -- and in batch mode one of
+            # them costs every other config sharing the process.
+            return f"reality over {name}, which xray's stream config rejects"
 
     if cfg_lower.startswith(_STREAM_SECURITY_SCHEMES):
         security_match = re.search(r"[?&]security=([^&#]+)", cfg_lower)

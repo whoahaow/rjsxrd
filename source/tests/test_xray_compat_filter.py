@@ -146,6 +146,40 @@ class TestAHysteria2NodeNeedingNoVerification:
         """The rule reads the parameter, not the scheme."""
         assert _xray_incompatible_reason(HY2_URL) == ""
 
+    def test_the_parameter_is_read_at_a_query_boundary_not_as_a_substring(self) -> None:
+        """A node's name is not a setting, in either direction.
+
+        The rule was `any(flag in cfg_lower ...)`, so a remark that happened to
+        contain the text `insecure=1` refused a Hysteria2 node xray could verify --
+        and, the other way round, a name carrying `pinSHA256=` excused a node that
+        genuinely asks for verification off. `insecure=yes` was also missed: the
+        hysteria2 spec writes the flag as a number, and every client that spells it
+        out says `yes` or `true`.
+        """
+        named = "hy2://token@hy2.example.com:443?sni=hy2.example.com#old-insecure=1-node"
+        excused = "hy2://token@hy2.example.com:443?insecure=1#see-pinSHA256=docs"
+
+        assert _xray_incompatible_reason(named) == "", "a remark must not refuse the node"
+        assert "allowInsecure" in _xray_incompatible_reason(excused)
+
+    @pytest.mark.parametrize("flag", ["1", "true", "TRUE", "yes", "on"])
+    def test_every_truthy_spelling_of_insecure_is_refused(self, flag: str) -> None:
+        url = f"hy2://token@hy2.example.com:443?insecure={flag}"
+
+        assert "allowInsecure" in _xray_incompatible_reason(url)
+
+    @pytest.mark.parametrize("flag", ["0", "false", "no"])
+    def test_a_node_that_verifies_is_testable(self, flag: str) -> None:
+        url = f"hy2://token@hy2.example.com:443?insecure={flag}&sni=hy2.example.com"
+
+        assert _xray_incompatible_reason(url) == ""
+
+    def test_an_empty_pin_is_no_pin(self) -> None:
+        """`pinSHA256=` proves the parameter exists, not that xray can check anything."""
+        url = "hy2://token@hy2.example.com:443?insecure=1&pinSHA256="
+
+        assert "allowInsecure" in _xray_incompatible_reason(url)
+
 
 class TestBothModesRefuseTheSameConfig:
     """Batch and single verification must reach the same verdict for one URL.

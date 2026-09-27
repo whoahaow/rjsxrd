@@ -103,11 +103,20 @@ def _query_value(cfg: str, key: str) -> str | None:
 
     Shared because seven rules read a parameter by hand and disagreed about the
     tail — one split on `#`, another did not — which is how a rule ends up
-    judging text that was never part of the parameter. Parameter names are
-    matched case-insensitively because YAML converters emit both `pbk` and `PBK`;
-    the *value* keeps its original case, since a base64 key is case-sensitive.
+    judging text that was never part of the parameter. The remark is cut before
+    the query is located for the same reason: `…?pbk=<valid>#sid=zz` carries no
+    second `sid`, and a rule that searched the whole string would refuse a config
+    xray builds without complaint.
+
+    Parameter names are matched case-insensitively because YAML converters emit
+    both `pbk` and `PBK`; the *value* keeps its original case, since a base64 key
+    is case-sensitive.
     """
-    match = re.search(rf"(?:\?|&){key}=([^&#]*)", cfg, re.IGNORECASE)
+    body = cfg.split("#", 1)[0]
+    if "?" not in body:
+        return None
+    query = body.split("?", 1)[1]
+    match = re.search(rf"(?:^|&){key}=([^&]*)", query, re.IGNORECASE)
     return None if match is None else unquote(match.group(1))
 
 

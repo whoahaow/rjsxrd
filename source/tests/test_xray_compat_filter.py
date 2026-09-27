@@ -378,6 +378,18 @@ class TestTheOlderRules:
         """
         assert _xray_incompatible_reason(url) == ""
 
+    def test_a_parameter_shape_inside_the_remark_is_not_read_as_a_parameter(self) -> None:
+        """The node name is free text; only the query is a source of parameters.
+
+        `#old-node?sid=zz` sets no shortId — it is a remark that happens to contain
+        `?` and `=`. A rule that searched the whole URL found `sid=zz` there and
+        refused a config xray builds without complaint, so the case is pinned on
+        both sides: the real parameters pass, and the remark cannot trigger them.
+        """
+        url = f"{REALITY}&pbk={PBK}&sni=h.example.com#old-node?sid=zz&type=h2"
+
+        assert _xray_incompatible_reason(url) == ""
+
     def test_a_dashless_uuid_is_not_junk(self) -> None:
         """`common/uuid.ParseString` accepts 32-36 characters of hex, dashes or not.
 

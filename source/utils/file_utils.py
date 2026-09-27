@@ -170,10 +170,19 @@ def _decode_ssr_host_port(line: str) -> tuple[str, int] | None:
         return None
     # Strip query if present
     main = decoded.split("/?", 1)[0]
-    parts = main.split(":")
-    if len(parts) < 2:
-        return None
-    host, port_str = parts[0], parts[1]
+    if main.startswith("["):
+        # A bracketed IPv6 host is full of the same character that separates the
+        # SSR fields, so the ordinary split reads "host" out of the address.
+        # `partition` drops the closing bracket, and `_unbracket()` matches the
+        # pair, so it is put back rather than half-stripped here.
+        host, close, rest = main.partition("]")
+        host = host + close
+        port_str = rest.lstrip(":").split(":", 1)[0]
+    else:
+        parts = main.split(":")
+        if len(parts) < 2:
+            return None
+        host, port_str = parts[0], parts[1]
     try:
         port = int(port_str)
         if host and port > 0:
@@ -181,6 +190,62 @@ def _decode_ssr_host_port(line: str) -> tuple[str, int] | None:
     except ValueError:
         pass
     return None
+
+
+def _decode_ss_host_port(line: str) -> tuple[str, int] | None:
+    """ss:// where the address itself is inside the base64 blob.
+
+    SIP003's `ss://base64(method:password@hostname:port)` puts the host behind one
+    token with no `@` in the URL at all, so urlparse finds no hostname, the generic
+    path returns None, and a config with no host cannot be matched against the SNI
+    whitelist — which silently drops every such node out of the bypass files while
+    the verifier happily parses the same form. This reads what
+    `_decode_ss_base64()` in `utils/protocol_parsers.py` reads.
+
+    The compatibility form `ss://base64(method:password)@host:port` is left to the
+    generic path: there the host is already in the clear.
+    """
+    if not line.lower().startswith("ss://"):
+        return None
+    body = line[5:].split("#", 1)[0].split("?", 1)[0]
+    if "@" in body:
+        return None
+    decoded = None
+    for decoder in (base64.urlsafe_b64decode, base64.b64decode):
+        padding = 4 - len(body) % 4
+        try:
+            decoded = decoder(body + "=" * padding if padding != 4 else body).decode(
+                "utf-8", errors="ignore"
+            )
+        except (ValueError, TypeError, UnicodeDecodeError):
+            continue
+        if "@" in decoded and ":" in decoded.rsplit("@", 1)[-1]:
+            break
+    if not decoded or "@" not in decoded:
+        return None
+    host, _, port_str = decoded.rsplit("@", 1)[-1].rpartition(":")
+    try:
+        port = int(port_str)
+    except ValueError:
+        return None
+    return (host, port) if host and port > 0 else None
+
+
+def _unbracket(host_port: tuple[str, int] | None) -> tuple[str, int] | None:
+    """Drop the brackets around an IPv6 literal, in one place.
+
+    urlparse already returns `2001:db8::1` bare, while a JSON `"add"` or a decoded
+    blob carries `[2001:db8::1]`. Both consumers want the bare form: the CIDR
+    whitelist check hands the host to `ipaddress.ip_address()`, which raises on
+    brackets, and so does the TCP ping. Normalising here means no handler has to
+    know about it.
+    """
+    if host_port is None:
+        return None
+    host, port = host_port
+    if host.startswith("[") and host.endswith("]"):
+        host = host[1:-1]
+    return (host, port)
 
 
 def _decode_generic_host_port(line: str) -> tuple[str, int] | None:
@@ -209,6 +274,7 @@ def _decode_generic_host_port(line: str) -> tuple[str, int] | None:
 _HOST_PORT_HANDLERS = (
     ("vmess://", _decode_vmess_host_port),
     ("ssr://", _decode_ssr_host_port),
+    ("ss://", _decode_ss_host_port),
 )
 
 
@@ -225,9 +291,9 @@ def extract_host_port(line: str) -> tuple[str, int] | None:
         if line.lower().startswith(prefix):
             result = handler(line)
             if result is not None:
-                return result
+                return _unbracket(result)
     try:
-        return _decode_generic_host_port(line)
+        return _unbracket(_decode_generic_host_port(line))
     except (ValueError, TypeError):
         return None
 

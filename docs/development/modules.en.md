@@ -121,6 +121,14 @@ Filters configs by whitelist files:
 
 Extracts the host and port from a URL of any supported protocol. Deduplication uses the `lru_cache` in `_get_dedup_key()`.
 
+Three handlers decode what `urlparse` cannot see: the vmess JSON, the SSR payload,
+and the SIP003 `ss://base64(method:password@host:port)` blob, whose address sits
+behind one token with no `@` in the URL at all. Missing that form costs silent
+publication: the config stays in every other file, so it reads as filtered rather
+than lost. Whatever a handler returns goes through one IPv6 normalisation —
+`[2001:db8::1]` is what the URL says, `2001:db8::1` is what `ipaddress.ip_address()`
+and the TCP ping accept, and the CIDR whitelist check calls exactly that.
+
 ### `deduplicate_configs(configs) -> list`
 
 Removes duplicates based on content (ignoring the name/remark). O(n) in memory.

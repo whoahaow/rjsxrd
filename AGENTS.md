@@ -106,6 +106,7 @@ rjsxrd/
 │   │   ├── test_config_tagger.py
 │   │   ├── test_docs_figures.py
 │   │   ├── test_executor_cache.py
+│   │   ├── test_extract_host_port.py
 │   │   ├── test_fetch_guard_scope.py
 │   │   ├── test_fetch_posture.py
 │   │   ├── test_fetch_run_conditions.py
@@ -138,6 +139,7 @@ rjsxrd/
 │   │   ├── test_url_stats.py
 │   │   ├── test_vpn_config.py
 │   │   ├── test_xray_batch.py
+│   │   ├── test_xray_compat_filter.py
 │   │   ├── test_xray_tester.py
 │   │   └── test_yaml_converter.py
 │   └── requirements.txt
@@ -234,7 +236,7 @@ rjsxrd/
 
 #### `utils/file_utils.py` - Core Utilities
 - `apply_sni_cidr_filter()` - SNI/CIDR whitelist filtering
-- `extract_host_port()` - Extract (host, port) from any protocol URL (vless, vmess, trojan, ss, ssr, hysteria, hysteria2, tuic)
+- `extract_host_port()` - Extract (host, port) from any protocol URL (vless, vmess, trojan, ss, ssr, hysteria, hysteria2, tuic). Both `ss://` encodings are read — including the SIP003 form whose `method:password@host:port` sits inside one base64 token with no `@` in the URL — and an IPv6 host comes back **unbracketed**, because `ipaddress.ip_address()` and the TCP ping both refuse `[2001:db8::1]`
 - `deduplicate_configs()` - Remove duplicates ignoring name/remark
 - `prepare_config_content()` - Normalize & split glued configs
 - `is_valid_vpn_config_url()` - Validate protocol format
@@ -433,6 +435,11 @@ rjsxrd/
 4. Check against whitelist
 5. Filter non-matching configs
 
+An extraction failure is silent in the worst way: a config whose host cannot be read
+is not in the bypass files, but it is still in every other file, so it looks filtered
+rather than lost. `extract_host_port()` has to understand every address encoding the
+verifier understands, which is why the encoded `ss://` blob form is tested against it.
+
 **Result:**
 - `bypass/` - Secure configs (security + SNI/CIDR filtered)
 - `bypass-unsecure/` - All configs (SNI/CIDR filtered only)
@@ -583,7 +590,8 @@ snapshot for orientation: its per-file numbers are not kept in step, so do not
 correct a count here without correcting the guard's file too.
 - `test_config_processor.py` - 86 processor tests
 - `test_fetcher_unit.py` - 83 fetcher unit tests
-- `test_file_utils.py` - 70 file utils tests
+- `test_file_utils.py` - 59 file utils tests (dedup, URL validation, the SNI/CIDR chunking)
+- `test_extract_host_port.py` - 20 host/port tests, split out of the file-utils file: the scheme dispatch, the encoded vmess/ssr/`ss://` addresses, bracketed IPv6
 - `test_fetch_guard_scope.py` - 70 destination-guard tests (refused ranges, the allowlist, the warning-filter walk)
 - `test_fetch_posture.py` - 55 fetch-security tests (refusals, the token host set, the run conditions)
 - `test_xray_tester.py` - 10 tester lifecycle tests (signals, startup timeout, fragment stage)

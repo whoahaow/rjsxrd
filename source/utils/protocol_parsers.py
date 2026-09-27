@@ -30,11 +30,12 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from utils.security_filter import is_xray_cipher
 from utils.vpn_config import parse_url as vpn_parse_url
-from utils.xray_helpers import xray_fingerprint
 from utils.xray_stream_settings import (
+    _WS_NAMES,
     _make_stream_settings,
     _make_tls_settings,
     _make_ws_settings,
+    vmess_security,
 )
 
 # ── Shared helpers ─────────────────────────────────────────────────────
@@ -182,30 +183,33 @@ def parse_vmess_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         if not data.get("add") or not data.get("port") or not data.get("id"):
             return None
 
-        # Build stream settings
-        network = data.get("net", "tcp")
-        security = data.get("tls", "")
-
-        stream_settings = {"network": network, "security": security if security else "none"}
-
-        # Add tlsSettings when security is TLS
-        if security == "tls":
-            server_name = data.get("host") or data.get("add")
-            if not server_name or not server_name.strip():
-                return None
-            stream_settings["tlsSettings"] = {
-                "serverName": server_name.strip(),
-                "fingerprint": xray_fingerprint(data.get("fp")),
-            }
-
-        # Add transport-specific settings
-        if network == "ws":
-            stream_settings["wsSettings"] = {
-                "path": data.get("path", "/"),
-                "host": data.get("host", data.get("add", "")),
-            }
-        elif network == "grpc":
-            stream_settings["grpcSettings"] = {"serviceName": data.get("path", "")}
+        # Build stream settings through the same builder the URL parsers use, so
+        # every transport gets its settings block: this branch used to know only ws
+        # and grpc, and a vmess config on httpupgrade/xhttp was dialled without a
+        # path or host. `host` doubles as the SNI here because that is what
+        # v2rayN-style JSON carries -- the vmess object has no `sni` of its own in
+        # most exports, and sending the address as SNI breaks the handshake.
+        security = vmess_security(data.get("tls"))
+        if security not in ("none", "tls"):
+            # Only these two are expressible from a vmess object. The reality key
+            # names disagree between the clients that write this JSON, so guessing
+            # them would test a key the node does not use — and emitting
+            # `security: reality` with no realitySettings fails the load outright.
+            return None
+        params = {
+            "path": [str(data.get("path", ""))],
+            "host": [str(data.get("host", data.get("add", "")))],
+            "serviceName": [str(data.get("path", ""))],
+            "sni": [str(data.get("sni") or data.get("host") or data.get("add", ""))],
+            "fp": [str(data.get("fp", ""))],
+        }
+        if security == "tls" and not (data.get("host") or data.get("add")):
+            return None
+        stream_settings = _make_stream_settings(
+            data.get("net", "tcp"), security, params, str(data.get("add", ""))
+        )
+        if stream_settings is None:
+            return None
 
         # No `h2`/`http` branch: xray deleted the HTTP transport, so asking for
         # it is a config-load failure. `xray_compat` refuses those configs before
@@ -447,7 +451,7 @@ def parse_shadowsocks_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         network = params.get("type", ["tcp"])[0] if params.get("type") else "tcp"
         stream_settings: dict[str, Any] = {"network": network, "security": "none"}
 
-        if network == "ws":
+        if network in _WS_NAMES:
             stream_settings["wsSettings"] = _make_ws_settings(
                 params.get("path", ["/"])[0],
                 params.get("host", [hostname])[0],

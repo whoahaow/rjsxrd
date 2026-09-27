@@ -262,6 +262,8 @@ rjsxrd/
 - Split out of `protocol_parsers.py` when that file crossed the module-size ceiling: pure builders, no URL parsing
 - `_make_stream_settings()`, `_make_tls_settings()`, `_make_reality_settings()`, `_make_ws_settings()`, `_make_grpc_settings()`, `_make_httpupgrade_settings()`, `_make_xhttp_settings()` — every key is one xray's `StreamConfig` reads at v26.3.27 (`wsSettings{path,host}`, `httpupgradeSettings{path,host}`, `xhttpSettings{path,host,mode}`, `realitySettings{serverName,fingerprint,publicKey,shortId}`); a `host` inside a `headers` map is the deprecated shape and is not emitted
 - `apply_tls_fragment()` — the one the verifier calls, not a URL parser: it attaches the `finalmask.tcp` stage that makes `ENABLE_FRAGMENT` real
+- `_WS_NAMES` / `_XHTTP_NAMES` — the transport aliases `TransportProtocol.Build()` resolves to one protocol. Dispatching on the literal `"ws"` instead sent `type=websocket` out with no `wsSettings`, so the path and host never reached the handshake
+- `vmess_security()` — a vmess object writes its transport as `"tls"`, `"none"`, a bare JSON `true`, or `"reality"`. `StreamConfig` matches `security` against a string, so the boolean arriving as `true` was `Unknown security "true"` — a load failure
 - `xray_fingerprint()` (in `xray_helpers.py`) resolves the `fp=` value, because xray aborts the config load on a fingerprint it cannot resolve
 
 #### `utils/smart_eta.py` - Smart ETA Estimator
@@ -298,7 +300,7 @@ rjsxrd/
 - `test_through_socks()` - HTTP ping through SOCKS
 - **Protocol parsers** (dispatched from `_url_to_outbound()` to `protocol_parsers.py`):
   - `parse_vless_to_outbound()` - Full support (TLS, Reality, WS, gRPC, HTTPUpgrade)
-  - `parse_vmess_to_outbound()` - TLS, WS, gRPC (xray removed the HTTP transport, so `net: h2` configs are refused before verification)
+  - `parse_vmess_to_outbound()` - TLS, WS, gRPC, HTTPUpgrade, XHTTP through the shared builder (`net: websocket`/`splithttp` are the aliases xray resolves); no h2 branch — xray removed that transport — and `tls: reality` is declined, because the reality field names in a vmess object are not agreed on between clients
   - `parse_trojan_to_outbound()` - Full support (TLS, Reality, WS, gRPC, HTTPUpgrade)
   - `parse_shadowsocks_to_outbound()` - Full support (AEAD only, weak ciphers rejected)
   - `parse_ssr_to_outbound()` - Limited (converted to Shadowsocks)

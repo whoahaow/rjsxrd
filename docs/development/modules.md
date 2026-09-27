@@ -170,7 +170,7 @@
 | Протокол | Метод (xray_tester) | Возможности парсера |
 |----------|---------------------|---------------------|
 | VLESS | `_parse_vless_to_outbound()` | TLS, Reality, WS, gRPC, HTTPUpgrade |
-| VMess | `_parse_vmess_to_outbound()` | TLS, WS, gRPC, h2 |
+| VMess | `_parse_vmess_to_outbound()` | TLS, WS, gRPC, httpupgrade, xhttp (h2 удалён из xray; reality отклоняется) |
 | Trojan | `_parse_trojan_to_outbound()` | TLS, Reality, WS, gRPC, HTTPUpgrade |
 | Shadowsocks | `_parse_shadowsocks_to_outbound()` | Только AEAD |
 | SSR | `_parse_ssr_to_outbound()` | Конвертация → Shadowsocks |
@@ -268,7 +268,7 @@ Hysteria2 xray добавил в v26.1.13, а пайплайн берёт `relea
 
 - `parse_vless_to_outbound()` — TLS, Reality, WS, gRPC, HTTPUpgrade (97→33 строк, использует shared helpers)
 - `parse_trojan_to_outbound()` — TLS, Reality, WS, gRPC, HTTPUpgrade (103→32 строк, использует shared helpers)
-- `parse_vmess_to_outbound()` — TLS, WS, gRPC (93 строк, base64 JSON); ветки h2 нет — xray удалил этот транспорт
+- `parse_vmess_to_outbound()` — TLS, WS, gRPC, httpupgrade, xhttp через общий builder; `tls: true` (булево из старых экспортов) нормализуется в `"tls"`, ветки h2 нет — xray удалил этот транспорт
 - `parse_shadowsocks_to_outbound()` — только шифры из `SS_XRAY_CIPHERS`, метод отдаётся в нижнем регистре
 - `parse_ssr_to_outbound()` — конвертация → Shadowsocks (использует `_clean_url_part`), тот же список шифров
 - `parse_hysteria2_to_outbound()` — outbound ровно в том виде, в котором его документирует xray: `protocol: "hysteria"`, `version: 2`, TLS, `finalmask.udp` для obfuscation salamander
@@ -295,6 +295,8 @@ Hysteria2 xray добавил в v26.1.13, а пайплайн берёт `relea
 - `_make_stream_settings(network, security, params, host)` — весь блок: tls или reality плюс настройки транспорта
 - `_make_tls_settings()`, `_make_reality_settings()`, `_make_ws_settings()`, `_make_grpc_settings()`, `_make_httpupgrade_settings()`, `_make_xhttp_settings()` — строители секций
 - `apply_tls_fragment(stream)` — навешивает стадию `finalmask.tcp`, которая и делает `ENABLE_FRAGMENT` настоящим; вызывает её верификатор, а не парсер URL
+- `_WS_NAMES` / `_XHTTP_NAMES` — пары транспортов, которые `TransportProtocol.Build()` сводит к одному протоколу; диспетч по литералу `"ws"` оставлял `type=websocket` без блока настроек, и path с host не попадали в handshake
+- `vmess_security(raw)` — читает поле `tls` объекта vmess, куда клиенты пишут `"tls"`, `"none"`, голое `true` или `"reality"`; `StreamConfig` сравнивает `security` со строкой, поэтому `true` в outward означал `Unknown security "true"` — падение загрузки, а не неудачное соединение
 
 Две формы выбраны сознательно. `wsSettings`, `httpupgradeSettings` и
 `xhttpSettings` несут `host`, а не карту `headers`: xray принимает host, спрятанный

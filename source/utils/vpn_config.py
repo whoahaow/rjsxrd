@@ -21,6 +21,15 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from utils.security_filter import is_xray_cipher
 from utils.xray_helpers import xray_fingerprint
+from utils.xray_stream_settings import (
+    _WS_NAMES,
+    _XHTTP_NAMES,
+    _make_grpc_settings,
+    _make_httpupgrade_settings,
+    _make_ws_settings,
+    _make_xhttp_settings,
+    vmess_security,
+)
 
 # ── Base class ──────────────────────────────────────────────────────────
 
@@ -42,6 +51,7 @@ class VPNConfig:
     tls: bool = False
     sni: str = ""
     fingerprint: str = ""  # the URL's `fp=`, resolved by xray_fingerprint()
+    mode: str = ""  # xhttp's `mode=`; xray defaults to "auto" when it is absent
     ws_path: str = ""
     ws_host: str = ""
     grpc_service_name: str = ""
@@ -293,6 +303,7 @@ def _parse_vless(url: str) -> VLESSConfig | None:
         public_key=params.get("pbk", [""])[0],
         short_id=params.get("sid", [""])[0],
         fingerprint=params.get("fp", [""])[0],
+        mode=params.get("mode", [""])[0],
         transport=params.get("type", ["tcp"])[0],
         ws_path=params.get("path", [""])[0],
         ws_host=params.get("host", [""])[0],
@@ -317,6 +328,15 @@ def _parse_vmess(url: str) -> VMessConfig | None:
     except (json.JSONDecodeError, ValueError):
         return None
 
+    # The `tls` field is a string, a boolean or absent depending on which client
+    # wrote the JSON; xray matches `security` against a string, so this has to be
+    # resolved before it reaches the outbound. Anything other than "none"/"tls"
+    # (reality above all) is left to the URL parsers, because the reality key
+    # names in this object are not agreed on between the clients that write it.
+    net_security = vmess_security(j.get("tls"))
+    if net_security not in ("none", "tls"):
+        return None
+
     return VMessConfig(
         host=j.get("add", ""),
         port=int(j.get("port", 0)),
@@ -324,9 +344,10 @@ def _parse_vmess(url: str) -> VMessConfig | None:
         uuid=j.get("id", ""),
         alter_id=int(j.get("aid", 0)),
         security=j.get("scy", "auto"),
-        tls=bool(j.get("tls")),
+        tls=net_security == "tls",
         sni=j.get("sni", ""),
         fingerprint=j.get("fp", ""),
+        mode=str(j.get("mode", "")),
         transport=j.get("net", "tcp"),
         ws_path=j.get("path", ""),
         ws_host=j.get("host", ""),
@@ -357,6 +378,7 @@ def _parse_trojan(url: str) -> TrojanConfig | None:
         # the node reject us, so the test reported a working node as dead.
         short_id=params.get("sid", [""])[0],
         fingerprint=params.get("fp", [""])[0],
+        mode=params.get("mode", [""])[0],
         transport=params.get("type", ["tcp"])[0],
         ws_path=params.get("path", [""])[0],
         ws_host=params.get("host", [""])[0],
@@ -470,24 +492,22 @@ def _add_stream_settings(
         }
         ss["tlsSettings"] = tls_settings
 
-    if cfg.transport == "ws":
-        ws: dict[str, Any] = {"path": cfg.ws_path or "/"}
-        if cfg.ws_host:
-            ws["host"] = cfg.ws_host
-        ss["network"] = "ws"
-        ss["wsSettings"] = ws
+    if cfg.transport in _WS_NAMES:
+        ss["network"] = cfg.transport
+        ss["wsSettings"] = _make_ws_settings(cfg.ws_path or "/", cfg.ws_host or cfg.host)
     elif cfg.transport == "grpc":
         ss["network"] = "grpc"
-        ss["grpcSettings"] = {"serviceName": cfg.grpc_service_name or ""}
+        ss["grpcSettings"] = _make_grpc_settings(cfg.grpc_service_name)
     elif cfg.transport == "httpupgrade":
         ss["network"] = "httpupgrade"
-        ss["httpupgradeSettings"] = {
-            "path": cfg.ws_path or "/",
-            "host": cfg.ws_host or cfg.host,
-        }
-    elif cfg.transport in ("xhttp", "splithttp"):
+        ss["httpupgradeSettings"] = _make_httpupgrade_settings(
+            cfg.ws_path or "/", cfg.ws_host or cfg.host
+        )
+    elif cfg.transport in _XHTTP_NAMES:
         ss["network"] = cfg.transport
-        ss["xhttpSettings"] = {"path": cfg.ws_path or "/", "host": cfg.ws_host or cfg.host}
+        ss["xhttpSettings"] = _make_xhttp_settings(
+            cfg.ws_path or "/", cfg.ws_host or cfg.host, cfg.mode
+        )
     elif cfg.transport == "tcp":
         ss["network"] = "tcp"
 

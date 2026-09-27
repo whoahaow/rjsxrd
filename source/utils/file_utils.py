@@ -17,6 +17,7 @@ from urllib.parse import parse_qs, urlparse
 from config.settings import SNI_DOMAINS, SOURCE_CONFIG_DIR
 from utils.executor_cache import get_file_io_executor, get_regex_executor
 from utils.logger import log
+from utils.url_payload import base64_payload
 
 # ahocorasick-rs (Rust binding) for fast SNI domain matching. Per-haystack
 # API: build the automaton once with all patterns, then check each
@@ -120,7 +121,7 @@ def _decode_vmess_host_port(line: str) -> tuple[str, int] | None:
     """vmess:// — base64-decode the JSON payload and extract add/port."""
     if not line.lower().startswith("vmess://"):
         return None
-    payload = line[8:]
+    payload = base64_payload(line)
     rem = len(payload) % 4
     if rem:
         payload += "=" * (4 - rem)
@@ -154,7 +155,7 @@ def _decode_ssr_host_port(line: str) -> tuple[str, int] | None:
     """
     if not line.lower().startswith("ssr://"):
         return None
-    payload = line[6:]
+    payload = base64_payload(line)
     rem = len(payload) % 4
     if rem:
         payload += "=" * (4 - rem)
@@ -207,7 +208,7 @@ def _decode_ss_host_port(line: str) -> tuple[str, int] | None:
     """
     if not line.lower().startswith("ss://"):
         return None
-    body = line[5:].split("#", 1)[0].split("?", 1)[0]
+    body = base64_payload(line)
     if "@" in body:
         return None
     decoded = None
@@ -388,7 +389,7 @@ def _get_dedup_key(config: str) -> tuple | None:
         # not in the URL itself (urlparse sees the b64 string as netloc).
         # Key on (add, port, id) — ignore ps (the remark/name).
         if config.lower().startswith("vmess://"):
-            payload = config[8:]
+            payload = base64_payload(config)
             rem = len(payload) % 4
             if rem:
                 payload += "=" * (4 - rem)

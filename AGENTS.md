@@ -78,6 +78,7 @@ rjsxrd/
 │   │   ├── fetch_outcomes.py      # Shared fetch-outcome vocabulary (the refusal and run-condition markers)
 │   │   ├── bypass_builder.py       # Bypass config verification pipeline
 │   │   ├── file_writer.py          # Config file writing helpers
+│   │   ├── url_payload.py          # One rule for where a base64 payload stops: the remark and query tail
 │   │   ├── xray_batch.py           # BatchRunner for concurrent Xray testing
 │   │   ├── xray_compat.py          # Configs xray cannot load, refused before verification (rules read at v26.3.27)
 │   │   ├── xray_helpers.py         # Pure helper functions for Xray testing
@@ -88,6 +89,7 @@ rjsxrd/
 │   │   ├── resource_monitor.py    # CPU/RAM/network tracking
 │   │   ├── download_xray.py       # Xray binary installer
 │   │   ├── url_stats.py           # URL fetch & config yield statistics (typed @dataclass schema)
+│   │   ├── url_payload.py          # Where a base64 payload stops: the remark/query tail cut shared by every decoder
 │   │   ├── health_check.py        # Pre-run internet/Xray/GitHub API health check
 │   │   ├── _sni_worker.py         # SNI/CIDR filter chunk worker (internal)
 │   │   ├── github_handler.py      # GitHub API uploads
@@ -129,6 +131,8 @@ rjsxrd/
 │   │   ├── test_protocol_parsers.py
 │   │   ├── test_proxy_monitor.py
 │   │   ├── test_purge_stale_urls.py
+│   │   ├── test_remark_invariance.py
+│   │   ├── test_remark_invariance.py
 │   │   ├── test_scripts_import.py
 │   │   ├── test_security_filter.py
 │   │   ├── test_simple_tester.py
@@ -279,6 +283,12 @@ rjsxrd/
 - EMA of per-config duration updates every completion (not just per batch)
 - Window size scales with total: `max(500, min(total//10, 5000))`
 - Injected into all testers: XrayTester (async+sync), SimpleTester, TelegramProxyVerifier
+
+#### `utils/url_payload.py` - Where a Base64 Payload Stops
+- `base64_payload(url)` - the URL up to its first `#` or `?`, whichever comes first
+- Used by every decoder of the base64 forms (`vmess://`, `ssr://`, the encoded `ss://`): `file_utils` (host/port, dedup key), `security_filter` (the vmess verdict, the SSR cipher), `protocol_parsers` and `vpn_config` (both outbound builders)
+- Not for `vless://`/`trojan://`: there the `?` introduces the parameters that *are* the configuration. Only the base64 forms may be cut, because neither `#` nor `?` is in a base64 alphabet
+- **Why it exists:** the decoders are the lenient kind — `b64decode` discards characters outside its alphabet instead of raising. A node name appended as `#remark` was therefore folded into the payload before the padding was computed, and the corrupted decode cost five different answers for one node: no host for the SNI whitelist, no outbound for the verifier, no cipher for the allowlist, no `allowInsecure` for the security filter, and a dedup key made from the raw blob. Which nodes broke depended on the length of the leftover characters, so it looked intermittent
 
 #### `utils/url_stats.py` - URL Statistics & Auto-Cleanup
 - `URLStats` class with persistent JSON storage (`data/url_stats.json`)
@@ -628,6 +638,7 @@ correct a count here without correcting the guard's file too.
 - `test_module_size.py` - 4 module-size gate tests
 - `test_telegram_proxy_processor.py` - 3 Telegram proxy processor tests
 - `test_purge_stale_urls.py` - 3 purge script tests
+- `test_remark_invariance.py` - 273 remark-invariance tests (every reader answers the same with and without a `#name`)
 - `test_fetcher.py` - 1 fetcher test
 
 ### Utility Scripts

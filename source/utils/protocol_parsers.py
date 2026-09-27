@@ -29,6 +29,7 @@ from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
 from utils.security_filter import is_xray_cipher
+from utils.url_payload import base64_payload
 from utils.vpn_config import parse_url as vpn_parse_url
 from utils.xray_stream_settings import (
     _WS_NAMES,
@@ -140,7 +141,7 @@ def parse_vless_to_outbound(url: str, tag: str = "proxy") -> dict | None:
 def parse_vmess_to_outbound(url: str, tag: str = "proxy") -> dict | None:
     """Parse VMess URL to Xray outbound."""
     try:
-        encoded = url[url.index("://") + 3 :].strip()
+        encoded = base64_payload(url).strip()
 
         # Add padding if needed
         padding = 4 - len(encoded) % 4
@@ -558,7 +559,7 @@ def parse_ssr_to_outbound(url: str, tag: str = "proxy") -> dict | None:
     without SSR-specific features (protocol, obfs). For full SSR support, use v2fly-core.
     """
     try:
-        url_part = _clean_url_part(url)
+        url_part = base64_payload(url)
 
         # Add padding if needed
         padding = 4 - len(url_part) % 4

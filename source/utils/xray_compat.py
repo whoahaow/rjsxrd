@@ -29,6 +29,7 @@ from urllib.parse import unquote
 
 from utils.logger import log
 from utils.security_filter import extract_ss_credentials, is_xray_cipher
+from utils.url_payload import is_truthy
 
 # The xray-core release every rule here and every outbound shape in the parsers was
 # read from. The binary is downloaded from `releases/latest` unless `XRAY_VERSION`
@@ -184,22 +185,29 @@ def _xray_incompatible_reason(cfg: str) -> str:
     # verifying TLS config and xray starts happily — but the handshake can never
     # succeed, so the run spends a test slot on it and reports a timeout, which
     # reads exactly like a dead server. Refusing it names what it actually is.
-    if (
-        cfg_lower.startswith(("hysteria2://", "hy2://"))
-        and any(flag in cfg_lower for flag in ("insecure=1", "insecure=true"))
-        and "pinsha256=" not in cfg_lower
-    ):
-        return "hysteria2 needs verification off (xray removed allowInsecure)"
+    #
+    # Read through `_query_value`, not as a substring of the whole URL: the flag's
+    # own text appears in node names, and a name is not a setting either way --
+    # `#old-insecure=1-node` used to refuse a node xray can verify, while a name
+    # carrying `pinSHA256=` excused one that is not verifiable. Every truthy
+    # spelling counts, because the flag is written as `1` by the spec and as `yes`
+    # or `true` by the panels that generate these links.
+    if cfg_lower.startswith(("hysteria2://", "hy2://")):
+        insecure = _query_value(cfg, "insecure")
+        pin = _query_value(cfg, "pinSHA256")
+        if is_truthy(insecure) and not pin:
+            return "hysteria2 needs verification off (xray removed allowInsecure)"
 
     # A malformed pin is worse than no pin: xray strips the colons from
     # `pinnedPeerCertSha256`, hex-decodes it and requires 32 bytes, so a short or
     # non-hex value aborts the load. Checked on every Hysteria2 URL that carries
     # one, including a node that verifies, because that is the shape the parser
     # emits — and the value this module's own tests used to pin (`deadbeef`) is
-    # one xray rejects.
+    # one xray rejects. An empty value is *no* pin rather than a broken one: xray
+    # leaves the field unset, so refusing it would drop a working node.
     if cfg_lower.startswith(("hysteria2://", "hy2://")):
         pin = _query_value(cfg, "pinSHA256")
-        if pin is not None and not _RE_PIN_SHA256.match(pin.replace(":", "")):
+        if pin and not _RE_PIN_SHA256.match(pin.replace(":", "")):
             return "hysteria2 pinSHA256 is not 32 bytes of hex"
 
     # ── Shadowsocks cipher xray's loader does not know ────────────

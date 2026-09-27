@@ -772,7 +772,11 @@ Configs pass through these filters in order before reaching Xray:
    the download follows `releases/latest` unless `XRAY_VERSION` pins it. It removes configs that would
    **crash xray at startup** even though they parse successfully:
    - Hysteria v1 (`hysteria://`, `hy1://`) — xray's hysteria outbound rejects `version != 2`
-   - Hysteria2 with `insecure=1` and no `pinSHA256` — xray removed `allowInsecure`, so such a node has no config shape
+   - Hysteria2 asking for verification off with nothing to check instead — xray removed
+     `allowInsecure`, so such a node has no config shape. The flag is read through
+     `_query_value` and any of `1`/`true`/`yes`/`on` counts, and an empty `pinSHA256=` is
+     no pin rather than a malformed one; a name containing the text `insecure=1` is not a
+     setting either, and used to refuse nodes xray can verify
    - Hysteria2 with a `pinSHA256` that is not 32 bytes of hex — the TLS builder strips colons, hex-decodes and requires exactly 32 bytes, so a short hash aborts the load
    - A `type=` xray's transport builder cannot resolve: `h2`, `h3`, `http`, `quic` return a removal error and any other unregistered spelling returns `unknown transport protocol`. `splithttp` is an accepted alias of `xhttp`, and `kcp`/`mkcp` still build, so all four are testable
    - An unknown stream `security=` on vless/trojan/vmess — only `tls`, `reality`, `none` load. Scoped to those schemes because `security=` on an `ss://` URL names the cipher. Parameter names are folded to lowercase by every reader (`query_parameters`), matching this rule's own case-insensitive matching, and `security`/`type`/`fp` values are folded where xray folds them

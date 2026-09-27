@@ -26,6 +26,17 @@ import base64
 import binascii
 from urllib.parse import parse_qs
 
+# The spellings a boolean URL parameter arrives in. Share links write the hysteria2
+# `insecure` flag as `1` because that is what the spec shows, and as `true`, `yes` or
+# `on` because that is what the panels that generate them say, and xray reads all of
+# them through `strconv.ParseBool`-style parsing rather than against one literal.
+TRUTHY_VALUES = frozenset({"1", "true", "yes", "on"})
+
+
+def is_truthy(value: str | None) -> bool:
+    """Whether a query parameter is present and says yes."""
+    return value is not None and value.strip().lower() in TRUTHY_VALUES
+
 
 def base64_payload(url: str) -> str:
     """The encoded payload of a URL, without its remark or parameters.

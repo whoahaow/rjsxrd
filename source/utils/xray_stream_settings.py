@@ -143,7 +143,21 @@ def _make_stream_settings(
     """Build streamSettings dict for the transports xray names.
 
     Returns None if Reality params are invalid.
+
+    `network` and `security` are folded because that is what upstream folds: the
+    transport switch is `switch strings.ToLower(string(p))`
+    (`transport_internet.go:999`, v26.3.27) and the security switch is
+    `switch strings.ToLower(c.Security)` (`:1763`). Comparing the URL's spelling
+    instead meant `?security=TLS` fell through to `none` -- the node then tested over
+    plaintext while the security filter, which had folded the same string, filed it as
+    encrypted. The emitted JSON carries the canonical lowercase name xray expects.
+
+    `mode` is deliberately not folded: `SplitHTTPConfig.Build()` switches on the value
+    as written (`:280`), so `Auto` is `unsupported mode` upstream and there is no
+    case-insensitive spelling to normalize to.
     """
+    network = str(network).lower()
+    security = str(security).lower()
     stream: dict[str, Any] = {"network": network, "security": security}
 
     if security == "tls":
@@ -176,7 +190,7 @@ def _make_stream_settings(
             params.get("mode", [""])[0],
         )
     elif network == "grpc":
-        stream["grpcSettings"] = _make_grpc_settings(params.get("serviceName", [""])[0])
+        stream["grpcSettings"] = _make_grpc_settings(params.get("servicename", [""])[0])
     elif network == "httpupgrade":
         stream["httpupgradeSettings"] = _make_httpupgrade_settings(
             params.get("path", ["/"])[0],

@@ -26,10 +26,10 @@ import base64
 import binascii
 import json
 from typing import Any
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import unquote, urlparse
 
 from utils.security_filter import is_xray_cipher
-from utils.url_payload import base64_payload
+from utils.url_payload import base64_payload, query_parameters
 from utils.vpn_config import parse_url as vpn_parse_url
 from utils.xray_stream_settings import (
     _WS_NAMES,
@@ -96,7 +96,7 @@ def parse_vless_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         if parsed is None:
             return None
         uuid, hostname, port = parsed
-        params = parse_qs(query_part)
+        params = query_parameters(query_part)
 
         stream = _make_stream_settings(
             params.get("type", ["tcp"])[0],
@@ -200,7 +200,7 @@ def parse_vmess_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         params = {
             "path": [str(data.get("path", ""))],
             "host": [str(data.get("host", data.get("add", "")))],
-            "serviceName": [str(data.get("path", ""))],
+            "servicename": [str(data.get("path", ""))],
             "sni": [str(data.get("sni") or data.get("host") or data.get("add", ""))],
             "fp": [str(data.get("fp", ""))],
         }
@@ -257,7 +257,7 @@ def parse_trojan_to_outbound(url: str, tag: str = "proxy") -> dict | None:
         if parsed is None:
             return None
         password, hostname, port = parsed
-        params = parse_qs(query_part)
+        params = query_parameters(query_part)
 
         security = params.get("security", ["tls"])[0] if params.get("security") else "tls"
         network = params.get("type", ["tcp"])[0] if params.get("type") else "tcp"
@@ -441,7 +441,7 @@ def parse_shadowsocks_to_outbound(url: str, tag: str = "proxy") -> dict | None:
             return None
 
         # Parse query params for additional settings
-        params = parse_qs(query_part) if query_part else {}
+        params = query_parameters(query_part)
 
         # Reject plugin configs (not supported by Xray)
         plugin = params.get("plugin", [None])[0] if params.get("plugin") else None
@@ -498,7 +498,7 @@ def parse_hysteria2_to_outbound(url: str, tag: str = "proxy") -> dict | None:
     """
     try:
         parsed = urlparse(url)
-        params = {k.lower(): v for k, v in parse_qs(parsed.query).items()}
+        params = query_parameters(parsed.query)
 
         if not parsed.hostname or not parsed.port:
             return None

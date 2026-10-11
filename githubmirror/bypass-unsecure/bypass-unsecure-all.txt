@@ -1,0 +1,7 @@
+#profile-title: bypass-unsecure-all t.me/rjsxrd
+#profile-update-interval: 1
+#support-url: https://t.me/rjsxrd
+#profile-web-page-url: https://github.com/whoahaow/rjsxrd
+#announce: t.me/rjsxrd
+#subscription-userinfo: upload=0; download=0; total=0; expire=0
+

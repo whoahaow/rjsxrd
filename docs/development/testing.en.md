@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 ```
 
 Every test module declares its marker (`pytestmark`), so `-m unit` and
-`-m integration` actually select something: 1502 and 15 tests out of 1517
+`-m integration` actually select something: 1513 and 15 tests out of 1528
 (measured with `pytest --collect-only -q` under each marker). Only the two
 modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) carry `integration`. Pure logic needs
@@ -37,7 +37,7 @@ third network call, the case fails on `seen == []` instead of passing quietly.
 
 ## Test structure
 
-**1517 tests** in 43 files. A full run takes around 70–80 seconds on the
+**1528 tests** in 43 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
@@ -56,7 +56,7 @@ load, so measure with `pytest -q` on your own machine.
 | `test_logger.py` | 30 | Logging, levels, format |
 | `test_yaml_converter.py` | 33 | Clash/Surge YAML to VPN URL conversion |
 | `test_smart_eta.py` | 27 | SmartETA: 3-way estimate (window, global, EMA) + timeout floor |
-| `test_git_updater.py` | 26 | GitUpdater: init, pull, stage, commit, push, retry |
+| `test_git_updater.py` | 37 | GitUpdater: init, pull, stage, commit, push, retry |
 | `test_simple_tester.py` | 25 | `extract_host_port` + `SimpleTester` (TCP ping) |
 | `test_process_registry.py` | 25 | ProcessRegistry, cleanup, callbacks |
 | `test_git_auto_cleaner.py` | 24 | Auto-cleaning of auto-commits |

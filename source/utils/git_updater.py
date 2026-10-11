@@ -59,14 +59,16 @@ class GitUpdater:
         log(f"Pulling from origin/{branch}...")
         try:
             # First stash any local changes (can happen with temp files)
-            self._run_git("stash", "push", "-m", "Auto-stash before pull", check=False)
+            stash_res = self._run_git("stash", "push", "-m", "Auto-stash before pull", check=False)
+            stashed = "Saved working directory" in (stash_res.stdout or "")
 
             # Now pull with rebase
             self._run_git("pull", "--rebase", "origin", branch)
             log("Pull successful")
 
             # Pop stash if it was created
-            self._run_git("stash", "pop", check=False)
+            if stashed:
+                self._run_git("stash", "pop", check=False)
         except subprocess.CalledProcessError as e:
             err_msg = (e.stderr or "").lower()
             if "cannot pull with rebase" in err_msg or "unstaged changes" in err_msg:
@@ -148,7 +150,9 @@ class GitUpdater:
 
         log("Push successful")
 
-    def commit_and_push_single(self, local_path: str, message: str) -> None:
+    def commit_and_push_single(
+        self, local_path: str, message: str, max_retries: int = 3
+    ) -> None:
         """Commit and push a single file progressively during pipeline.
 
         Used by upload_fn in git mode so files appear on GitHub live,
@@ -157,10 +161,24 @@ class GitUpdater:
         Args:
             local_path: Path relative to repo root.
             message: Commit message (e.g. 'auto: update bypass-1.txt').
+            max_retries: Number of retries on push rejection.
         """
         self._run_git("add", local_path, check=False)
         self._run_git("commit", "--allow-empty", "-m", message)
-        self.push()
+
+        for attempt in range(max_retries):
+            try:
+                self.push()
+                return
+            except subprocess.CalledProcessError as e:
+                if attempt < max_retries - 1:
+                    log(
+                        f"Progressive push failed (attempt {attempt + 1}/{max_retries}), pulling latest changes..."
+                    )
+                    self.pull()
+                else:
+                    log(f"Progressive push failed after {max_retries} attempts: {e}")
+                    raise
 
     def commit_and_push_files(
         self,

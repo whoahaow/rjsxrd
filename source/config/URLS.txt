@@ -134,7 +134,6 @@ https://raw.githubusercontent.com/prominbro/KfWL/refs/heads/main/KfWLcheck.txt
 https://gistpad.com/raw/greywebs-and-vless-vpn-tg-reverse-engineer-s-basement
 https://gistpad.com/raw/mia-vpn-tg-reverse-engineer-s-basement
 https://raw.githubusercontent.com/prominbro/sub/refs/heads/main/212.txt
-https://obwlsub.vercel.app/wwh
 https://cdn.jsdelivr.net/gh/AbikusSudo/RussiaVPN@main/docs/index.html
 https://alley.serv00.net/other
 https://alley.serv00.net/youtube
@@ -330,7 +329,6 @@ https://cyb-portal.com/CP-007
 https://cyb-portal.com/CP-008
 https://cyb-portal.com/CP-011
 https://cyb-portal.com/CP-035
-https://cyb-portal.com/CP-038
 https://cyb-portal.com/CP-040
 
 

@@ -133,6 +133,8 @@ dmypy.json
 ehthumbs.db
 Thumbs.db
 Thumbs.db:encryptable
+.*history
+.*hst
 
 # GitHub tokens and sensitive data
 *.token

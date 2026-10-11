@@ -393,26 +393,32 @@ SYSCTL
             log_info "Step 7a: Cloning Repository (git mode)"
             cd "$APP_DIR"
 
-            if [ -n "$GITHUB_TOKEN" ] && [ "$REPO_URL" != "$MAIN_REPO" ]; then
-                log_info "  Cloning fork with token authentication..."
-                # Use git credential file to avoid leaking token in ps aux
-                GIT_CRED_FILE=$(mktemp)
-                echo "https://***@github.com" > "$GIT_CRED_FILE"
-                trap 'rm -f "$GIT_CRED_FILE"' EXIT
-                if git clone "$REPO_URL" --config credential.helper="store --file $GIT_CRED_FILE" . 2>/dev/null; then
-                    git remote set-url origin "$REPO_URL" 2>/dev/null || true
-                    rm -f "$GIT_CRED_FILE"
-                    trap - EXIT
-                    log_success "Fork cloned (git mode)"
+            # Derive REPO_NAME from REPO_URL
+            if [ -n "${REPO_URL:-}" ]; then
+                REPO_NAME=$(echo "$REPO_URL" | sed 's|https://github.com/||' | sed 's|\.git$||')
+            else
+                REPO_NAME="whoahaow/rjsxrd"
+            fi
+
+            if [ -n "$GITHUB_TOKEN" ]; then
+                log_info "  Cloning repository with token authentication..."
+                AUTH_REPO_URL="https://${GITHUB_TOKEN}@github.com/${REPO_NAME}.git"
+                if git clone "$AUTH_REPO_URL" . 2>/dev/null; then
+                    git remote set-url origin "$AUTH_REPO_URL" 2>/dev/null || true
+                    git config user.name "GitHub Actions" 2>/dev/null || true
+                    git config user.email "actions@github.com" 2>/dev/null || true
+                    git config --system --add safe.directory "$APP_DIR" 2>/dev/null || git config safe.directory "$APP_DIR" 2>/dev/null || true
+                    log_success "Repository cloned with token authentication (git mode)"
                 else
-                    rm -f "$GIT_CRED_FILE"
-                    trap - EXIT
-                    log_error "Failed to clone fork. Check URL and token permissions."
+                    log_error "Failed to clone repository. Check URL and token permissions."
                     exit 1
                 fi
             else
                 log_info "  Cloning public repository..."
                 if git clone "$REPO_URL" . 2>/dev/null; then
+                    git config user.name "GitHub Actions" 2>/dev/null || true
+                    git config user.email "actions@github.com" 2>/dev/null || true
+                    git config --system --add safe.directory "$APP_DIR" 2>/dev/null || git config safe.directory "$APP_DIR" 2>/dev/null || true
                     log_success "Repository cloned (git mode)"
                 else
                     log_error "Failed to clone repository. Check URL."
@@ -476,6 +482,25 @@ SYSCTL
         echo ""
     else
         log_info "Step 7: Download Source (skipped — files already exist)"
+        if [ "$PUSH_MODE" = "git" ] && [ -n "$GITHUB_TOKEN" ] && [ -d "$APP_DIR/.git" ]; then
+            log_info "  Configuring git remote with token authentication for existing repository..."
+            if [ -n "${REPO_URL:-}" ]; then
+                REPO_NAME=$(echo "$REPO_URL" | sed 's|https://github.com/||' | sed 's|\.git$||')
+            else
+                EXISTING_URL=$(git -C "$APP_DIR" remote get-url origin 2>/dev/null || echo "")
+                if [ -n "$EXISTING_URL" ]; then
+                    REPO_NAME=$(echo "$EXISTING_URL" | sed -E 's|https?://([^@]+@)?github\.com/||; s|git@github\.com:||; s|\.git$||')
+                else
+                    REPO_NAME="whoahaow/rjsxrd"
+                fi
+            fi
+            AUTH_REPO_URL="https://${GITHUB_TOKEN}@github.com/${REPO_NAME}.git"
+            git -C "$APP_DIR" remote set-url origin "$AUTH_REPO_URL" 2>/dev/null || true
+            git -C "$APP_DIR" config user.name "GitHub Actions" 2>/dev/null || true
+            git -C "$APP_DIR" config user.email "actions@github.com" 2>/dev/null || true
+            git -C "$APP_DIR" config --system --add safe.directory "$APP_DIR" 2>/dev/null || git -C "$APP_DIR" config safe.directory "$APP_DIR" 2>/dev/null || true
+            log_success "  Git remote origin configured with token authentication"
+        fi
         # Still fix ownership on existing files
         chown -R rjsxrd:rjsxrd "$APP_DIR" 2>/dev/null || true
     fi

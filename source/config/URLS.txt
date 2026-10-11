@@ -155,7 +155,6 @@ https://gl.gosapi.com/sub/s_j0kr2PjW0Eow95?providerid=ZOth3lct
 https://sub.new-meme-connet.ru/f088b6f27
 https://app.proxy-slon.shop/v1/service/sub/e754770b-a24c-4093-920a-a22d10b24f75
 https://www.dropbox.com/scl/fi/sk6i6etx9mmx5xm98xu36/VLESS.txt?rlkey=utvnt1nbv07ixxwax6icu7fca&raw=1
-https://translate.yandex.ru/translate?url=https://raw.githubusercontent.com/v0id9/vpn-configs/refs/heads/main/vpn.txt
 https://app.proxy-slon.shop/v1/service/sub/eb73dd50-2e6d-447b-baa9-ed6efc81940c
 https://raw.githubusercontent.com/seknei3/psychic-fiestas/refs/heads/main/vpn.txt
 https://raw.githubusercontent.com/Danialsamadi/v2go/refs/heads/main/Splitted-By-Protocol/hy2.txt
@@ -283,7 +282,10 @@ https://raw.githubusercontent.com/Ilyacom4ik/free-v2ray-2026/refs/heads/main/sub
 https://raw.githubusercontent.com/HikaruApps/WhiteLattice/refs/heads/main/subscriptions/config.txt
 https://raw.githubusercontent.com/mmaksim9191/my-vpn-configs/refs/heads/main/configs/mobile-whitelist-1.txt
 https://raw.githubusercontent.com/mmaksim9191/my-vpn-configs/refs/heads/main/configs/white-cidr-checked.txt
+<<<<<<< Updated upstream
 https://translate.yandex.ru/translate?url=https://raw.githubusercontent.com/Vovo4ka000/V4kVPN/main/v4kVPN.txt
+=======
+>>>>>>> Stashed changes
 https://github.com/igareck/vpn-configs-for-russia/tree/main
 https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/main/WHITE-CIDR-RU-checked.txt
 https://tinyurl.com/SemqkaAndXelaVonVPN
@@ -326,9 +328,11 @@ https://raw.githubusercontent.com/free1zona/Keyfreetee/refs/heads/main/razlo4ka7
 https://raw.githubusercontent.com/yarikdron01-beep/Key-for-vpnFR/refs/heads/main/Key%20for%20S-WIFI
 https://cyb-portal.com/CP-006
 https://cyb-portal.com/CP-007
-https://cyb-portal.com/CP-008
 https://cyb-portal.com/CP-011
+<<<<<<< Updated upstream
 https://cyb-portal.com/CP-035
+=======
+>>>>>>> Stashed changes
 https://cyb-portal.com/CP-040
 
 

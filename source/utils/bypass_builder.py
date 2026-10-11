@@ -41,7 +41,6 @@ def _cleanup_stale_bypass_split_files(
     """Preserve existing split files ({prefix}-{N}.txt) across updates so subscribers
     can continue using working configs from previous runs while updates are incoming.
     """
-    pass
 
 
 def seal_bypass_files(

@@ -288,6 +288,7 @@ class TestCommitAndPushFiles:
             if c.args[0][:3] == ["git", "pull", "--rebase"]
         ]
         assert len(pull_calls) == 2  # initial pull + retry pull after failed push
+        assert push_count[0] == 2
 
     def test_fails_after_max_retries(self, mock_subprocess_run, updater):
         """All push attempts fail."""

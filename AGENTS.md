@@ -16,6 +16,40 @@
 
 ---
 
+## Quality Gates (Mandatory Before Push)
+
+All CI quality gates (`.github/workflows/ci.yml`) are blocking. Every AI coding agent **MUST run all gates locally before committing or pushing**:
+
+1. **Format check:**
+   ```bash
+   uv run ruff format --check .
+   # auto-fix formatting issues:
+   uv run ruff format .
+   ```
+2. **Lint check:**
+   ```bash
+   uv run ruff check .
+   ```
+3. **Type check:**
+   ```bash
+   cd source && uv run mypy .
+   ```
+4. **Unit & integration test suite:**
+   ```bash
+   uv run pytest source/tests/ -q
+   ```
+5. **Dependency audit:**
+   ```bash
+   uv run pip-audit -r source/requirements-dev.txt
+   ```
+
+**Rules:**
+- Never commit or push without running `ruff format --check .` and `ruff check .` first.
+- If code touches tested components or counts, ensure `test_docs_figures.py` passes (sync doc figures).
+- Do not bypass or disable gates. Fix defects at the source.
+
+---
+
 ## Repository Structure
 
 ```

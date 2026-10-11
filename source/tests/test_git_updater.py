@@ -118,10 +118,14 @@ class TestEnsureAuthenticatedRemote:
             "https://x-access-token:ghp_secrettoken123@github.com/whoahaow/rjsxrd.git",
         ]
 
-    def test_replaces_old_token_when_regenerated_in_env(self, mock_subprocess_run, updater, monkeypatch):
+    def test_replaces_old_token_when_regenerated_in_env(
+        self, mock_subprocess_run, updater, monkeypatch
+    ):
         monkeypatch.setenv("GITHUB_TOKEN", "github_pat_newtoken456")
         mock_subprocess_run.side_effect = [
-            make_result(0, stdout="https://github_pat_oldtoken123@github.com/whoahaow/rjsxrd.git\n"),
+            make_result(
+                0, stdout="https://github_pat_oldtoken123@github.com/whoahaow/rjsxrd.git\n"
+            ),
             make_result(0),
         ]
 
@@ -140,7 +144,9 @@ class TestEnsureAuthenticatedRemote:
         monkeypatch.delenv("GITHUB_TOKEN", raising=False)
         monkeypatch.delenv("MY_TOKEN", raising=False)
         mock_subprocess_run.side_effect = [
-            make_result(0, stdout="https://github_pat_mysecrettoken@github.com/whoahaow/rjsxrd.git\n"),
+            make_result(
+                0, stdout="https://github_pat_mysecrettoken@github.com/whoahaow/rjsxrd.git\n"
+            ),
             make_result(0),
         ]
 
@@ -157,7 +163,9 @@ class TestEnsureAuthenticatedRemote:
 
     def test_ignores_ssh_url(self, mock_subprocess_run, updater, monkeypatch):
         monkeypatch.setenv("GITHUB_TOKEN", "ghp_secrettoken123")
-        mock_subprocess_run.return_value = make_result(0, stdout="git@github.com:whoahaow/rjsxrd.git\n")
+        mock_subprocess_run.return_value = make_result(
+            0, stdout="git@github.com:whoahaow/rjsxrd.git\n"
+        )
 
         updater.ensure_authenticated_remote()
 
@@ -165,7 +173,9 @@ class TestEnsureAuthenticatedRemote:
         assert len(calls) == 1
         assert calls[0].args[0] == ["git", "remote", "get-url", "origin"]
 
-    def test_does_nothing_if_origin_already_matches_token(self, mock_subprocess_run, updater, monkeypatch):
+    def test_does_nothing_if_origin_already_matches_token(
+        self, mock_subprocess_run, updater, monkeypatch
+    ):
         monkeypatch.setenv("GITHUB_TOKEN", "ghp_secrettoken123")
         mock_subprocess_run.return_value = make_result(
             0, stdout="https://x-access-token:ghp_secrettoken123@github.com/whoahaow/rjsxrd.git\n"
@@ -343,11 +353,19 @@ class TestCommitAndPushSingle:
     def test_progressive_commit_and_push_happy_path(self, mock_subprocess_run, updater):
         mock_subprocess_run.return_value = make_result(0, stdout="main\n")
 
-        updater.commit_and_push_single("githubmirror/bypass/bypass-1.txt", "auto: update bypass-1.txt")
+        updater.commit_and_push_single(
+            "githubmirror/bypass/bypass-1.txt", "auto: update bypass-1.txt"
+        )
 
         calls = mock_subprocess_run.call_args_list
         assert calls[0].args[0] == ["git", "add", "githubmirror/bypass/bypass-1.txt"]
-        assert calls[1].args[0] == ["git", "commit", "--allow-empty", "-m", "auto: update bypass-1.txt"]
+        assert calls[1].args[0] == [
+            "git",
+            "commit",
+            "--allow-empty",
+            "-m",
+            "auto: update bypass-1.txt",
+        ]
         assert calls[2].args[0] == ["git", "rev-parse", "--abbrev-ref", "HEAD"]
         assert calls[3].args[0] == ["git", "push", "origin", "main"]
 
@@ -366,7 +384,9 @@ class TestCommitAndPushSingle:
 
         mock_subprocess_run.side_effect = side_effect
 
-        updater.commit_and_push_single("githubmirror/bypass/bypass-1.txt", "auto: update bypass-1.txt", max_retries=2)
+        updater.commit_and_push_single(
+            "githubmirror/bypass/bypass-1.txt", "auto: update bypass-1.txt", max_retries=2
+        )
 
         assert push_count[0] == 2
         pull_calls = [
@@ -387,7 +407,9 @@ class TestCommitAndPushSingle:
         mock_subprocess_run.side_effect = side_effect
 
         with pytest.raises(subprocess.CalledProcessError):
-            updater.commit_and_push_single("githubmirror/bypass/bypass-1.txt", "auto: update bypass-1.txt", max_retries=2)
+            updater.commit_and_push_single(
+                "githubmirror/bypass/bypass-1.txt", "auto: update bypass-1.txt", max_retries=2
+            )
 
 
 # ── commit_and_push_files (full workflow) ─────────────────────────────

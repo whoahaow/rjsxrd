@@ -8,7 +8,7 @@ python-dotenv>=1.0.0
 pytdbot[tdjson]>=0.8.8
 PySocks>=1.7.1
 tqdm>=4.65.0  # Progress bars for verification
-psutil>=5.9.0  # Resource monitoring (CPU, RAM, network)
+psutil>=7.2.2  # Resource monitoring (CPU, RAM, network)
 aiofiles>=23.0.0  # Async file I/O for non-blocking writes
 ahocorasick-rs>=1.0  # Rust Aho-Corasick for fast SNI domain matching
 

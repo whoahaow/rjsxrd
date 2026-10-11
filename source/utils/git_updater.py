@@ -205,31 +205,31 @@ class GitUpdater:
                 log("No changes detected, skipping commit")
                 return True
 
+            if not self.commit(full_message):
+                log("Commit failed or no changes")
+                return False
+
             # Retry loop for push conflicts
             for attempt in range(max_retries):
-                if self.commit(full_message):
-                    try:
-                        # force_lease needed because squash_auto_commits rewrote
-                        # local history (removed progressive auto commits that
-                        # were already pushed). --force-with-lease is safe when
-                        # only one machine pushes.
-                        self.push(force_lease=True)
-                        log("Git workflow completed successfully")
-                        return True
-                    except subprocess.CalledProcessError as e:
-                        if attempt < max_retries - 1:
-                            log(
-                                f"Push failed (attempt {attempt + 1}/{max_retries}), pulling latest changes..."
-                            )
-                            # Reconcile with remote before retry — pull --rebase handles
-                            # divergent histories that a plain sleep can't fix
-                            self.pull()
-                        else:
-                            log(f"Push failed after {max_retries} attempts: {e.stderr}")
-                            return False
-                else:
-                    log("Commit failed or no changes")
-                    return False
+                try:
+                    # force_lease needed because squash_auto_commits rewrote
+                    # local history (removed progressive auto commits that
+                    # were already pushed). --force-with-lease is safe when
+                    # only one machine pushes.
+                    self.push(force_lease=True)
+                    log("Git workflow completed successfully")
+                    return True
+                except subprocess.CalledProcessError as e:
+                    if attempt < max_retries - 1:
+                        log(
+                            f"Push failed (attempt {attempt + 1}/{max_retries}), pulling latest changes..."
+                        )
+                        # Reconcile with remote before retry — pull --rebase handles
+                        # divergent histories that a plain sleep can't fix
+                        self.pull()
+                    else:
+                        log(f"Push failed after {max_retries} attempts: {e.stderr}")
+                        return False
 
             return False
 

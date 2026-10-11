@@ -195,3 +195,7 @@ core.*
 # so the protection does not depend on a tool's internal file)
 .ruff_cache/
 
+# Raw config dumps (large unverified files, local only)
+githubmirror/**/raw/
+
+

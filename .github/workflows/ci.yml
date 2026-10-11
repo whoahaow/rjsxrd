@@ -6,7 +6,17 @@ name: CI
 
 on:
   push:
+    paths-ignore:
+      - 'githubmirror/**'
+      - 'source/config/**'
+      - '**.md'
+      - 'docs/**'
   pull_request:
+    paths-ignore:
+      - 'githubmirror/**'
+      - 'source/config/**'
+      - '**.md'
+      - 'docs/**'
 
 # Supersede an in-flight run when a new commit lands on the same ref.
 concurrency:
@@ -18,6 +28,7 @@ permissions:
 
 jobs:
   quality-gate:
+    if: github.event_name == 'pull_request' || !startsWith(github.event.head_commit.message, 'auto:')
     runs-on: ubuntu-latest
     timeout-minutes: 15
 

@@ -216,9 +216,7 @@ class GitUpdater:
 
         log("Push successful")
 
-    def commit_and_push_single(
-        self, local_path: str, message: str, max_retries: int = 3
-    ) -> None:
+    def commit_and_push_single(self, local_path: str, message: str, max_retries: int = 3) -> None:
         """Commit and push a single file progressively during pipeline.
 
         Used by upload_fn in git mode so files appear on GitHub live,

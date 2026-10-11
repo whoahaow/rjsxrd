@@ -3,8 +3,10 @@ updates:
   - package-ecosystem: pip
     directory: /source
     schedule:
-      interval: weekly
+      interval: monthly
+    open-pull-requests-limit: 3
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
+    open-pull-requests-limit: 3

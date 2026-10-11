@@ -38,20 +38,10 @@ def _cleanup_stale_raw_split_shards(
 def _cleanup_stale_bypass_split_files(
     output_dir: str, prefix: str, current_file_count: int
 ) -> None:
-    """Remove stale bypass-{N}.txt output files whose index exceeds the current
-    run's count. bypass-all.txt is preserved (it's the canonical master file).
-    Local-only: does not touch the remote repository.
+    """Preserve existing split files ({prefix}-{N}.txt) across updates so subscribers
+    can continue using working configs from previous runs while updates are incoming.
     """
-    prefix_dir = path_in_output(output_dir, prefix)
-    if not os.path.isdir(prefix_dir):
-        return
-    for i in range(current_file_count + 1, 1000):  # cap at 1000 to avoid runaway
-        stale = os.path.join(prefix_dir, f"{prefix}-{i}.txt")
-        if os.path.exists(stale):
-            try:
-                os.remove(stale)
-            except OSError as e:
-                log(f"Warning: could not remove stale {stale}: {e}")
+    pass
 
 
 def seal_bypass_files(

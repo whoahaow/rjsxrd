@@ -776,7 +776,7 @@ class TestCreateWorkingConfigFilesZeroWorking:
         assert "vless://b" not in content
 
     def test_stale_split_files_removed_when_zero_working(self, tmp_path):
-        """Stale bypass-1.txt, bypass-2.txt etc should be cleaned up."""
+        """Existing bypass-1.txt, bypass-2.txt etc should be preserved so subscribers can keep using them."""
         from unittest.mock import patch as mock_patch
 
         from utils.bypass_builder import create_working_config_files
@@ -786,19 +786,18 @@ class TestCreateWorkingConfigFilesZeroWorking:
         raw_dir.mkdir(parents=True)
         (raw_dir / "bypass-all-raw.txt").write_text("# header\nvless://a\n")
 
-        # Create stale split files that should be cleaned up
+        # Create existing split files that should be preserved
         bypass_dir = tmp_path / "bypass"
-        (bypass_dir / "bypass-1.txt").write_text("stale content")
-        (bypass_dir / "bypass-2.txt").write_text("stale content")
-        # Note: bypass-all.txt is the one we keep (as empty file)
+        (bypass_dir / "bypass-1.txt").write_text("existing content")
+        (bypass_dir / "bypass-2.txt").write_text("existing content")
         assert (bypass_dir / "bypass-1.txt").exists()
 
         with mock_patch.object(bypass_builder, "verify_config_file", return_value=[]):
             create_working_config_files(output_dir)
 
-        # Stale files gone
-        assert not (bypass_dir / "bypass-1.txt").exists(), "stale bypass-1.txt should be removed"
-        assert not (bypass_dir / "bypass-2.txt").exists(), "stale bypass-2.txt should be removed"
+        # Existing files preserved
+        assert (bypass_dir / "bypass-1.txt").exists(), "existing bypass-1.txt should be preserved"
+        assert (bypass_dir / "bypass-2.txt").exists(), "existing bypass-2.txt should be preserved"
         # bypass-all.txt (the canonical output) still exists
         assert (bypass_dir / "bypass-all.txt").exists()
 
@@ -1386,17 +1385,17 @@ class TestMultiRawFileAccumulation:
 
 
 class TestStaleBypassFilesCleanup:
-    """Tests for cleaning up stale bypass-N.txt files at end of run."""
+    """Tests for preserving bypass-N.txt split files across runs."""
 
     def test_stale_higher_numbered_files_removed_locally(self, tmp_path):
-        """After a run produces fewer files than previous, the extras are deleted locally."""
+        """After a run produces fewer files than previous, existing split files are preserved."""
         from utils.bypass_builder import _cleanup_stale_bypass_split_files
 
         bypass_dir = tmp_path / "bypass"
         bypass_dir.mkdir()
         # Previous run produced 5 files
         for i in range(1, 6):
-            (bypass_dir / f"bypass-{i}.txt").write_text("stale content")
+            (bypass_dir / f"bypass-{i}.txt").write_text("existing content")
         # Current run produced only 2 files
         for i in range(1, 3):
             (bypass_dir / f"bypass-{i}.txt").write_text("fresh content")
@@ -1410,19 +1409,19 @@ class TestStaleBypassFilesCleanup:
         # Files 1, 2 should still exist (current run)
         assert (bypass_dir / "bypass-1.txt").exists()
         assert (bypass_dir / "bypass-2.txt").exists()
-        # Files 3, 4, 5 should be gone
-        assert not (bypass_dir / "bypass-3.txt").exists()
-        assert not (bypass_dir / "bypass-4.txt").exists()
-        assert not (bypass_dir / "bypass-5.txt").exists()
+        # Files 3, 4, 5 are also preserved for users on those links
+        assert (bypass_dir / "bypass-3.txt").exists()
+        assert (bypass_dir / "bypass-4.txt").exists()
+        assert (bypass_dir / "bypass-5.txt").exists()
 
     def test_cleanup_preserves_bypass_all_txt(self, tmp_path):
-        """bypass-all.txt must never be removed by stale-file cleanup."""
+        """bypass-all.txt and existing split files must be preserved."""
         from utils.bypass_builder import _cleanup_stale_bypass_split_files
 
         bypass_dir = tmp_path / "bypass"
         bypass_dir.mkdir()
         (bypass_dir / "bypass-all.txt").write_text("canonical content")
-        (bypass_dir / "bypass-1.txt").write_text("stale")
+        (bypass_dir / "bypass-1.txt").write_text("existing")
 
         _cleanup_stale_bypass_split_files(
             output_dir=str(tmp_path),
@@ -1432,8 +1431,8 @@ class TestStaleBypassFilesCleanup:
 
         # bypass-all.txt preserved
         assert (bypass_dir / "bypass-all.txt").exists()
-        # bypass-1.txt gone (count is 0, so any numbered file is stale)
-        assert not (bypass_dir / "bypass-1.txt").exists()
+        # bypass-1.txt preserved
+        assert (bypass_dir / "bypass-1.txt").exists()
 
     def test_cleanup_no_op_when_count_matches(self, tmp_path):
         """If file count matches what we just produced, nothing is removed."""
@@ -1456,8 +1455,7 @@ class TestStaleBypassFilesCleanup:
 
     def test_cleanup_runs_when_no_raw_files(self, tmp_path):
         """When verify_and_write_bypass returns early because no raw files
-        exist, stale bypass-N.txt files from a previous run are still
-        cleaned up.
+        exist, existing bypass-N.txt files from a previous run are preserved.
         """
         from utils import bypass_builder
 
@@ -1481,10 +1479,10 @@ class TestStaleBypassFilesCleanup:
             None,
         )
 
-        # Stale bypass-N.txt files removed
-        assert not (bypass_dir / "bypass-1.txt").exists()
-        assert not (bypass_dir / "bypass-2.txt").exists()
-        assert not (bypass_dir / "bypass-3.txt").exists()
+        # Existing bypass-N.txt files preserved
+        assert (bypass_dir / "bypass-1.txt").exists()
+        assert (bypass_dir / "bypass-2.txt").exists()
+        assert (bypass_dir / "bypass-3.txt").exists()
         # bypass-all.txt still exists (empty but present)
         assert (bypass_dir / "bypass-all.txt").exists()
 

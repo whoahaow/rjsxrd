@@ -521,8 +521,7 @@ source/               - generator source code
  │   └─ xray_tester.py - Xray-core testing sorted by speed
  ├─ xray/             - Xray-core bundle (xray, geoip.dat, geosite.dat, LICENSE)
  ├─ requirements.txt  - runtime dependencies
- ├─ requirements-dev.txt - linter, static typing and test toolchain
- └─ requirements.lock - hash-pinned runtime dependency lock
+ └─ requirements-dev.txt - linter, static typing and test toolchain
 .github/workflows/    - CI/CD (auto-update daily)
 .env                  - environment variables (gitignored)
 .env.example          - environment variable template

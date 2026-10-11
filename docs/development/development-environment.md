@@ -37,10 +37,3 @@ cd source && ../.venv/Scripts/python.exe -m pytest -q
 
 Полный прогон — 1517 тестов, около 70–80 секунд на машине разработки (Windows, Python 3.12). Структура набора и сценарии проверки описаны в [Тестировании](testing.md).
 
-## Зафиксированные версии
-
-`source/requirements.lock` — lock рантайм-зависимостей с хешами. Пересобрать его после правки `source/requirements.txt`:
-
-```bash
-uv pip compile source/requirements.txt --generate-hashes --python-version 3.12 --python-platform windows -o source/requirements.lock
-```

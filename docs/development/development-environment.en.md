@@ -37,10 +37,3 @@ cd source && ../.venv/Scripts/python.exe -m pytest -q
 
 A full run is 1517 tests, about 70–80 seconds on the development machine (Windows, Python 3.12). The shape of the suite and the verification scenarios are described in [Testing](testing.en.md).
 
-## Pinned versions
-
-`source/requirements.lock` is the hash-pinned lock of the runtime dependencies. Regenerate it after editing `source/requirements.txt`:
-
-```bash
-uv pip compile source/requirements.txt --generate-hashes --python-version 3.12 --python-platform windows -o source/requirements.lock
-```

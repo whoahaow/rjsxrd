@@ -402,7 +402,7 @@ SYSCTL
 
             if [ -n "$GITHUB_TOKEN" ]; then
                 log_info "  Cloning repository with token authentication..."
-                AUTH_REPO_URL="https://${GITHUB_TOKEN}@github.com/${REPO_NAME}.git"
+                AUTH_REPO_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO_NAME}.git"
                 if git clone "$AUTH_REPO_URL" . 2>/dev/null; then
                     git remote set-url origin "$AUTH_REPO_URL" 2>/dev/null || true
                     git config user.name "GitHub Actions" 2>/dev/null || true
@@ -494,7 +494,7 @@ SYSCTL
                     REPO_NAME="whoahaow/rjsxrd"
                 fi
             fi
-            AUTH_REPO_URL="https://${GITHUB_TOKEN}@github.com/${REPO_NAME}.git"
+            AUTH_REPO_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO_NAME}.git"
             git -C "$APP_DIR" remote set-url origin "$AUTH_REPO_URL" 2>/dev/null || true
             git -C "$APP_DIR" config user.name "GitHub Actions" 2>/dev/null || true
             git -C "$APP_DIR" config user.email "actions@github.com" 2>/dev/null || true

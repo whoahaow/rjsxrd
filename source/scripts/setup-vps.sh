@@ -395,7 +395,7 @@ SYSCTL
 
             # Derive REPO_NAME from REPO_URL
             if [ -n "${REPO_URL:-}" ]; then
-                REPO_NAME=$(echo "$REPO_URL" | sed 's|https://github.com/||' | sed 's|\.git$||')
+                REPO_NAME=$(echo "$REPO_URL" | sed -E 's|https?://([^@]+@)?github\.com/||; s|git@github\.com:||; s|\.git$||; s|/+$||')
             else
                 REPO_NAME="whoahaow/rjsxrd"
             fi
@@ -485,7 +485,7 @@ SYSCTL
         if [ "$PUSH_MODE" = "git" ] && [ -n "$GITHUB_TOKEN" ] && [ -d "$APP_DIR/.git" ]; then
             log_info "  Configuring git remote with token authentication for existing repository..."
             if [ -n "${REPO_URL:-}" ]; then
-                REPO_NAME=$(echo "$REPO_URL" | sed 's|https://github.com/||' | sed 's|\.git$||')
+                REPO_NAME=$(echo "$REPO_URL" | sed -E 's|https?://([^@]+@)?github\.com/||; s|git@github\.com:||; s|\.git$||; s|/+$||')
             else
                 EXISTING_URL=$(git -C "$APP_DIR" remote get-url origin 2>/dev/null || echo "")
                 if [ -n "$EXISTING_URL" ]; then
@@ -548,7 +548,7 @@ SYSCTL
     
     # Derive REPO_NAME (owner/repo) from repo URL for GitHub API pushes
     if [ -n "${REPO_URL:-}" ]; then
-        REPO_NAME=$(echo "$REPO_URL" | sed 's|https://github.com/||' | sed 's|\.git$||')
+        REPO_NAME=$(echo "$REPO_URL" | sed -E 's|https?://([^@]+@)?github\.com/||; s|git@github\.com:||; s|\.git$||; s|/+$||')
     else
         REPO_NAME="whoahaow/rjsxrd"
     fi

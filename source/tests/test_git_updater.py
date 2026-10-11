@@ -89,9 +89,118 @@ class TestConfigureGit:
     def test_sets_user_name_and_email(self, mock_subprocess_run, updater):
         updater.configure_git()
         calls = mock_subprocess_run.call_args_list
-        assert len(calls) == 2
+        assert len(calls) == 3
         assert calls[0].args[0] == ["git", "config", "user.name", "GitHub Actions"]
         assert calls[1].args[0] == ["git", "config", "user.email", "actions@github.com"]
+        assert calls[2].args[0] == ["git", "remote", "get-url", "origin"]
+
+
+# ── ensure_authenticated_remote & sanitization ────────────────────────
+
+
+class TestEnsureAuthenticatedRemote:
+    def test_updates_origin_when_token_in_env(self, mock_subprocess_run, updater, monkeypatch):
+        monkeypatch.setenv("GITHUB_TOKEN", "ghp_secrettoken123")
+        mock_subprocess_run.side_effect = [
+            make_result(0, stdout="https://github.com/whoahaow/rjsxrd.git\n"),
+            make_result(0),
+        ]
+
+        updater.ensure_authenticated_remote()
+
+        calls = mock_subprocess_run.call_args_list
+        assert calls[0].args[0] == ["git", "remote", "get-url", "origin"]
+        assert calls[1].args[0] == [
+            "git",
+            "remote",
+            "set-url",
+            "origin",
+            "https://x-access-token:ghp_secrettoken123@github.com/whoahaow/rjsxrd.git",
+        ]
+
+    def test_replaces_old_token_when_regenerated_in_env(self, mock_subprocess_run, updater, monkeypatch):
+        monkeypatch.setenv("GITHUB_TOKEN", "github_pat_newtoken456")
+        mock_subprocess_run.side_effect = [
+            make_result(0, stdout="https://github_pat_oldtoken123@github.com/whoahaow/rjsxrd.git\n"),
+            make_result(0),
+        ]
+
+        updater.ensure_authenticated_remote()
+
+        calls = mock_subprocess_run.call_args_list
+        assert calls[1].args[0] == [
+            "git",
+            "remote",
+            "set-url",
+            "origin",
+            "https://x-access-token:github_pat_newtoken456@github.com/whoahaow/rjsxrd.git",
+        ]
+
+    def test_fixes_bare_token_without_token_in_env(self, mock_subprocess_run, updater, monkeypatch):
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        monkeypatch.delenv("MY_TOKEN", raising=False)
+        mock_subprocess_run.side_effect = [
+            make_result(0, stdout="https://github_pat_mysecrettoken@github.com/whoahaow/rjsxrd.git\n"),
+            make_result(0),
+        ]
+
+        updater.ensure_authenticated_remote()
+
+        calls = mock_subprocess_run.call_args_list
+        assert calls[1].args[0] == [
+            "git",
+            "remote",
+            "set-url",
+            "origin",
+            "https://x-access-token:github_pat_mysecrettoken@github.com/whoahaow/rjsxrd.git",
+        ]
+
+    def test_ignores_ssh_url(self, mock_subprocess_run, updater, monkeypatch):
+        monkeypatch.setenv("GITHUB_TOKEN", "ghp_secrettoken123")
+        mock_subprocess_run.return_value = make_result(0, stdout="git@github.com:whoahaow/rjsxrd.git\n")
+
+        updater.ensure_authenticated_remote()
+
+        calls = mock_subprocess_run.call_args_list
+        assert len(calls) == 1
+        assert calls[0].args[0] == ["git", "remote", "get-url", "origin"]
+
+    def test_does_nothing_if_origin_already_matches_token(self, mock_subprocess_run, updater, monkeypatch):
+        monkeypatch.setenv("GITHUB_TOKEN", "ghp_secrettoken123")
+        mock_subprocess_run.return_value = make_result(
+            0, stdout="https://x-access-token:ghp_secrettoken123@github.com/whoahaow/rjsxrd.git\n"
+        )
+
+        updater.ensure_authenticated_remote()
+
+        calls = mock_subprocess_run.call_args_list
+        assert len(calls) == 1
+
+    def test_handles_remote_error_gracefully(self, mock_subprocess_run, updater):
+        mock_subprocess_run.side_effect = subprocess.CalledProcessError(
+            1, ["git", "remote"], stderr="fatal: not a git repo"
+        )
+
+        # Must not raise
+        updater.ensure_authenticated_remote()
+
+
+class TestSanitizeGitMessage:
+    def test_masks_token_in_https_url(self):
+        from utils.git_updater import _sanitize_git_message
+
+        msg = "fatal: could not read Password for 'https://x-access-token:ghp_secret@github.com/repo': No such device"
+        sanitized = _sanitize_git_message(msg)
+        assert "ghp_secret" not in sanitized
+        assert "https://***@github.com/repo" in sanitized
+
+    def test_masks_bare_token_in_https_url(self):
+        from utils.git_updater import _sanitize_git_message
+
+        cmd = "git push https://github_pat_123456@github.com/whoahaow/rjsxrd.git main"
+        sanitized = _sanitize_git_message(cmd)
+        assert "github_pat_123456" not in sanitized
+        assert "https://***@github.com" in sanitized
 
 
 # ── pull ──────────────────────────────────────────────────────────────

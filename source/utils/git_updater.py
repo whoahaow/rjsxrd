@@ -1,11 +1,21 @@
 """Git-based file updater for GitHub Actions."""
 
 import os
+import re
 import subprocess
 from datetime import datetime, timedelta, timezone
 
 from utils.git_auto_cleaner import squash_auto_commits
 from utils.logger import log
+
+
+def _sanitize_git_message(text: str) -> str:
+    """Mask credentials/tokens in git commands and error outputs."""
+    return re.sub(
+        r"(https?://)([^:\s@]+)(:[^@\s]+)?(@github\.com)",
+        r"\1***\4",
+        text,
+    )
 
 
 class GitUpdater:
@@ -23,7 +33,7 @@ class GitUpdater:
     def _run_git(self, *args, check: bool = True, timeout: int = 60) -> subprocess.CompletedProcess:
         """Run git command with timeout."""
         cmd = ["git"] + list(args)
-        log(f"Running: {' '.join(cmd)}")
+        log(f"Running: {_sanitize_git_message(' '.join(cmd))}")
 
         try:
             result = subprocess.run(
@@ -31,24 +41,80 @@ class GitUpdater:
             )
 
             if result.stdout:
-                log(f"Git output: {result.stdout.strip()}")
+                log(f"Git output: {_sanitize_git_message(result.stdout.strip())}")
             if result.stderr:
-                log(f"Git stderr: {result.stderr.strip()}")
+                log(f"Git stderr: {_sanitize_git_message(result.stderr.strip())}")
 
             return result
         except subprocess.TimeoutExpired:
-            log(f"Git command timed out: {' '.join(cmd)}")
+            log(f"Git command timed out: {_sanitize_git_message(' '.join(cmd))}")
             raise
         except subprocess.CalledProcessError as e:
-            log(f"Git command failed: {e.stderr}")
+            err_msg = _sanitize_git_message(e.stderr or "")
+            log(f"Git command failed: {err_msg}")
             raise
 
     def configure_git(self) -> None:
-        """Configure git user for commits."""
+        """Configure git user and authenticated remote for commits."""
         log("Configuring git user...")
         self._run_git("config", "user.name", "GitHub Actions")
         self._run_git("config", "user.email", "actions@github.com")
         log("Git user configured")
+        self.ensure_authenticated_remote()
+
+    def ensure_authenticated_remote(self) -> None:
+        """Ensure git origin URL uses authenticated https URL with token when available.
+
+        In headless/daemon environments (e.g. systemd timer on VPS), pushing to
+        an HTTPS remote without credentials or with a bare token (e.g. https://<TOKEN>@github.com)
+        fails because git prompts for password on stdin and crashes with:
+        'fatal: could not read Password ... No such device or address'.
+
+        GitHub Personal Access Tokens (PAT) must be formatted as:
+        https://x-access-token:<TOKEN>@github.com/owner/repo.git
+
+        This method:
+        1. If GITHUB_TOKEN or MY_TOKEN is set in environment, updates https origin to use
+           https://x-access-token:<TOKEN>@github.com/owner/repo.git
+        2. If no token in env, but origin currently has a bare token without password
+           (https://github_pat_... or https://ghp_...), fixes it to use x-access-token prefix.
+        """
+        token = os.environ.get("GITHUB_TOKEN") or os.environ.get("MY_TOKEN")
+        try:
+            res = self._run_git("remote", "get-url", "origin", check=False)
+            if res.returncode != 0 or not res.stdout.strip():
+                return
+            origin_url = res.stdout.strip()
+
+            # Ignore SSH urls (e.g. git@github.com:...)
+            if not origin_url.startswith("http://") and not origin_url.startswith("https://"):
+                return
+
+            # Extract repository owner/name: github.com[:/](owner/repo)
+            match = re.search(r"github\.com[:/](.+?)(?:\.git)?$", origin_url)
+            if not match:
+                return
+            repo_path = match.group(1).lstrip("/")
+
+            if token:
+                expected_url = f"https://x-access-token:{token}@github.com/{repo_path}.git"
+                if origin_url != expected_url:
+                    self._run_git("remote", "set-url", "origin", expected_url)
+                    log("Configured git origin with token authentication")
+                return
+
+            # If no token in env, check if origin itself has a bare token
+            bare_token_match = re.search(
+                r"^https://((?:github_pat_|ghp_|gho_|ghu_|ghs_)[^:@]+)@github\.com/(.+?)(?:\.git)?$",
+                origin_url,
+            )
+            if bare_token_match:
+                extracted_token = bare_token_match.group(1)
+                fixed_url = f"https://x-access-token:{extracted_token}@github.com/{repo_path}.git"
+                self._run_git("remote", "set-url", "origin", fixed_url)
+                log("Fixed bare-token origin URL to use x-access-token prefix")
+        except Exception as e:
+            log(f"Warning: could not verify or update git remote origin: {e}")
 
     def pull(self, branch: str | None = None) -> None:
         """Pull latest changes from remote with rebase."""

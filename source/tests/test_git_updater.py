@@ -227,6 +227,60 @@ class TestPush:
         ]
 
 
+# ── commit_and_push_single (progressive push) ─────────────────────────
+
+
+class TestCommitAndPushSingle:
+    def test_progressive_commit_and_push_happy_path(self, mock_subprocess_run, updater):
+        mock_subprocess_run.return_value = make_result(0, stdout="main\n")
+
+        updater.commit_and_push_single("githubmirror/bypass/bypass-1.txt", "auto: update bypass-1.txt")
+
+        calls = mock_subprocess_run.call_args_list
+        assert calls[0].args[0] == ["git", "add", "githubmirror/bypass/bypass-1.txt"]
+        assert calls[1].args[0] == ["git", "commit", "--allow-empty", "-m", "auto: update bypass-1.txt"]
+        assert calls[2].args[0] == ["git", "rev-parse", "--abbrev-ref", "HEAD"]
+        assert calls[3].args[0] == ["git", "push", "origin", "main"]
+
+    def test_progressive_push_retries_and_pulls_on_failure(self, mock_subprocess_run, updater):
+        push_count = [0]
+
+        def side_effect(cmd, *args, **kwargs):
+            if cmd == ["git", "rev-parse", "--abbrev-ref", "HEAD"]:
+                return make_result(0, stdout="main\n")
+            if len(cmd) > 1 and cmd[0] == "git" and cmd[1] == "push":
+                push_count[0] += 1
+                if push_count[0] == 1:
+                    raise subprocess.CalledProcessError(1, cmd, stderr="! [rejected] (fetch first)")
+                return make_result(0)
+            return make_result(0)
+
+        mock_subprocess_run.side_effect = side_effect
+
+        updater.commit_and_push_single("githubmirror/bypass/bypass-1.txt", "auto: update bypass-1.txt", max_retries=2)
+
+        assert push_count[0] == 2
+        pull_calls = [
+            c
+            for c in mock_subprocess_run.call_args_list
+            if c.args[0][:3] == ["git", "pull", "--rebase"]
+        ]
+        assert len(pull_calls) == 1
+
+    def test_progressive_push_raises_when_retries_exhausted(self, mock_subprocess_run, updater):
+        def side_effect(cmd, *args, **kwargs):
+            if cmd == ["git", "rev-parse", "--abbrev-ref", "HEAD"]:
+                return make_result(0, stdout="main\n")
+            if len(cmd) > 1 and cmd[0] == "git" and cmd[1] == "push":
+                raise subprocess.CalledProcessError(1, cmd, stderr="! [rejected] (fetch first)")
+            return make_result(0)
+
+        mock_subprocess_run.side_effect = side_effect
+
+        with pytest.raises(subprocess.CalledProcessError):
+            updater.commit_and_push_single("githubmirror/bypass/bypass-1.txt", "auto: update bypass-1.txt", max_retries=2)
+
+
 # ── commit_and_push_files (full workflow) ─────────────────────────────
 
 

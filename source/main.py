@@ -195,6 +195,13 @@ def _run_pipeline_and_upload(
         from utils.git_updater import GitUpdater
 
         updater = GitUpdater()
+        if updater is not None:
+            updater.configure_git()
+            if not os.environ.get("GITHUB_ACTIONS"):
+                try:
+                    updater.pull()
+                except Exception as e:
+                    log(f"Warning: initial git pull failed: {e}")
 
         def upload_fn(local_path: str, remote_path: str) -> None:
             """Commit + push file progressively so it appears on GitHub live,

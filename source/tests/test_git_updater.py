@@ -258,8 +258,9 @@ class TestCommitAndPushFiles:
         ]
         assert len(commit_calls) == 0
 
-    def test_retries_on_push_failure(self, mock_subprocess_run, updater):
+    def test_retries_on_push_failure(self, mock_subprocess_run, updater, monkeypatch):
         """Push fails first time, pull+retry succeeds."""
+        monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
         push_count = [0]
 
         def side_effect(cmd, *args, **kwargs):

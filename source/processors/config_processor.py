@@ -1,9 +1,4 @@
-"""Config processing module — pipeline orchestration.
-
-Core of the config generation pipeline. Defines ConfigPipeline (11 named stages)
-and process_all_configs() entry point. Helper utilities (base64 decode, dedup,
-flag resolution, path building) live in utils/config_helpers.py.
-"""
+"""Config processing module — pipeline orchestration and ConfigPipeline stages."""
 
 from __future__ import annotations
 
@@ -62,7 +57,9 @@ from utils.file_writer import (
     stream_write_configs_file,
     write_configs_file,
 )
-from utils.file_writer import append_remark_suffix as append_remark_suffix
+from utils.file_writer import (
+    append_remark_suffix as append_remark_suffix,
+)
 from utils.logger import log
 from utils.security_filter import filter_secure_configs, has_insecure_setting
 from utils.system_specs import get_specs
@@ -90,17 +87,8 @@ def _fetch_and_process_urls(
 ) -> None:
     """Fetch URLs in parallel, dedup in-memory (set), dispatch to lists.
 
-    NOTE: This function mutates its collector arguments in place:
-      - target_all / target_extra — extended with new unique configs
-      - numbered_configs_with_urls — appended (configs, label) tuples
-      - all_mtproto / all_socks5 — extended with Telegram proxies
-      - global_seen — populated with seen config hashes for dedup
-
-    Returns None — all results communicated via mutation.
-
-    Args:
-        urls: URLs to fetch
-        token: Optional Bearer token for GitHub-authenticated requests.
+    Mutates target_all, target_extra, numbered_configs_with_urls,
+    all_mtproto, all_socks5, and global_seen in place.
     """
     if not urls:
         return
@@ -486,15 +474,22 @@ class ConfigPipeline:
         self.verbose = verbose
         self.flag_overrides = flag_overrides
         self.upload_fn = upload_fn
-        for attr, name, default in (
-            ("enable_default_files", "ENABLE_DEFAULT_FILES", ENABLE_DEFAULT_FILES),
-            ("enable_bypass_unsecure", "ENABLE_BYPASS_UNSECURE", ENABLE_BYPASS_UNSECURE),
-            ("enable_protocol_split", "ENABLE_PROTOCOL_SPLIT", ENABLE_PROTOCOL_SPLIT),
-            ("enable_tg_proxy", "ENABLE_TG_PROXY", ENABLE_TG_PROXY),
-            ("publish_raw_files", "PUBLISH_RAW_FILES", PUBLISH_RAW_FILES),
-            ("auto_remove_dead_urls", "AUTO_REMOVE_DEAD_URLS", AUTO_REMOVE_DEAD_URLS),
-        ):
-            setattr(self, attr, resolve_flag(name, flag_overrides, default))
+        self.enable_default_files = resolve_flag(
+            "ENABLE_DEFAULT_FILES", flag_overrides, ENABLE_DEFAULT_FILES
+        )
+        self.enable_bypass_unsecure = resolve_flag(
+            "ENABLE_BYPASS_UNSECURE", flag_overrides, ENABLE_BYPASS_UNSECURE
+        )
+        self.enable_protocol_split = resolve_flag(
+            "ENABLE_PROTOCOL_SPLIT", flag_overrides, ENABLE_PROTOCOL_SPLIT
+        )
+        self.enable_tg_proxy = resolve_flag("ENABLE_TG_PROXY", flag_overrides, ENABLE_TG_PROXY)
+        self.publish_raw_files = resolve_flag(
+            "PUBLISH_RAW_FILES", flag_overrides, PUBLISH_RAW_FILES
+        )
+        self.auto_remove_dead_urls = resolve_flag(
+            "AUTO_REMOVE_DEAD_URLS", flag_overrides, AUTO_REMOVE_DEAD_URLS
+        )
         t_over = flag_overrides.get("DEAD_URL_FAILURE_THRESHOLD") if flag_overrides else None
         self.dead_url_failure_threshold = (
             int(t_over) if t_over is not None else DEAD_URL_FAILURE_THRESHOLD
@@ -506,9 +501,11 @@ class ConfigPipeline:
         self.config_to_sources: dict[str, list[str]] | None = None
 
         # In-memory storage (freed before verification)
-        self.all_configs, self.extra_bypass_configs = [], []
+        self.all_configs: list[str] = []
+        self.extra_bypass_configs: list[str] = []
         self.numbered_configs_with_urls: list[tuple[list[str], str]] = []
-        self.mtproto_proxies, self.socks5_proxies = [], []
+        self.mtproto_proxies: list[str] = []
+        self.socks5_proxies: list[str] = []
         self._sni_cidr_filtered: list[str] = []
         self._tagger: ConfigTagger | None = ConfigTagger()
 
@@ -789,10 +786,7 @@ class ConfigPipeline:
             self.stats.remove_dead_from_urls_txt(threshold=self.dead_url_failure_threshold)
             self.stats.remove_dead_from_servers_txt(threshold=self.dead_url_failure_threshold)
         self.stats.print_report()
-        # The fetch stage's own security figures, next to the URL health report: which
-        # destinations were refused (not dead sources), and how many fetches skipped TLS
-        # verification or went out in the clear, on which hosts. A run whose sources were
-        # all refused or downgraded has to be distinguishable from a clean one.
+        # Report refused destinations and TLS skips/downgrades next to health report
         report_fetch_security()
         self.stats.flush()
 

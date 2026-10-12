@@ -322,7 +322,6 @@ https://raw.githubusercontent.com/HikaruApps/WhiteLattice/refs/heads/main/subscr
 https://raw.githubusercontent.com/mmaksim9191/my-vpn-configs/refs/heads/main/configs/mobile-whitelist-1.txt
 https://raw.githubusercontent.com/mmaksim9191/my-vpn-configs/refs/heads/main/configs/white-cidr-checked.txt
 https://ewecrow78-gif.github.io/htmlWhiteList/
-https://translate.yandex.ru/translate?url=https://raw.githubusercontent.com/Vovo4ka000/V4kVPN/main/v4kVPN.txt
 https://github.com/igareck/vpn-configs-for-russia/tree/main
 https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/main/WHITE-CIDR-RU-checked.txt
 https://tinyurl.com/SemqkaAndXelaVonVPN

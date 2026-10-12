@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # С отчётом о покрытии
 ```
 
 Маркеры проставлены на каждом тестовом модуле (`pytestmark`), поэтому `-m unit`
-и `-m integration` действительно что-то выбирают: 1513 и 15 тестов из 1528
+и `-m integration` действительно что-то выбирают: 1514 и 15 тестов из 1529
 (замер — `pytest --collect-only -q` с тем и другим маркером). Сеть трогают
 только два модуля (`test_fetcher.py`, `test_ip_checker.py`) — они помечены
 `integration`. Чистая логика сети не требует и лежит в unit-модулях, включая
@@ -36,7 +36,7 @@ api.github.com, и это измерено, а не предполагается
 
 ## Структура тестов
 
-Всего **1528 тестов** в 43 файлах. Полный прогон на машине разработки (Windows,
+Всего **1529 тестов** в 43 файлах. Полный прогон на машине разработки (Windows,
 Python 3.12) занимает около 70–80 секунд; время зависит от диска и загрузки
 машины, поэтому ориентируйтесь на `pytest -q` у себя.
 
@@ -55,7 +55,7 @@ Python 3.12) занимает около 70–80 секунд; время зав
 | `test_logger.py` | 30 | Логирование, уровни, формат |
 | `test_yaml_converter.py` | 33 | Конвертация Clash/Surge YAML в VPN URL |
 | `test_smart_eta.py` | 27 | SmartETA: 3-way estimate (window, global, EMA) + timeout floor |
-| `test_git_updater.py` | 37 | GitUpdater: init, pull, stage, commit, push, retry |
+| `test_git_updater.py` | 38 | GitUpdater: init, pull, stage, commit, push, retry |
 | `test_simple_tester.py` | 25 | `extract_host_port` + `SimpleTester` (TCP-пинг) |
 | `test_process_registry.py` | 25 | ProcessRegistry, cleanup, callbacks |
 | `test_git_auto_cleaner.py` | 24 | Авто-очистка auto-коммитов |

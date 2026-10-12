@@ -446,8 +446,8 @@ Collects persistent statistics in `data/url_stats.json`:
 - `record_verified_yield(config_url, worked)` — verification result (reverse mapping)
 - `get_dead_urls()` — URLs with 3+ consecutive errors
 - `get_dead_configs()` — servers.txt configs with 3+ verification failures
-- `remove_dead_from_urls_txt()` — auto-removal of dead URLs
-- `remove_dead_from_servers_txt()` — auto-removal of dead configs
+- `remove_dead_from_urls_txt()` — auto-removal of dead URLs (when `AUTO_REMOVE_DEAD_URLS=True`, threshold `DEAD_URL_FAILURE_THRESHOLD`)
+- `remove_dead_from_servers_txt()` — auto-removal of dead configs (when `AUTO_REMOVE_DEAD_URLS=True`, threshold `DEAD_URL_FAILURE_THRESHOLD`)
 
 ## proxy_detector.py — proxy auto-detection
 

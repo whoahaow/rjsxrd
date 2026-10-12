@@ -94,15 +94,14 @@ MANUAL_CONFIGS = (
     "trojan://manual-secret@m.example.invalid:443?security=tls&sni=m.example.invalid#manual",
 )
 
-# Every flag-gated folder on except the protocol split. That one is switched on
-# for a single run by TestProtocolSplitUploadPairs, which is the test that
-# exercises the stage and its upload pairs.
+# Every flag-gated folder on except protocol split (exercised by TestProtocolSplitUploadPairs).
 OUTPUT_FLAGS: dict[str, bool] = {
     "ENABLE_DEFAULT_FILES": True,
     "ENABLE_BYPASS_UNSECURE": True,
     "ENABLE_PROTOCOL_SPLIT": False,
     "ENABLE_TG_PROXY": True,
     "PUBLISH_RAW_FILES": True,
+    "AUTO_REMOVE_DEAD_URLS": True,
 }
 
 # ``OUTPUT_FLAGS`` with the split stage live, for the run that asserts it.

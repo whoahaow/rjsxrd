@@ -408,6 +408,19 @@ ENABLE_PROTOCOL_SPLIT = False  # split-by-protocols/ — per-protocol files
 ENABLE_TG_PROXY = False  # tg-proxy/ — Telegram proxies (disabled by default)
 PUBLISH_RAW_FILES = False  # /raw/ subfolders — untested configs before verification
 
+# === Source config cleanup flags ===
+# Controls whether dead URLs from URLS.txt and dead configs from servers.txt
+# are automatically pruned after failing consecutive pipeline runs.
+# Default: False (disabled/off).
+AUTO_REMOVE_DEAD_URLS = os.environ.get("AUTO_REMOVE_DEAD_URLS", "false").lower() in (
+    "true",
+    "1",
+    "yes",
+)
+# Number of consecutive failures before auto-removing a dead URL or server (default: 3).
+DEAD_URL_FAILURE_THRESHOLD = _validate_int_env("DEAD_URL_FAILURE_THRESHOLD", 3, 1, 100)
+
+
 # === File size limits ===
 MAX_FILE_SIZE_MB = 49.0  # Max per-file before splitting (GitHub ~50MB limit)
 MAX_CONFIGS_PER_FILE = 300  # Max configs per numbered file

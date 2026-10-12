@@ -118,3 +118,23 @@ class TestUploadPathGuards:
             patch.object(main, "log"),
         ):
             assert _run_pipeline(use_git=True, dry_run=True) is True
+
+
+class TestAutoRemoveDeadUrlsArgs:
+    """CLI argument parsing for auto-removing dead URLs and failure threshold."""
+
+    def test_enable_auto_remove_dead_urls_flag(self):
+        with patch.object(sys, "argv", ["main.py", "--enable-auto-remove-dead-urls"]):
+            args = main._parse_args()
+            assert args.auto_remove_dead_urls is True
+
+    def test_disable_auto_remove_dead_urls_flag(self):
+        with patch.object(sys, "argv", ["main.py", "--disable-auto-remove-dead-urls"]):
+            args = main._parse_args()
+            assert args.auto_remove_dead_urls is False
+
+    def test_dead_url_threshold_flag(self):
+        with patch.object(sys, "argv", ["main.py", "--dead-url-threshold", "5"]):
+            args = main._parse_args()
+            assert args.dead_url_threshold == 5
+

@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 ```
 
 Every test module declares its marker (`pytestmark`), so `-m unit` and
-`-m integration` actually select something: 1514 and 15 tests out of 1529
+`-m integration` actually select something: 1519 and 15 tests out of 1534
 (measured with `pytest --collect-only -q` under each marker). Only the two
 modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) carry `integration`. Pure logic needs
@@ -37,7 +37,7 @@ third network call, the case fails on `seen == []` instead of passing quietly.
 
 ## Test structure
 
-**1529 tests** in 43 files. A full run takes around 70–80 seconds on the
+**1534 tests** in 43 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
@@ -78,12 +78,12 @@ load, so measure with `pytest -q` on your own machine.
 | `test_ip_verifier.py` | 35 | env vars, TCP port polling, response validators, chain reads |
 | `test_telegram_proxy_verifier.py` | 14 | MTProto/SOCKS5 proxy verification |
 | `test_ip_checker.py` | 14 | IP check, `_make_request` |
-| `test_url_stats.py` | 25 | `record_fetch`, `get_dead_urls`, persistence; neither a refusal nor a run condition ages a URL, and one channel per fact — the error text, not a derived flag |
+| `test_url_stats.py` | 27 | `record_fetch`, `get_dead_urls`, persistence; neither a refusal nor a run condition ages a URL, and one channel per fact — the error text, not a derived flag |
 | `test_scripts_import.py` | 12 | Import smoke tests for the `scripts/` entry points, benchmark loader |
 | `test_progress.py` | 6 | tqdm consolidation |
 | `test_docs_figures.py` | 7 | Docs figures match the collected suite: its totals, the per-file table, the README trees, and the coverage rows with their anchor |
 | `test_module_size.py` | 4 | Module ceiling and the debt budget: the ceiling covers the whole tree, a budget only shrinks |
-| `test_main.py` | 6 | Upload-path guards and the deferred SDK import in the entry point |
+| `test_main.py` | 9 | Upload-path guards and the deferred SDK import in the entry point |
 | `test_telegram_proxy_processor.py` | 3 | Writing MTProto/SOCKS5 proxies to files |
 | `test_purge_stale_urls.py` | 3 | Cache loading in `scripts/purge_stale_urls.py` |
 

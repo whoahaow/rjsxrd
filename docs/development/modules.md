@@ -425,8 +425,8 @@ xray его действительно читает, рвёт загрузку �
 - `record_verified_yield(config_url, worked)` — результат верификации (обратное маппирование)
 - `get_dead_urls()` — URL с 3+ последовательными ошибками
 - `get_dead_configs()` — servers.txt конфиги с 3+ провалами верификации
-- `remove_dead_from_urls_txt()` — авто-удаление мёртвых URL
-- `remove_dead_from_servers_txt()` — авто-удаление мёртвых конфигов
+- `remove_dead_from_urls_txt()` — авто-удаление мёртвых URL (при `AUTO_REMOVE_DEAD_URLS=True`, порог `DEAD_URL_FAILURE_THRESHOLD`)
+- `remove_dead_from_servers_txt()` — авто-удаление мёртвых конфигов (при `AUTO_REMOVE_DEAD_URLS=True`, порог `DEAD_URL_FAILURE_THRESHOLD`)
 
 ## proxy_detector.py — авто-детекция прокси
 

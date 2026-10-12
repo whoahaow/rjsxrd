@@ -511,6 +511,27 @@ def _parse_args() -> argparse.Namespace:
         default=None,
         help="Override PUBLISH_RAW_FILES=False (skip uploading /raw/ subfolders)",
     )
+    parser.add_argument(
+        "--enable-auto-remove-dead-urls",
+        dest="auto_remove_dead_urls",
+        action="store_true",
+        default=None,
+        help="Override AUTO_REMOVE_DEAD_URLS=True (auto-delete dead URLs and servers)",
+    )
+    parser.add_argument(
+        "--disable-auto-remove-dead-urls",
+        dest="auto_remove_dead_urls",
+        action="store_false",
+        default=None,
+        help="Override AUTO_REMOVE_DEAD_URLS=False (keep all URLs and servers)",
+    )
+    parser.add_argument(
+        "--dead-url-threshold",
+        dest="dead_url_threshold",
+        type=int,
+        default=None,
+        help="Failure count threshold before auto-removing dead URL/server (default: 3)",
+    )
 
     # Batch mode override.
     # --batch-mode overrides XRAY_BATCH_MODE to "batch" for this run.
@@ -548,6 +569,8 @@ if __name__ == "__main__":
             "ENABLE_PROTOCOL_SPLIT": args.enable_protocol_split,
             "ENABLE_TG_PROXY": args.enable_tg_proxy,
             "PUBLISH_RAW_FILES": args.publish_raw_files,
+            "AUTO_REMOVE_DEAD_URLS": args.auto_remove_dead_urls,
+            "DEAD_URL_FAILURE_THRESHOLD": args.dead_url_threshold,
         }.items()
         if v is not None
     }

@@ -33,6 +33,9 @@ These flags override the values from `config/settings.py` for one run (without c
 | `--disable-tg-proxy` | Skip tg-proxy/ |
 | `--publish-raw-files` | Upload /raw/ subfolders |
 | `--no-publish-raw-files` | Don't upload /raw/ subfolders |
+| `--enable-auto-remove-dead-urls` | Enable auto-removal of dead URLs from URLS.txt and servers.txt |
+| `--disable-auto-remove-dead-urls` | Disable auto-removal (default) — never edit URLS.txt |
+| `--dead-url-threshold=<N>` | Consecutive failure count before removal (default: 3) |
 
 ### Verification modes
 

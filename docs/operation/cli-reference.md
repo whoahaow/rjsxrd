@@ -33,6 +33,9 @@ python main.py [OPTIONS]
 | `--disable-tg-proxy` | Пропустить tg-proxy/ |
 | `--publish-raw-files` | Загружать /raw/ подпапки |
 | `--no-publish-raw-files` | Не загружать /raw/ подпапки |
+| `--enable-auto-remove-dead-urls` | Включить авто-удаление неработающих URL из URLS.txt и servers.txt |
+| `--disable-auto-remove-dead-urls` | Отключить авто-удаление (по умолчанию) — никогда не модифицировать URLS.txt |
+| `--dead-url-threshold=<N>` | Порог последовательных ошибок для удаления (по умолчанию: 3) |
 
 ### Режимы верификации
 

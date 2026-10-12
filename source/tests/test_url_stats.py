@@ -453,3 +453,31 @@ class TestAStoreWrittenBeforeTheDerivedFlagWasDropped:
 
         assert stats.data[url]["fetch"]["consecutive_failures"] == 0
         assert url not in [dead_url for dead_url, _ in stats.get_dead_urls(3)]
+
+
+class TestAutoRemoveDeadUrlsConfig:
+    """Auto-removal settings and threshold control."""
+
+    def test_default_settings_are_disabled_and_threshold_three(self) -> None:
+        from config import settings
+
+        assert settings.AUTO_REMOVE_DEAD_URLS is False
+        assert settings.DEAD_URL_FAILURE_THRESHOLD == 3
+
+    def test_remove_dead_respects_custom_threshold(self, tmp_path: Path) -> None:
+        stats = URLStats(path=str(tmp_path / "url_stats.json"))
+        url = "https://failing.example.com"
+        for _ in range(3):
+            stats.record_fetch(url, False, 0, "Connection refused")
+
+        urls_txt = tmp_path / "URLS.txt"
+        urls_txt.write_text(f"{url}\nhttps://alive.example.com\n", encoding="utf-8")
+
+        # With threshold=4, 3 failures does not trigger removal
+        stats.remove_dead_from_urls_txt(path=str(urls_txt), threshold=4)
+        assert url in urls_txt.read_text(encoding="utf-8")
+
+        # With threshold=3, it gets removed
+        stats.remove_dead_from_urls_txt(path=str(urls_txt), threshold=3)
+        assert url not in urls_txt.read_text(encoding="utf-8")
+

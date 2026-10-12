@@ -19,7 +19,9 @@ from collections.abc import Callable
 from typing import Any
 
 from config.settings import (
+    AUTO_REMOVE_DEAD_URLS,
     DAILY_DATE_PATTERNS,
+    DEAD_URL_FAILURE_THRESHOLD,
     ENABLE_BYPASS_UNSECURE,
     ENABLE_DEFAULT_FILES,
     ENABLE_PROTOCOL_SPLIT,
@@ -484,20 +486,15 @@ class ConfigPipeline:
         self.verbose = verbose
         self.flag_overrides = flag_overrides
         self.upload_fn = upload_fn
-
-        self.enable_default_files = resolve_flag(
-            "ENABLE_DEFAULT_FILES", flag_overrides, ENABLE_DEFAULT_FILES
-        )
-        self.enable_bypass_unsecure = resolve_flag(
-            "ENABLE_BYPASS_UNSECURE", flag_overrides, ENABLE_BYPASS_UNSECURE
-        )
-        self.enable_protocol_split = resolve_flag(
-            "ENABLE_PROTOCOL_SPLIT", flag_overrides, ENABLE_PROTOCOL_SPLIT
-        )
+        self.enable_default_files = resolve_flag("ENABLE_DEFAULT_FILES", flag_overrides, ENABLE_DEFAULT_FILES)
+        self.enable_bypass_unsecure = resolve_flag("ENABLE_BYPASS_UNSECURE", flag_overrides, ENABLE_BYPASS_UNSECURE)
+        self.enable_protocol_split = resolve_flag("ENABLE_PROTOCOL_SPLIT", flag_overrides, ENABLE_PROTOCOL_SPLIT)
         self.enable_tg_proxy = resolve_flag("ENABLE_TG_PROXY", flag_overrides, ENABLE_TG_PROXY)
-        self.publish_raw_files = resolve_flag(
-            "PUBLISH_RAW_FILES", flag_overrides, PUBLISH_RAW_FILES
-        )
+        self.publish_raw_files = resolve_flag("PUBLISH_RAW_FILES", flag_overrides, PUBLISH_RAW_FILES)
+        self.auto_remove_dead_urls = resolve_flag("AUTO_REMOVE_DEAD_URLS", flag_overrides, AUTO_REMOVE_DEAD_URLS)
+        t_over = flag_overrides.get("DEAD_URL_FAILURE_THRESHOLD") if flag_overrides else None
+        self.dead_url_failure_threshold = int(t_over) if t_over is not None else DEAD_URL_FAILURE_THRESHOLD
+
 
         self.stats = URLStats()
         self.timing: dict[str, float] = {}
@@ -786,8 +783,9 @@ class ConfigPipeline:
         log(f"{'OVERALL TOTAL':30s} {overall:>8.2f}s")
         log("=" * 60)
         log("")
-        self.stats.remove_dead_from_urls_txt()
-        self.stats.remove_dead_from_servers_txt()
+        if self.auto_remove_dead_urls:
+            self.stats.remove_dead_from_urls_txt(threshold=self.dead_url_failure_threshold)
+            self.stats.remove_dead_from_servers_txt(threshold=self.dead_url_failure_threshold)
         self.stats.print_report()
         # The fetch stage's own security figures, next to the URL health report: which
         # destinations were refused (not dead sources), and how many fetches skipped TLS
@@ -844,12 +842,13 @@ class ConfigPipeline:
         self.stage_report()
         # Source config files may have been cleaned (dead URLs removed).
         # Upload them so the cleanup persists and doesn't repeat every run.
-        self.file_pairs.append(
-            (os.path.join(SOURCE_CONFIG_DIR, "URLS.txt"), "source/config/URLS.txt")
-        )
-        self.file_pairs.append(
-            (os.path.join(SOURCE_CONFIG_DIR, "servers.txt"), "source/config/servers.txt")
-        )
+        if self.auto_remove_dead_urls:
+            self.file_pairs.append(
+                (os.path.join(SOURCE_CONFIG_DIR, "URLS.txt"), "source/config/URLS.txt")
+            )
+            self.file_pairs.append(
+                (os.path.join(SOURCE_CONFIG_DIR, "servers.txt"), "source/config/servers.txt")
+            )
         return self.file_pairs
 
 

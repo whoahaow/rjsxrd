@@ -89,10 +89,11 @@ class TestConfigureGit:
     def test_sets_user_name_and_email(self, mock_subprocess_run, updater):
         updater.configure_git()
         calls = mock_subprocess_run.call_args_list
-        assert len(calls) == 3
+        assert len(calls) == 4
         assert calls[0].args[0] == ["git", "config", "user.name", "GitHub Actions"]
         assert calls[1].args[0] == ["git", "config", "user.email", "actions@github.com"]
         assert calls[2].args[0] == ["git", "remote", "get-url", "origin"]
+        assert calls[3].args[0] == ["git", "stash", "clear"]
 
 
 # ── ensure_authenticated_remote & sanitization ────────────────────────
@@ -223,22 +224,22 @@ class TestPull:
         updater.pull()
 
         calls = mock_subprocess_run.call_args_list
+        assert len(calls) == 2
         assert calls[0].args[0] == ["git", "rev-parse", "--abbrev-ref", "HEAD"]
-        assert calls[2].args[0] == ["git", "pull", "--rebase", "origin", "main"]
+        assert calls[1].args[0] == ["git", "pull", "--rebase", "origin", "main"]
 
     def test_pull_with_explicit_branch(self, mock_subprocess_run, updater):
         updater.pull(branch="staging")
 
         calls = mock_subprocess_run.call_args_list
-        # Should skip rev-parse since branch is given
-        assert calls[0].args[0] == ["git", "stash", "push", "-m", "Auto-stash before pull"]
-        assert calls[1].args[0] == ["git", "pull", "--rebase", "origin", "staging"]
+        # Should skip rev-parse since branch is given, directly pull
+        assert len(calls) == 1
+        assert calls[0].args[0] == ["git", "pull", "--rebase", "origin", "staging"]
 
     def test_pull_resets_on_unstaged_changes(self, mock_subprocess_run, updater):
         """When pull fails with unstaged changes, falls back to reset+clean."""
         mock_subprocess_run.side_effect = [
             make_result(0, stdout="main\n"),  # rev-parse
-            make_result(0),  # stash push
             subprocess.CalledProcessError(  # pull --rebase (fails)
                 1,
                 ["git", "pull", "--rebase", "origin", "main"],
@@ -251,9 +252,9 @@ class TestPull:
 
         updater.pull()
         calls = mock_subprocess_run.call_args_list
-        assert calls[3].args[0] == ["git", "reset", "--hard", "HEAD"]
-        assert calls[4].args[0] == ["git", "clean", "-fd"]
-        assert calls[5].args[0] == ["git", "pull", "--rebase", "origin", "main"]
+        assert calls[2].args[0] == ["git", "reset", "--hard", "HEAD"]
+        assert calls[3].args[0] == ["git", "clean", "-fd"]
+        assert calls[4].args[0] == ["git", "pull", "--rebase", "origin", "main"]
 
 
 # ── stage_files ───────────────────────────────────────────────────────
@@ -299,7 +300,8 @@ class TestCommit:
         assert result is True
 
         calls = mock_subprocess_run.call_args_list
-        assert calls[1].args[0] == ["git", "commit", "-m", "auto: update configs"]
+        assert calls[1].args[0][:3] == ["git", "grep", "-n"]
+        assert calls[2].args[0] == ["git", "commit", "-m", "auto: update configs"]
 
     def test_returns_false_when_no_changes(self, mock_subprocess_run, updater):
         mock_subprocess_run.return_value = make_result(0)
@@ -314,7 +316,17 @@ class TestCommit:
         mock_subprocess_run.return_value = make_result(1)
 
         updater.commit()
-        assert mock_subprocess_run.call_args_list[1].args[0][3] == "auto: update configs"
+        assert mock_subprocess_run.call_args_list[2].args[0][3] == "auto: update configs"
+
+    def test_commit_raises_when_conflict_markers_staged(self, mock_subprocess_run, updater):
+        mock_subprocess_run.side_effect = [
+            make_result(1),  # has_changes
+            make_result(
+                0, stdout="githubmirror/bypass-all.txt:1:<<<<<<< Updated upstream\n"
+            ),  # grep conflict
+        ]
+        with pytest.raises(RuntimeError, match="conflict markers"):
+            updater.commit("auto: update configs")
 
 
 # ── push ──────────────────────────────────────────────────────────────
@@ -359,15 +371,16 @@ class TestCommitAndPushSingle:
 
         calls = mock_subprocess_run.call_args_list
         assert calls[0].args[0] == ["git", "add", "githubmirror/bypass/bypass-1.txt"]
-        assert calls[1].args[0] == [
+        assert calls[1].args[0][:3] == ["git", "grep", "-n"]
+        assert calls[2].args[0] == [
             "git",
             "commit",
             "--allow-empty",
             "-m",
             "auto: update bypass-1.txt",
         ]
-        assert calls[2].args[0] == ["git", "rev-parse", "--abbrev-ref", "HEAD"]
-        assert calls[3].args[0] == ["git", "push", "origin", "main"]
+        assert calls[3].args[0] == ["git", "rev-parse", "--abbrev-ref", "HEAD"]
+        assert calls[4].args[0] == ["git", "push", "origin", "main"]
 
     def test_progressive_push_retries_and_pulls_on_failure(self, mock_subprocess_run, updater):
         push_count = [0]
@@ -472,7 +485,9 @@ class TestCommitAndPushFiles:
             for c in mock_subprocess_run.call_args_list
             if c.args[0][:3] == ["git", "pull", "--rebase"]
         ]
-        assert len(pull_calls) == 2  # initial pull + retry pull after failed push
+        assert (
+            len(pull_calls) == 1
+        )  # retry pull after failed push (no redundant pull before staging)
         assert push_count[0] == 2
 
     def test_fails_after_max_retries(self, mock_subprocess_run, updater):

@@ -61,6 +61,7 @@ class GitUpdater:
         self._run_git("config", "user.email", "actions@github.com")
         log("Git user configured")
         self.ensure_authenticated_remote()
+        self._run_git("stash", "clear", check=False)
 
     def ensure_authenticated_remote(self) -> None:
         """Ensure git origin URL uses authenticated https URL with token when available.
@@ -124,17 +125,10 @@ class GitUpdater:
 
         log(f"Pulling from origin/{branch}...")
         try:
-            # First stash any local changes (can happen with temp files)
-            stash_res = self._run_git("stash", "push", "-m", "Auto-stash before pull", check=False)
-            stashed = "Saved working directory" in (stash_res.stdout or "")
-
-            # Now pull with rebase
+            # Rebase directly onto latest remote changes.
+            # Never stash generated files: 3-way stash merges corrupt subscriptions.
             self._run_git("pull", "--rebase", "origin", branch)
             log("Pull successful")
-
-            # Pop stash if it was created
-            if stashed:
-                self._run_git("stash", "pop", check=False)
         except subprocess.CalledProcessError as e:
             err_msg = (e.stderr or "").lower()
             if "cannot pull with rebase" in err_msg or "unstaged changes" in err_msg:
@@ -187,12 +181,25 @@ class GitUpdater:
         except (OSError, subprocess.TimeoutExpired, subprocess.CalledProcessError):
             return False
 
+    def check_conflict_markers(self) -> None:
+        """Verify no staged files contain git conflict markers."""
+        try:
+            grep_res = self._run_git("grep", "-n", "--cached", "-E", r"^<<<<<<< ", check=False)
+            if grep_res.returncode == 0 and "<<<<<<<" in (grep_res.stdout or ""):
+                log(f"ERROR: Conflict markers detected in staged files:\n{grep_res.stdout.strip()}")
+                raise RuntimeError(
+                    "Aborting commit: staged files contain conflict markers (<<<<<<<)"
+                )
+        except subprocess.CalledProcessError:
+            pass
+
     def commit(self, message: str = "auto: update configs") -> bool:
         """Commit staged changes."""
         if not self.has_changes():
             log("No changes to commit")
             return False
 
+        self.check_conflict_markers()
         log(f"Committing: {message}")
         self._run_git("commit", "-m", message)
         return True
@@ -228,6 +235,7 @@ class GitUpdater:
             max_retries: Number of retries on push rejection.
         """
         self._run_git("add", local_path, check=False)
+        self.check_conflict_markers()
         self._run_git("commit", "--allow-empty", "-m", message)
 
         for attempt in range(max_retries):
@@ -271,15 +279,10 @@ class GitUpdater:
                     f"next commit will replace them"
                 )
 
-            # Pull latest from remote before running.
-            # In GitHub Actions the checkout action already has fresh code,
-            # but on VPS (systemd timer) the repo can drift behind if other
-            # machines push. Pull --rebase keeps history linear.
-            if not os.environ.get("GITHUB_ACTIONS"):
-                try:
-                    self.pull()
-                except Exception:
-                    log("Warning: pull failed, continuing with local state")
+            # NOTE: do NOT call self.pull() here.
+            # Startup pull in main.py already brought latest code before generation.
+            # Calling pull() after squash_auto_commits() would re-pull the squashed
+            # remote commits and corrupt generated files.
 
             self.stage_files(file_pairs)
 

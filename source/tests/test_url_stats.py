@@ -480,4 +480,3 @@ class TestAutoRemoveDeadUrlsConfig:
         # With threshold=3, it gets removed
         stats.remove_dead_from_urls_txt(path=str(urls_txt), threshold=3)
         assert url not in urls_txt.read_text(encoding="utf-8")
-

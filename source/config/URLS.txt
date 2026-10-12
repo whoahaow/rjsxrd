@@ -282,6 +282,9 @@ https://raw.githubusercontent.com/HikaruApps/WhiteLattice/refs/heads/main/subscr
 https://raw.githubusercontent.com/mmaksim9191/my-vpn-configs/refs/heads/main/configs/mobile-whitelist-1.txt
 https://raw.githubusercontent.com/mmaksim9191/my-vpn-configs/refs/heads/main/configs/white-cidr-checked.txt
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
 https://translate.yandex.ru/translate?url=https://raw.githubusercontent.com/Vovo4ka000/V4kVPN/main/v4kVPN.txt
 =======
 >>>>>>> Stashed changes
@@ -327,10 +330,14 @@ https://raw.githubusercontent.com/free1zona/Keyfreetee/refs/heads/main/razlo4ka7
 https://raw.githubusercontent.com/yarikdron01-beep/Key-for-vpnFR/refs/heads/main/Key%20for%20S-WIFI
 https://cyb-portal.com/CP-006
 https://cyb-portal.com/CP-007
+<<<<<<< Updated upstream
 https://cyb-portal.com/CP-011
 <<<<<<< Updated upstream
 https://cyb-portal.com/CP-035
 =======
+>>>>>>> Stashed changes
+=======
+https://cyb-portal.com/CP-035
 >>>>>>> Stashed changes
 https://cyb-portal.com/CP-040
 

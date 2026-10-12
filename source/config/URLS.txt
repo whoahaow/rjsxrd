@@ -182,12 +182,9 @@ https://raw.githubusercontent.com/10ium/ScrapeAndCategorize/refs/heads/main/outp
 https://raw.githubusercontent.com/10ium/ScrapeAndCategorize/refs/heads/main/output_configs/Trojan.txt
 https://raw.githubusercontent.com/flaafix/AetrisVPN-black-list/refs/heads/main/configs.txt
 https://cyb-portal.com/CP-001
-https://cyb-portal.com/CP-002
 https://cyb-portal.com/CP-003
 https://cyb-portal.com/CP-009
-https://cyb-portal.com/CP-010
 https://cyb-portal.com/CP-012
-https://cyb-portal.com/CP-013
 https://cyb-portal.com/CP-014
 https://cyb-portal.com/CP-015
 https://cyb-portal.com/CP-017
@@ -283,9 +280,12 @@ https://raw.githubusercontent.com/mmaksim9191/my-vpn-configs/refs/heads/main/con
 https://raw.githubusercontent.com/mmaksim9191/my-vpn-configs/refs/heads/main/configs/white-cidr-checked.txt
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
 >>>>>>> Stashed changes
 https://translate.yandex.ru/translate?url=https://raw.githubusercontent.com/Vovo4ka000/V4kVPN/main/v4kVPN.txt
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 https://github.com/igareck/vpn-configs-for-russia/tree/main
@@ -331,12 +331,18 @@ https://raw.githubusercontent.com/yarikdron01-beep/Key-for-vpnFR/refs/heads/main
 https://cyb-portal.com/CP-006
 https://cyb-portal.com/CP-007
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 https://cyb-portal.com/CP-011
 <<<<<<< Updated upstream
 https://cyb-portal.com/CP-035
 =======
 >>>>>>> Stashed changes
 =======
+https://cyb-portal.com/CP-035
+>>>>>>> Stashed changes
+=======
+https://cyb-portal.com/CP-011
+https://cyb-portal.com/CP-035
 https://cyb-portal.com/CP-035
 >>>>>>> Stashed changes
 https://cyb-portal.com/CP-040

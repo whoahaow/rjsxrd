@@ -35,5 +35,5 @@ cd source && ../.venv/Scripts/python.exe -m pytest -q
 ./.venv/Scripts/python.exe -m ruff check .
 ```
 
-A full run is 1528 tests, about 70–80 seconds on the development machine (Windows, Python 3.12). The shape of the suite and the verification scenarios are described in [Testing](testing.en.md).
+A full run is 1529 tests, about 70–80 seconds on the development machine (Windows, Python 3.12). The shape of the suite and the verification scenarios are described in [Testing](testing.en.md).
 

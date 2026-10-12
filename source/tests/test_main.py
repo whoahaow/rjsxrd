@@ -137,4 +137,3 @@ class TestAutoRemoveDeadUrlsArgs:
         with patch.object(sys, "argv", ["main.py", "--dead-url-threshold", "5"]):
             args = main._parse_args()
             assert args.dead_url_threshold == 5
-

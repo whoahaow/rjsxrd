@@ -486,15 +486,19 @@ class ConfigPipeline:
         self.verbose = verbose
         self.flag_overrides = flag_overrides
         self.upload_fn = upload_fn
-        self.enable_default_files = resolve_flag("ENABLE_DEFAULT_FILES", flag_overrides, ENABLE_DEFAULT_FILES)
-        self.enable_bypass_unsecure = resolve_flag("ENABLE_BYPASS_UNSECURE", flag_overrides, ENABLE_BYPASS_UNSECURE)
-        self.enable_protocol_split = resolve_flag("ENABLE_PROTOCOL_SPLIT", flag_overrides, ENABLE_PROTOCOL_SPLIT)
-        self.enable_tg_proxy = resolve_flag("ENABLE_TG_PROXY", flag_overrides, ENABLE_TG_PROXY)
-        self.publish_raw_files = resolve_flag("PUBLISH_RAW_FILES", flag_overrides, PUBLISH_RAW_FILES)
-        self.auto_remove_dead_urls = resolve_flag("AUTO_REMOVE_DEAD_URLS", flag_overrides, AUTO_REMOVE_DEAD_URLS)
+        for attr, name, default in (
+            ("enable_default_files", "ENABLE_DEFAULT_FILES", ENABLE_DEFAULT_FILES),
+            ("enable_bypass_unsecure", "ENABLE_BYPASS_UNSECURE", ENABLE_BYPASS_UNSECURE),
+            ("enable_protocol_split", "ENABLE_PROTOCOL_SPLIT", ENABLE_PROTOCOL_SPLIT),
+            ("enable_tg_proxy", "ENABLE_TG_PROXY", ENABLE_TG_PROXY),
+            ("publish_raw_files", "PUBLISH_RAW_FILES", PUBLISH_RAW_FILES),
+            ("auto_remove_dead_urls", "AUTO_REMOVE_DEAD_URLS", AUTO_REMOVE_DEAD_URLS),
+        ):
+            setattr(self, attr, resolve_flag(name, flag_overrides, default))
         t_over = flag_overrides.get("DEAD_URL_FAILURE_THRESHOLD") if flag_overrides else None
-        self.dead_url_failure_threshold = int(t_over) if t_over is not None else DEAD_URL_FAILURE_THRESHOLD
-
+        self.dead_url_failure_threshold = (
+            int(t_over) if t_over is not None else DEAD_URL_FAILURE_THRESHOLD
+        )
 
         self.stats = URLStats()
         self.timing: dict[str, float] = {}
@@ -502,11 +506,9 @@ class ConfigPipeline:
         self.config_to_sources: dict[str, list[str]] | None = None
 
         # In-memory storage (freed before verification)
-        self.all_configs: list[str] = []
-        self.extra_bypass_configs: list[str] = []
+        self.all_configs, self.extra_bypass_configs = [], []
         self.numbered_configs_with_urls: list[tuple[list[str], str]] = []
-        self.mtproto_proxies: list[str] = []
-        self.socks5_proxies: list[str] = []
+        self.mtproto_proxies, self.socks5_proxies = [], []
         self._sni_cidr_filtered: list[str] = []
         self._tagger: ConfigTagger | None = ConfigTagger()
 
@@ -843,11 +845,9 @@ class ConfigPipeline:
         # Source config files may have been cleaned (dead URLs removed).
         # Upload them so the cleanup persists and doesn't repeat every run.
         if self.auto_remove_dead_urls:
-            self.file_pairs.append(
-                (os.path.join(SOURCE_CONFIG_DIR, "URLS.txt"), "source/config/URLS.txt")
-            )
-            self.file_pairs.append(
-                (os.path.join(SOURCE_CONFIG_DIR, "servers.txt"), "source/config/servers.txt")
+            self.file_pairs.extend(
+                (os.path.join(SOURCE_CONFIG_DIR, f), f"source/config/{f}")
+                for f in ("URLS.txt", "servers.txt")
             )
         return self.file_pairs
 

@@ -18,33 +18,30 @@
 
 ## Quality Gates (Mandatory Before Push)
 
-All CI quality gates (`.github/workflows/ci.yml`) are blocking. Every AI coding agent **MUST run all gates locally before committing or pushing**:
+All CI quality gates (`.github/workflows/ci.yml`) are blocking. Every AI coding agent **MUST run `./scripts/gates.sh` locally before committing or pushing**:
 
-1. **Format check:**
-   ```bash
-   uv run ruff format --check .
-   # auto-fix formatting issues:
-   uv run ruff format .
-   ```
-2. **Lint check:**
-   ```bash
-   uv run ruff check .
-   ```
-3. **Type check:**
-   ```bash
-   cd source && uv run mypy .
-   ```
-4. **Unit & integration test suite:**
-   ```bash
-   uv run pytest source/tests/ -q
-   ```
-5. **Dependency audit:**
-   ```bash
-   uv run pip-audit -r source/requirements-dev.txt
-   ```
+```bash
+# Run all 5 gates matching CI (format, lint, types, tests+coverage, dependency audit):
+./scripts/gates.sh
+
+# Auto-format and apply lint fixes before validating:
+./scripts/gates.sh --fix
+
+# Fast mode during active development (format, lint, types, unit tests; skips slow coverage/audit):
+./scripts/gates.sh --fast
+```
+
+> **Windows / Git Bash:** Always run via bash: `& "C:\Program Files\Git\bin\bash.exe" -c "./scripts/gates.sh"`.
+
+### What `./scripts/gates.sh` checks:
+1. **Format check:** `ruff format --check .` (auto-fixed with `--fix`)
+2. **Lint check:** `ruff check .` (auto-fixed with `--fix`)
+3. **Type check:** `cd source && python -m mypy .`
+4. **Unit & integration test suite + coverage:** `cd source && pytest --cov=. --cov-report=term-missing -q --cov-config=../pyproject.toml` (in `--fast` mode: `pytest -m unit -q`)
+5. **Dependency audit:** `pip-audit -r source/requirements-dev.txt`
 
 **Rules:**
-- Never commit or push without running `ruff format --check .` and `ruff check .` first.
+- Never commit or push without running `./scripts/gates.sh` (or `./scripts/gates.sh --fast` for quick checkpoints) first.
 - If code touches tested components or counts, ensure `test_docs_figures.py` passes (sync doc figures).
 - Do not bypass or disable gates. Fix defects at the source.
 

@@ -357,14 +357,21 @@ SYSCTL
 
     if [ "$SKIP_CLONE" = false ]; then
         if [ -d "$APP_DIR" ]; then
-            log_warning "Directory $APP_DIR exists but doesn't look like rjsxrd repo"
-            read -p "Overwrite? (y/n): " -n 1 -r
-            echo
-            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            log_warning "Directory $APP_DIR exists but doesn't contain source/main.py"
+            echo ""
+            echo "  Existing directory appears incomplete or corrupted from a previous run."
+            echo ""
+            echo "  [y] — delete existing directory and re-clone cleanly (recommended)"
+            echo "  [n] — cancel setup (keep directory as-is and exit)"
+            echo ""
+            read -p "Overwrite and re-clone? (y/N): " OVERWRITE_CHOICE
+            echo ""
+            if [[ "$OVERWRITE_CHOICE" =~ ^[Yy] ]]; then
+                log_info "  Removing old $APP_DIR and preparing fresh directory..."
+                rm -rf "$APP_DIR"
+            else
                 log_error "Cannot proceed — remove $APP_DIR manually or choose a different path"
                 exit 1
-            else
-                rm -rf "$APP_DIR"
             fi
         fi
         mkdir -p "$APP_DIR"

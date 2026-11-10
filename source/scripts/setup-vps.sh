@@ -223,7 +223,7 @@ main() {
     #---------------------------------------------------------------------------
     log_info "Step 3: Installing System Dependencies"
     
-    apt update -qq
+    apt-get update -qq || true
     
     PACKAGES="python3 python3-pip python3-venv git curl cron logrotate fail2ban ufw auditd unattended-upgrades earlyoom zram-tools aide rkhunter chkrootkit lynis"
     
@@ -232,7 +232,7 @@ main() {
             log_info "  ✓ $pkg already installed"
         else
             log_info "  Installing $pkg..."
-            apt install -y -qq "$pkg"
+            apt-get install -y -qq "$pkg"
         fi
     done
     
@@ -403,7 +403,7 @@ SYSCTL
             if [ -n "$GITHUB_TOKEN" ]; then
                 log_info "  Cloning repository with token authentication..."
                 AUTH_REPO_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO_NAME}.git"
-                if git clone "$AUTH_REPO_URL" . 2>/dev/null; then
+                if GIT_TERMINAL_PROMPT=0 git clone --depth 1 "$AUTH_REPO_URL" .; then
                     git remote set-url origin "$AUTH_REPO_URL" 2>/dev/null || true
                     git config user.name "GitHub Actions" 2>/dev/null || true
                     git config user.email "actions@github.com" 2>/dev/null || true
@@ -415,7 +415,7 @@ SYSCTL
                 fi
             else
                 log_info "  Cloning public repository..."
-                if git clone "$REPO_URL" . 2>/dev/null; then
+                if GIT_TERMINAL_PROMPT=0 git clone --depth 1 "$REPO_URL" .; then
                     git config user.name "GitHub Actions" 2>/dev/null || true
                     git config user.email "actions@github.com" 2>/dev/null || true
                     git config --system --add safe.directory "$APP_DIR" 2>/dev/null || git config safe.directory "$APP_DIR" 2>/dev/null || true

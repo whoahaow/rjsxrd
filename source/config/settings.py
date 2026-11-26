@@ -272,7 +272,10 @@ SNI_DOMAINS = get_sni_domains()
 
 # Other settings
 DEFAULT_MAX_WORKERS = _validate_int_env("MAX_WORKERS", 50, 1, 200)
-FETCH_TIMEOUT = _validate_int_env("FETCH_TIMEOUT", 5, 3, 30)
+FETCH_TIMEOUT = _validate_int_env("FETCH_TIMEOUT", 90, 3, 300)
+FETCH_CONNECT_TIMEOUT = _validate_int_env("FETCH_CONNECT_TIMEOUT", 10, 1, 60)
+FETCH_LOW_SPEED_LIMIT = _validate_int_env("FETCH_LOW_SPEED_LIMIT", 5120, 0, 1_048_576)
+FETCH_LOW_SPEED_TIME = _validate_int_env("FETCH_LOW_SPEED_TIME", 15, 1, 120)
 FETCH_MAX_ATTEMPTS = _validate_int_env("FETCH_MAX_ATTEMPTS", 3, 1, 5)
 
 # GitHub API fallback: when raw.githubusercontent.com or github.com URLs fail,

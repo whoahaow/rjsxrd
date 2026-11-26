@@ -17,10 +17,12 @@ from config.settings import (
     AUTO_REMOVE_DEAD_URLS,
     DAILY_DATE_PATTERNS,
     DEAD_URL_FAILURE_THRESHOLD,
+    DEFAULT_MAX_WORKERS,
     ENABLE_BYPASS_UNSECURE,
     ENABLE_DEFAULT_FILES,
     ENABLE_PROTOCOL_SPLIT,
     ENABLE_TG_PROXY,
+    FETCH_TIMEOUT,
     GITHUB_TOKEN,
     GITHUBMIRROR_DIR,
     MANUAL_SERVERS,
@@ -103,11 +105,12 @@ def _fetch_and_process_urls(
     def _fetch_with_session(url: str) -> FetchResult:
         if not hasattr(_thread_local, "session"):
             _thread_local.session = build_session()
-        return fetch_data(url, session=_thread_local.session, token=token)
+        return fetch_data(url, timeout=FETCH_TIMEOUT, session=_thread_local.session, token=token)
 
-    executor = ExecutorCache.get(
-        "url_fetch", max_workers=min(get_specs().safe_fetch_workers(), max(1, len(urls)))
+    fetch_cap = (
+        DEFAULT_MAX_WORKERS if "MAX_WORKERS" in os.environ else get_specs().safe_fetch_workers()
     )
+    executor = ExecutorCache.get("url_fetch", max_workers=min(fetch_cap, max(1, len(urls))))
     future_to_url = {executor.submit(_fetch_with_session, url): url for url in urls}
     for future in concurrent.futures.as_completed(future_to_url):
         result = future.result()

@@ -599,7 +599,7 @@ class TestTheGithubTokenScope:
     def test_a_raw_url_is_fetched_authenticated_through_the_api(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Driven for real: the request the fallback makes to its own host carries the token."""
+        """Driven for real: after raw fails, the API fallback carries the token."""
         monkeypatch.setattr(fetcher_module, "GITHUB_API_FALLBACK", True)
         response = MagicMock(status_code=200)
         response.json.return_value = {
@@ -607,13 +607,18 @@ class TestTheGithubTokenScope:
             "encoding": "base64",
         }
         session = MagicMock()
-        session.get.return_value = response
+        session.get.side_effect = [
+            ConnectionError("raw timeout"),
+            ConnectionError("raw timeout"),
+            ConnectionError("raw timeout"),
+            response,
+        ]
 
         result = fetch_data(self.RAW_URL, session=session, token=self.TOKEN)
 
         assert result.success is True
         assert result.text == "vless://example"
-        requested = session.get.call_args_list[0]
+        requested = session.get.call_args_list[-1]
         assert requested.args[0].startswith(
             "https://api.github.com/repos/example/example/contents/"
         )

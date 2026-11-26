@@ -48,7 +48,7 @@ Environment variables for tuning:
 ASYNC_CONCURRENCY_WIN32=100   # Windows (default 50)
 ASYNC_CONCURRENCY_LINUX=300   # Linux (default 300)
 VALIDATION_TCP_CONCURRENCY=200
-FETCH_TIMEOUT=4               # HTTP request timeout (default 5)
+FETCH_TIMEOUT=4               # HTTP request timeout (default 90)
 FETCH_MAX_ATTEMPTS=1          # URL fetch attempts (default 3)
 MAX_WORKERS=80                # Parallel URL downloads (default 50)
 ```

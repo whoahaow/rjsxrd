@@ -75,7 +75,7 @@ main.py                          # Точка входа, CLI, оркестра�
   │   ├── benchmark_configs.py
   │   ├── test_telegram_proxies.py
   │   └── setup-vps.sh
-  └── tests/                     # 1537 тестов в 43 файлах
+  └── tests/                     # 1547 тестов в 44 файлах
 ```
 
 ## Пайплайн обработки

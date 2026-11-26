@@ -67,7 +67,7 @@ for, unless the operator asks for that.
 | Attempt | What it sends | What it costs |
 |---|---|---|
 | 1-3 | the same request as the URL spells it, certificate verified when it is https | a source reachable only without verification is lost |
-| — | GitHub API fallback (`api.github.com`), verified TLS, token sent only to GitHub hosts | runs first for GitHub raw/blob URLs when `GITHUB_API_FALLBACK` is on (the default); the retries run if it fails |
+| — | GitHub API fallback (`api.github.com`), verified TLS, token sent only to GitHub hosts | runs after raw retries fail on transient errors or 403 when `GITHUB_API_FALLBACK` is on (the default) |
 
 **The honest consequence:** a source whose TLS the network breaks or intercepts
 is not fetched. It fails like any unreachable source, ages out of `URLS.txt`

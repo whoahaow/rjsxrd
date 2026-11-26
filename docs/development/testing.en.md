@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 ```
 
 Every test module declares its marker (`pytestmark`), so `-m unit` and
-`-m integration` actually select something: 1522 and 15 tests out of 1537
+`-m integration` actually select something: 1532 and 15 tests out of 1547
 (measured with `pytest --collect-only -q` under each marker). Only the two
 modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) carry `integration`. Pure logic needs
@@ -37,7 +37,7 @@ third network call, the case fails on `seen == []` instead of passing quietly.
 
 ## Test structure
 
-**1537 tests** in 43 files. A full run takes around 70–80 seconds on the
+**1547 tests** in 44 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
@@ -69,6 +69,7 @@ load, so measure with `pytest -q` on your own machine.
 | `test_pipeline_e2e.py` | 19 | Full offline pipeline run with every seam stubbed |
 | `test_config_tagger.py` | 18 | ConfigTagger: source+protocol tagging; `utils/__init__.py` declares no imports |
 | `test_fetcher.py` | 1 | `fetch_data` against a real URL; self-skips without network |
+| `test_fetcher_retry_and_timeout.py` | 10 | 90s default timeout, `build_session` connect/low-speed curl options, raw-first API fallback order, no retries on 400/401/403/404/410/429, `FETCH_TIMEOUT` and `MAX_WORKERS` wiring in `config_processor` |
 | `test_fetcher_unit.py` | 84 | Env proxy, session shape, verified retries and the opt-in TLS downgrades, error mapping, private-range guard (no network) |
 | `test_fetch_posture.py` | 55 | Destination refusals (counter, report, the strictness of the marker, a URL's life in `URLS.txt`, and the limit the classifier accepts), the GitHub token's hosts held against a literal and against `SECURITY.md`, and the addresses translation prefixes carry (no network) |
 | `test_fetch_run_conditions.py` | 6 | An outcome of the run rather than the source: the marker, the counter and the report, and that a verified failure still ages a URL (no network) |

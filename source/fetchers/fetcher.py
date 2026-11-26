@@ -14,12 +14,17 @@ from dataclasses import dataclass
 from urllib.parse import urlparse
 
 import requests
+from curl_cffi.curl import CurlOpt
 from curl_cffi.requests import Session
 
 from config.settings import (
     ALLOW_TLS_DOWNGRADE,
     CHROME_UA,
+    FETCH_CONNECT_TIMEOUT,
+    FETCH_LOW_SPEED_LIMIT,
+    FETCH_LOW_SPEED_TIME,
     FETCH_PRIVATE_ALLOWLIST,
+    FETCH_TIMEOUT,
     GITHUB_API_FALLBACK,
 )
 from fetchers.destination_guard import (
@@ -41,6 +46,12 @@ from utils.logger import log, warning
 # path can influence what gets fetched, and therefore what gets published, so
 # every one is logged with its host, counted, and printed by
 # report_insecure_fetches() at the end of a run. SECURITY.md records the threat.
+
+# HTTP statuses that represent a dead source, client rejection, or rate limit
+# rather than a transient transport glitch: retrying 1s later wastes workers.
+_NON_RETRYABLE_STATUSES: frozenset[int] = frozenset({400, 401, 403, 404, 410, 429})
+# Subsets that must also skip the GitHub API fallback (missing/rate-limited).
+_NO_API_FALLBACK_STATUSES: frozenset[int] = frozenset({400, 401, 404, 410, 429})
 
 # The modes the ladder can use on an attempt.
 _MODE_VERIFIED = "verified"
@@ -544,7 +555,9 @@ def _fetch_via_api(
             if token and _receives_github_token(api_url):
                 raw_headers["Authorization"] = f"token {token}"
 
-            raw_resp = sess.get(api_url, timeout=timeout * 3, headers=raw_headers)
+            raw_resp = sess.get(
+                api_url, timeout=max(timeout, min(timeout * 3, 120)), headers=raw_headers
+            )
             raw_resp.raise_for_status()
             body = raw_resp.text
             return body if isinstance(body, str) else None
@@ -570,8 +583,15 @@ def build_session(max_pool_size: int = 4, proxy_url: str | None = None) -> Sessi
     # Use provided proxy or fall back to environment variable
     effective_proxy = proxy_url or _get_env_proxy()
 
+    curl_options: dict[CurlOpt, int] = {
+        CurlOpt.CONNECTTIMEOUT_MS: FETCH_CONNECT_TIMEOUT * 1000,
+    }
+    if FETCH_LOW_SPEED_LIMIT > 0:
+        curl_options[CurlOpt.LOW_SPEED_LIMIT] = FETCH_LOW_SPEED_LIMIT
+        curl_options[CurlOpt.LOW_SPEED_TIME] = FETCH_LOW_SPEED_TIME
+
     # Create curl_cffi session with Chrome impersonation
-    session: Session = Session(impersonate="chrome124")
+    session: Session = Session(impersonate="chrome124", curl_options=curl_options)
 
     # Configure proxy if present
     if effective_proxy:
@@ -588,7 +608,7 @@ def build_session(max_pool_size: int = 4, proxy_url: str | None = None) -> Sessi
 
 def fetch_data(
     url: str,
-    timeout: int = 5,
+    timeout: int = FETCH_TIMEOUT,
     max_attempts: int = 3,
     session=None,
     proxy_url: str | None = None,
@@ -600,7 +620,7 @@ def fetch_data(
 
     Args:
         url: URL to fetch
-        timeout: Request timeout in seconds (default: 5)
+        timeout: Request timeout in seconds (default: FETCH_TIMEOUT)
         max_attempts: Number of retry attempts (default: 3)
         session: Optional shared session. When provided, reuses it instead of
                  creating a new one. Reduces TLS handshake overhead across
@@ -614,9 +634,9 @@ def fetch_data(
     Retry strategy — every attempt is the same request over verified TLS, and
     that is the point (SECURITY.md states what the alternative costs):
         attempt 1: normal with verify=True
-        attempt 2: the same request again with verify=True
+        attempt 2: the same request again with verify=True (skipped on 400/401/403/404/410/429)
         attempt 3: the same request again with verify=True
-        attempt 4: GitHub API fallback (for raw.githubusercontent.com IP blocks)
+        fallback:  GitHub API fallback (for raw.githubusercontent.com blocks/timeouts)
 
     The retries are plain retries, not relaxations: a failure is given another
     chance rather than a weaker connection. `ALLOW_TLS_DOWNGRADE=1` restores the
@@ -667,17 +687,9 @@ def fetch_data(
     if request_token:
         extra_headers["Authorization"] = f"token {request_token}"
 
-    # If API fallback enabled and URL is GitHub — go straight to API, skip retries. The token
-    # passed here is `request_token`: who may receive the credential was decided once, by the
-    # host set, and re-deriving it at this call site is how a second, weaker policy appears.
-    if GITHUB_API_FALLBACK and _is_github_url(url):
-        api_content = _fetch_via_api(url, token=request_token, session=sess, timeout=timeout)
-        if api_content:
-            return FetchResult(text=api_content, status_code=200)
-        # API also failed — fall through to normal retry loop as last resort
-
     host = _host_of(url)
     last_error = ""
+    last_status = 0
 
     for attempt in range(1, max_attempts + 1):
         mode = _attempt_mode(attempt, url, allow_downgrade=ALLOW_TLS_DOWNGRADE)
@@ -708,13 +720,23 @@ def fetch_data(
 
         except (requests.RequestException, OSError, ValueError, TypeError) as exc:
             last_error = str(exc)
+            last_status = _extract_status(exc)
+            if last_status in _NON_RETRYABLE_STATUSES:
+                break
             if attempt < max_attempts:
                 time.sleep(1)
                 continue
 
-            return FetchResult(
-                text="", status_code=_extract_status(exc), error=last_error, success=False
-            )
+    if max_attempts > 0:
+        if (
+            GITHUB_API_FALLBACK
+            and _is_github_url(url)
+            and last_status not in _NO_API_FALLBACK_STATUSES
+        ):
+            api_content = _fetch_via_api(url, token=request_token, session=sess, timeout=timeout)
+            if api_content:
+                return FetchResult(text=api_content, status_code=200)
+        return FetchResult(text="", status_code=last_status, error=last_error, success=False)
 
     # Every attempt inside the loop returns — on success, or on the last
     # failure — so the only way to reach here is `max_attempts <= 0`, a loop that

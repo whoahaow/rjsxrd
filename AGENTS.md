@@ -854,7 +854,7 @@ Edit `source/config/settings.py` or use env vars:
 - `MAX_WORKERS` - Download concurrency (default: 50, env overridable)
 - `ASYNC_CONCURRENCY_WIN32` - Windows Xray concurrency (default: 50)
 - `ASYNC_CONCURRENCY_LINUX` - Linux Xray concurrency (default: 300)
-- `FETCH_TIMEOUT` - HTTP request timeout (default: 5s, env overridable)
+- `FETCH_TIMEOUT` - HTTP request timeout (default: 90s, env overridable; connect=10s, low-speed=5120 B/s over 15s)
 - `FETCH_MAX_ATTEMPTS` - Retry attempts per URL (default: 3, env overridable)
 - `ALLOW_TLS_DOWNGRADE` - Restores the historical ladder where attempt 2 skipped certificate verification and attempt 3 went over plaintext HTTP (default: off — every attempt is the same request over verified TLS)
 - `VALIDATION_TCP_TIMEOUT` - TCP ping timeout (default: 3s)

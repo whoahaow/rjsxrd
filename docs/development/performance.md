@@ -48,7 +48,7 @@
 ASYNC_CONCURRENCY_WIN32=100   # Windows (по умолчанию 50)
 ASYNC_CONCURRENCY_LINUX=300   # Linux (по умолчанию 300)
 VALIDATION_TCP_CONCURRENCY=200
-FETCH_TIMEOUT=4               # Таймаут HTTP запроса (по умолчанию 5)
+FETCH_TIMEOUT=4               # Таймаут HTTP запроса (по умолчанию 90)
 FETCH_MAX_ATTEMPTS=1          # Попыток загрузки URL (по умолчанию 3)
 MAX_WORKERS=80                # Параллельных загрузок URL (по умолчанию 50)
 ```

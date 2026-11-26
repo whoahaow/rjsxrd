@@ -109,10 +109,10 @@ start; it has a denominator of its own.
 | `pytest --cov=.` — the full run, as in CI | the code under `source/` | **59.19 %** (7704 statements, 2949 missed, 2546 branches; ±0.1 pt between runs) |
 | `pytest -m "not integration" --cov=.` — the offline floor | the code under `source/` | **59.00 %** (7704 statements, 2965 missed, 2546 branches) |
 
-The figures above are a measurement on branch `main` at commit `e438ca8c` (Windows), taken
+The figures above are a measurement on branch `main` at commit `3c96a496` (Windows), taken
 with the commands in the table's first column and `--cov-config=../pyproject.toml`. They are
 a historical fact rather than a claim about HEAD: the measured tree was 7653 statements at
-`5dad902f` and is 7704 at `e438ca8c`, and the next measurement will move the rows again —
+`5dad902f` and is 7704 at `3c96a496`, and the next measurement will move the rows again —
 the anchor only holds that the numbers belong to the revision it names. The test suite is
 out of the denominator, so a change that moves the suite no longer moves the figures — a
 change that moves the code still does. The figures guard

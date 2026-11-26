@@ -523,28 +523,28 @@ Automatically removes old `auto: update ...` commits before creating a new one, 
 
 ### How much of the history the auto-commits account for
 
-`main`'s history is mostly auto-updates. Measured on 18 September 2026 on branch
-`main` at commit `71972831`: 6894 commits, 6700 of them (**≈ 97.2 %**) start
-with `auto: update`, and the remaining 194 (≈ 2.8 %) are every other piece of
-text the history carries (`reinit`, `feat:`, `fix:`, `docs:`, `chore:` and the
-old labels such as `Update bypass-`). That is why `git log` reads the way it
-does: the hourly update job commits every change, and `squash_auto_commits()`
-only squashes *runs* of consecutive auto-commits, so the fresh ones stay visible
-one by one.
+`main`'s history is periodically pruned of accumulated auto-updates. Measured on
+26 November 2026 after the one-shot history clean on branch `main` at commit
+`df1262ec`: 304 commits, 0 of them (**≈ 0.0 %**) start with `auto: update`, and
+the remaining 304 (≈ 100.0 %) are every other piece of text the history carries
+(`reinit`, `feat:`, `fix:`, `docs:`, `chore:` and old labels such as
+`Update bypass-`; see [history notes](history-notes.en.md) for the 6,774 pruned
+auto-commits). Subsequent runs in git mode add new `auto: update` commits at the
+tip, and `squash_auto_commits()` only squashes *runs* of consecutive auto-commits,
+so fresh ones stay visible one by one.
 
-The share is anchored to a commit rather than to HEAD: every hand-written commit
-lowers it a little (it moved from 97.5 % to 97.2 % across the two previous
-commits), so a HEAD-relative figure is wrong one commit after it is
-written. `71972831` was the tip of `main` when this was measured, and
-`source/tests/test_docs_figures.py` checks that the anchor and both shares stay
-in place.
+The share is anchored to a commit rather than to HEAD: every subsequent auto or
+hand-written commit moves it, so a HEAD-relative figure is wrong one commit
+after it is written. `df1262ec` was the tip of `main` when this was measured,
+and `source/tests/test_docs_figures.py` checks that the anchor and both shares
+stay in place.
 
 To re-measure:
 
 ```bash
-git rev-list --count 71972831                              # 6894
-git log --format=%s 71972831 | grep -c '^auto: update'     # 6700
-git log --format=%s 71972831 | grep -vc '^auto: update'    # 194
+git rev-list --count df1262ec                              # 304
+git log --format=%s df1262ec | grep -c '^auto: update'     # 0
+git log --format=%s df1262ec | grep -vc '^auto: update'    # 304
 ```
 
 ## config_helpers.py — common pipeline helpers

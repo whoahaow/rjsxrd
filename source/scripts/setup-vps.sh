@@ -588,9 +588,9 @@ fi
 #ASYNC_CONCURRENCY_LINUX=30
 
 # === URL fetching ===
-# curl_cffi fetch workers (auto-detect is fine, but be explicit)
-MAX_WORKERS=20
-FETCH_TIMEOUT=10
+# curl_cffi fetch workers and request timeout
+MAX_WORKERS=10
+FETCH_TIMEOUT=90
 
 # === TCP ping verification (used with --tcp-ping) ===
 VALIDATION_TCP_CONCURRENCY=50
@@ -690,14 +690,12 @@ APP_DIR="/opt/rjsxrd"
 
 mkdir -p /var/log/rjsxrd
 
-# Prevent concurrent executions
-if [ -f "$LOCK_FILE" ]; then
+# Prevent concurrent executions (kernel-managed flock; safe against SIGKILL/OOM)
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
     echo "$(date '+%Y-%m-%d %H:%M:%S') - Another instance running, skipping" >> "$LOG_FILE"
     exit 1
 fi
-
-touch "$LOCK_FILE"
-trap "rm -f $LOCK_FILE" EXIT
 
 echo "$(date '+%Y-%m-%d %H:%M:%S') - Starting rjsxrd" >> "$LOG_FILE"
 
@@ -850,7 +848,7 @@ Description=Run rjsxrd every TIMER_SEC
 
 [Timer]
 OnBootSec=10min
-OnUnitActiveSec=TIMER_SEC
+OnUnitInactiveSec=TIMER_SEC
 Persistent=true
 
 [Install]
@@ -916,8 +914,8 @@ net.ipv4.tcp_keepalive_time = 300
 net.ipv4.tcp_tw_reuse = 1
 net.ipv4.ip_local_port_range = 1024 65535
 NETSYSCTL
-    sysctl -p /etc/sysctl.d/99-rjsxrd-network.conf >/dev/null 2>&1 || true
     modprobe tcp_bbr 2>/dev/null || true
+    sysctl -p /etc/sysctl.d/99-rjsxrd-network.conf >/dev/null 2>&1 || true
     log_info "  Network tuning applied (BBR + TCP optimizations)"
 
     # ── Journald limits ──────────────────────────────────────────
@@ -1259,11 +1257,8 @@ AUDIT
         log_info "Running test (dry-run, xray verification)..."
         echo ""
 
-        cd "$APP_DIR/source"
-        source "$VENV_DIR/bin/activate"
-        python main.py --dry-run --no-proxy-check
+        su -s /bin/bash rjsxrd -c "cd '$APP_DIR/source' && source '$VENV_DIR/bin/activate' && python main.py --dry-run --no-proxy-check"
         EXIT_CODE=$?
-        deactivate
 
         echo ""
         if [ $EXIT_CODE -eq 0 ]; then

@@ -43,6 +43,39 @@ def _cleanup_stale_bypass_split_files(
     """
 
 
+def _write_sealed_chunk(
+    chunk: list[tuple[float, str]],
+    file_idx: int,
+    output_dir: str,
+    prefix: str,
+    upload_file: Callable[[str, str], None] | None,
+    sealed_keys: set | None,
+) -> None:
+    """Sort one chunk by latency, write `{prefix}-{N}.txt`, record keys, and upload."""
+    from utils.file_utils import _get_dedup_key
+
+    chunk.sort(key=lambda x: x[0])
+    chunk_urls = [u for _, u in chunk]
+    filename = f"{prefix}-{file_idx + 1}.txt"
+    local_path = path_in_output(output_dir, prefix, filename)
+    remote_path = f"githubmirror/{prefix}/{filename}"
+    try:
+        write_configs_file(
+            local_path,
+            chunk_urls,
+            get_subscription_header(filename, config_count=len(chunk_urls)),
+        )
+        if sealed_keys is not None:
+            for url in chunk_urls:
+                key = _get_dedup_key(url)
+                if key is not None:
+                    sealed_keys.add(key)
+        if upload_file:
+            upload_file(local_path, remote_path)
+    except (OSError, RuntimeError) as e:
+        log(f"Progressive write failed for {local_path}: {e}")
+
+
 def seal_bypass_files(
     accumulator: list[tuple[float, str]],
     output_dir: str,
@@ -51,43 +84,18 @@ def seal_bypass_files(
     last_sealed_idx: int,
     upload_file: Callable[[str, str], None] | None = None,
     max_per_file: int = MAX_CONFIGS_PER_FILE,
+    flush_partial: bool = False,
+    sealed_keys: set | None = None,
 ) -> int:
-    """Seal full bypass-{N}.txt files from the working accumulator.
+    """Seal bypass-{N}.txt files from unsealed entries in the accumulator.
 
-    Walks the accumulator to find configs whose dedup_key is not in seen_keys.
-    Each call processes the *delta* — the configs in accumulator that haven't
-    been sealed yet. When the delta fills a full file, the next file is sealed:
-    chunk is sorted by latency (ascending, independently within this file),
-    written locally, and uploaded if upload_file is provided. The chunk's keys
-    are added to seen_keys so they will never be re-sealed.
-
-    The chunk is sorted within itself, but the order of files is determined
-    by the accumulator's order. bypass-all.txt is the file that gets the
-    global sort at the end of the run.
-
-    After this call, files numbered (last_sealed_idx + 1) through the returned
-    value are sealed and will not be re-written. The accumulator retains
-    partial (un-sealed) configs for the next call.
-
-    Args:
-        accumulator: list of (latency, url) tuples in arrival order. May contain
-            duplicates and configs already in seen_keys — both are filtered.
-        output_dir: root output directory (e.g. "<repo>/githubmirror").
-        prefix: "bypass" or "bypass-unsecure" — controls filename and remote path.
-        seen_keys: set of dedup_keys already sealed. Mutated in place.
-        last_sealed_idx: number of files already sealed (0 = none). The next file
-            to seal will be numbered last_sealed_idx + 1.
-        upload_file: optional callable(local_path, remote_path) for upload.
-        max_per_file: chunk size (default 300).
-
-    Returns:
-        The new last_sealed_idx (number of files sealed after this call).
+    During verification (`flush_partial=False`), only full `max_per_file` chunks
+    are sealed. At the end of verification (`flush_partial=True`), any trailing
+    `< max_per_file` remainder is also written to the next `{prefix}-{N}.txt`.
     """
     from utils.file_utils import _get_dedup_key
 
     new_idx = last_sealed_idx
-    # Delta: only configs in this accumulator that are not yet sealed.
-    # These are the configs we may add to files in THIS call.
     delta: list[tuple[float, str]] = []
     for latency, url in accumulator:
         key = _get_dedup_key(url)
@@ -96,35 +104,30 @@ def seal_bypass_files(
         delta.append((latency, url))
         seen_keys.add(key)
 
-    # Seal as many full files as the delta count now permits.
-    # delta position [k*max_per_file : (k+1)*max_per_file] maps to file
-    # (new_idx + k + 1).
-    while (new_idx - last_sealed_idx + 1) * max_per_file <= len(delta):
-        file_idx = new_idx
-        start = (file_idx - last_sealed_idx) * max_per_file
-        end = start + max_per_file
-        chunk = delta[start:end]
-        # Sort this chunk by latency ascending (independent per-file sort).
-        # Each file's configs are independently sorted by latency so the
-        # first config in each file is the fastest in that file. Global
-        # order across files is not latency-sorted — that's the role of
-        # bypass-all.txt, which is written once at the end.
-        chunk.sort(key=lambda x: x[0])
-        chunk_urls = [u for _, u in chunk]
-        filename = f"{prefix}-{file_idx + 1}.txt"
-        local_path = path_in_output(output_dir, prefix, filename)
-        remote_path = f"githubmirror/{prefix}/{filename}"
-        try:
-            write_configs_file(
-                local_path,
-                chunk_urls,
-                get_subscription_header(filename, config_count=len(chunk_urls)),
-            )
-            if upload_file:
-                upload_file(local_path, remote_path)
-        except (OSError, RuntimeError) as e:
-            log(f"Progressive write failed for {local_path}: {e}")
+    offset = 0
+    while offset + max_per_file <= len(delta):
+        _write_sealed_chunk(
+            delta[offset : offset + max_per_file],
+            new_idx,
+            output_dir,
+            prefix,
+            upload_file,
+            sealed_keys,
+        )
+        offset += max_per_file
         new_idx += 1
+
+    if flush_partial and offset < len(delta):
+        _write_sealed_chunk(
+            delta[offset:],
+            new_idx,
+            output_dir,
+            prefix,
+            upload_file,
+            sealed_keys,
+        )
+        new_idx += 1
+
     return new_idx
 
 
@@ -279,7 +282,7 @@ def verify_config_file(
 def _run_progressive_seal(
     working_chunk: list[str],
     accumulator: list[tuple[float, str]],
-    seen_keys: set,
+    sealed_keys: set,
     last_sealed_idx: list[int],
     output_dir: str,
     prefix: str,
@@ -287,53 +290,52 @@ def _run_progressive_seal(
     progress_callback: Callable | None,
     total_tested: int,
 ) -> None:
-    """Add a per-raw-file batch of working URLs to the global accumulator and
-    seal any new full bypass-{N}.txt files. Called by the verification
-    callback for each raw file's working results.
-
-    Args:
-        working_chunk: list of working URLs from this raw file (already
-            sorted by latency by verify_config_file). Latencies are not
-            available here so we use position-based synthetic latencies
-            that preserve the existing arrival order.
-        accumulator: global list of (latency, url) tuples across all raw
-            files. Mutated in place.
-        seen_keys: dedup_keys set. Mutated in place.
-        last_sealed_idx: single-element list tracking how many files have
-            been sealed so far. Mutated in place.
-        output_dir, prefix, upload_file: passed to seal_bypass_files.
-        progress_callback: optional upstream callback fired with current
-            sorted_working list (for CLI progress display).
-        total_tested: passed to progress_callback.
-    """
-    # Synthetic latencies preserve arrival order within this batch.
-    # seal_bypass_files will sort each chunk by these latencies, so the
-    # order within each file matches the per-raw-file order produced
-    # by verify_config_file. The dedup (seen_keys) ensures configs from
-    # earlier batches in the accumulator do not get re-sorted into a
-    # later file's chunk.
+    """Append progressive working URLs and seal any new full 300-config files."""
     for i, url in enumerate(working_chunk):
         accumulator.append((float(i), url))
 
-    # Seal any new full files. The accumulator may have grown enough to
-    # fill one or more new files since the last seal.
+    # Pass a copy of sealed_keys as seen_keys so unsealed leftovers stay eligible
+    # for subsequent progressive batches and the final end-of-run flush.
     new_idx = seal_bypass_files(
         accumulator=accumulator,
         output_dir=output_dir,
         prefix=prefix,
-        seen_keys=seen_keys,
+        seen_keys=set(sealed_keys),
         last_sealed_idx=last_sealed_idx[0],
         upload_file=upload_file,
+        sealed_keys=sealed_keys,
     )
     last_sealed_idx[0] = new_idx
 
     if progress_callback:
         try:
-            # Provide the full sorted working set for upstream display
-            sorted_working = sorted(working_chunk)
-            progress_callback(sorted_working, total_tested)
+            progress_callback(list(working_chunk), total_tested)
         except (OSError, RuntimeError) as e:
             log(f"Progress callback error: {e}")
+
+
+def _flush_unsealed_split_files(
+    sorted_working: list[str],
+    sealed_keys: set,
+    last_sealed_idx: list[int],
+    output_dir: str,
+    prefix: str,
+    upload_file: Callable[[str, str], None] | None,
+) -> None:
+    """Seal any unsealed full chunks plus the trailing <300 remainder at run end."""
+    if not sorted_working:
+        return
+    final_acc = [(float(i), url) for i, url in enumerate(sorted_working)]
+    last_sealed_idx[0] = seal_bypass_files(
+        accumulator=final_acc,
+        output_dir=output_dir,
+        prefix=prefix,
+        seen_keys=set(sealed_keys),
+        last_sealed_idx=last_sealed_idx[0],
+        upload_file=upload_file,
+        flush_partial=True,
+        sealed_keys=sealed_keys,
+    )
 
 
 def verify_and_write_bypass(
@@ -379,23 +381,18 @@ def verify_and_write_bypass(
         )
         return [], []
 
-    # Global accumulator across all raw files
+    # Global accumulator for mid-run progressive sealing; sealed_keys holds only
+    # dedup keys that were actually written to a bypass-{N}.txt file.
     accumulator: list[tuple[float, str]] = []
-    seen_keys: set = set()
+    sealed_keys: set = set()
     last_sealed_idx: list[int] = [0]
-
-    # Track which raw files fired their callback at least once. If the
-    # callback never fires (e.g. < 300 working configs, so no threshold
-    # crossed), the accumulator doesn't grow for that raw file and we
-    # need to process the return value as a fallback.
-    callback_fired: list[bool] = [False]
+    verified_sorted: list[str] = []
 
     def _cb(sorted_working: list[str], total_tested: int) -> None:
-        callback_fired[0] = True
         _run_progressive_seal(
             working_chunk=sorted_working,
             accumulator=accumulator,
-            seen_keys=seen_keys,
+            sealed_keys=sealed_keys,
             last_sealed_idx=last_sealed_idx,
             output_dir=output_dir,
             prefix="bypass",
@@ -406,15 +403,6 @@ def verify_and_write_bypass(
 
     for raw_file in raw_files:
         log(f"Verifying {os.path.basename(raw_file)}...")
-        # verify_config_file returns the full sorted working set for this
-        # raw file. In production the callback also fires incrementally
-        # at 300/600/900 thresholds, but if a raw file has fewer than
-        # 300 working configs the callback never fires — we must use the
-        # return value as a fallback. When the callback DOES fire, the
-        # return value is the same set (plus possibly more items added
-        # after the last callback fire), so we dedup against accumulator
-        # to avoid double-adding.
-        callback_fired[0] = False
         working_chunk = verify_config_file(
             raw_file,
             tcp_ping=tcp_ping,
@@ -423,66 +411,21 @@ def verify_and_write_bypass(
             verbose=verbose,
             progress_callback=_cb,
         )
-        if working_chunk and not callback_fired[0]:
-            # Callback did not fire (working_count never crossed a 300
-            # threshold for this raw file). Process the return value.
-            _run_progressive_seal(
-                working_chunk=working_chunk,
-                accumulator=accumulator,
-                seen_keys=seen_keys,
-                last_sealed_idx=last_sealed_idx,
-                output_dir=output_dir,
-                prefix="bypass",
-                upload_file=upload_file,
-                progress_callback=None,
-                total_tested=len(working_chunk),
-            )
-        elif working_chunk and callback_fired[0]:
-            # Callback fired. The accumulator may be missing items added
-            # by verify_config_file AFTER its last callback fire (the
-            # working_chunk is the full final set). Check for items in
-            # the return value that are not yet in seen and add them.
-            from utils.file_utils import _get_dedup_key
+        if working_chunk:
+            verified_sorted.extend(working_chunk)
 
-            new_items = [
-                u
-                for u in working_chunk
-                if _get_dedup_key(u) is not None and _get_dedup_key(u) not in seen_keys
-            ]
-            if new_items:
-                _run_progressive_seal(
-                    working_chunk=new_items,
-                    accumulator=accumulator,
-                    seen_keys=seen_keys,
-                    last_sealed_idx=last_sealed_idx,
-                    output_dir=output_dir,
-                    prefix="bypass",
-                    upload_file=upload_file,
-                    progress_callback=None,
-                    total_tested=len(working_chunk),
-                )
-
-    # Final seal: catch any remaining full file (e.g. accumulator reached
-    # exactly 600 at the end of the last raw file's callback, but the loop
-    # condition was checked before the file was completed).
-    if last_sealed_idx[0] * MAX_CONFIGS_PER_FILE < len(accumulator):
-        final_idx = seal_bypass_files(
-            accumulator=accumulator,
-            output_dir=output_dir,
-            prefix="bypass",
-            seen_keys=seen_keys,
-            last_sealed_idx=last_sealed_idx[0],
-            upload_file=upload_file,
-        )
-        last_sealed_idx[0] = final_idx
-
-    # Build the full deduped working set for bypass-all.txt and for the
-    # return value. The accumulator is in arrival order from callback
-    # fires plus the fallback paths. dedup is defensive: seen_keys has
-    # already filtered duplicates during seal_bypass_files calls.
-    working_bypass = [u for _, u in accumulator]
-    if working_bypass:
-        working_bypass = deduplicate_configs(working_bypass)
+    # Build the full deduped working set in true latency order from
+    # verify_config_file(), then flush any unsealed full chunks plus the
+    # trailing <300 remainder into the next bypass-{N}.txt file(s).
+    working_bypass = deduplicate_configs(verified_sorted) if verified_sorted else []
+    _flush_unsealed_split_files(
+        sorted_working=working_bypass,
+        sealed_keys=sealed_keys,
+        last_sealed_idx=last_sealed_idx,
+        output_dir=output_dir,
+        prefix="bypass",
+        upload_file=upload_file,
+    )
     log(f"Bypass: {len(working_bypass)} unique working configs from {len(raw_files)} raw files")
 
     # Write bypass-all.txt (canonical master file, written once at the end)
@@ -576,22 +519,20 @@ def verify_and_write_bypass_unsecure(
         f"unsecure raw: {len(unsecure_configs)} total, {len(all_bypass_configs)} already tested, {len(unsecure_only)} new"
     )
 
-    # Build bypass-unsecure accumulator and dedup set. Seed seen_keys with
-    # the secure set's working configs so they are not re-sealed into
+    # Build bypass-unsecure accumulator and sealed set. Pre-seed sealed_keys
+    # with the secure set's working configs so they are not re-sealed into
     # bypass-unsecure-N.txt files.
     from utils.file_utils import _get_dedup_key
 
     accumulator: list[tuple[float, str]] = []
-    seen_keys: set = {_get_dedup_key(u) for u in working_bypass if _get_dedup_key(u) is not None}
+    sealed_keys: set = {_get_dedup_key(u) for u in working_bypass if _get_dedup_key(u) is not None}
     last_sealed_idx: list[int] = [0]
-    callback_fired: list[bool] = [False]
 
     def _cb_uns(sorted_working: list[str], total_tested: int) -> None:
-        callback_fired[0] = True
         _run_progressive_seal(
             working_chunk=sorted_working,
             accumulator=accumulator,
-            seen_keys=seen_keys,
+            sealed_keys=sealed_keys,
             last_sealed_idx=last_sealed_idx,
             output_dir=output_dir,
             prefix="bypass-unsecure",
@@ -601,11 +542,6 @@ def verify_and_write_bypass_unsecure(
         )
 
     if unsecure_only:
-        # Same fallback logic as verify_and_write_bypass: if the callback
-        # never fires for this unsecure run (working_count < 300), or if
-        # the return value has items not seen by the callback, process them.
-
-        callback_fired[0] = False
         working_unsecure = verify_config_file(
             unsecure_raw_files[0],
             unsecure_only,
@@ -615,49 +551,14 @@ def verify_and_write_bypass_unsecure(
             verbose=verbose,
             progress_callback=_cb_uns,
         )
-        if working_unsecure and not callback_fired[0]:
-            _run_progressive_seal(
-                working_chunk=working_unsecure,
-                accumulator=accumulator,
-                seen_keys=seen_keys,
-                last_sealed_idx=last_sealed_idx,
-                output_dir=output_dir,
-                prefix="bypass-unsecure",
-                upload_file=upload_file,
-                progress_callback=None,
-                total_tested=len(working_unsecure),
-            )
-        elif working_unsecure and callback_fired[0]:
-            from utils.file_utils import _get_dedup_key
-
-            new_items = [
-                u
-                for u in working_unsecure
-                if _get_dedup_key(u) is not None and _get_dedup_key(u) not in seen_keys
-            ]
-            if new_items:
-                _run_progressive_seal(
-                    working_chunk=new_items,
-                    accumulator=accumulator,
-                    seen_keys=seen_keys,
-                    last_sealed_idx=last_sealed_idx,
-                    output_dir=output_dir,
-                    prefix="bypass-unsecure",
-                    upload_file=upload_file,
-                    progress_callback=None,
-                    total_tested=len(working_unsecure),
-                )
-        # Final seal after the run
-        if last_sealed_idx[0] * MAX_CONFIGS_PER_FILE < len(accumulator):
-            final_idx = seal_bypass_files(
-                accumulator=accumulator,
-                output_dir=output_dir,
-                prefix="bypass-unsecure",
-                seen_keys=seen_keys,
-                last_sealed_idx=last_sealed_idx[0],
-                upload_file=upload_file,
-            )
-            last_sealed_idx[0] = final_idx
+        _flush_unsealed_split_files(
+            sorted_working=working_unsecure,
+            sealed_keys=sealed_keys,
+            last_sealed_idx=last_sealed_idx,
+            output_dir=output_dir,
+            prefix="bypass-unsecure",
+            upload_file=upload_file,
+        )
         all_working = working_bypass + (working_unsecure or [])
     else:
         log("All configs already verified in secure set")

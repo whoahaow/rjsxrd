@@ -491,18 +491,16 @@ class TestPipelineOutputTree:
         for config in EXTRA_BYPASS_CONFIGS:
             assert any(line.startswith(config) for line in unsecure)
 
-    def test_stub_set_only_writes_master_bypass_files(
+    def test_stub_set_flushes_remainder_into_first_shard(
         self, pipeline_seams: dict[str, Any], tmp_path: Path
     ) -> None:
-        """No ``bypass-{N}.txt`` below MAX_CONFIGS_PER_FILE working configs.
-
-        Documents the harness boundary: the progressive seal needs 300 working
-        configs, so a stub set this small must not produce numbered shards. The
-        master file is asserted alongside so the glob cannot pass vacuously.
-        """
+        """A run below MAX_CONFIGS_PER_FILE flushes its working set into ``bypass-1.txt``."""
         out, _ = run_pipeline(tmp_path)
         shards = sorted(path.name for path in (out / "bypass").glob("bypass-*.txt"))
-        assert shards == ["bypass-all.txt"]
+        assert shards == ["bypass-1.txt", "bypass-all.txt"]
+        assert read_config_lines(out / "bypass" / "bypass-1.txt") == read_config_lines(
+            out / "bypass" / "bypass-all.txt"
+        )
 
 
 class TestProtocolSplitUploadPairs:

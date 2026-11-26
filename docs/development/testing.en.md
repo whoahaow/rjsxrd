@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # With a coverage report
 ```
 
 Every test module declares its marker (`pytestmark`), so `-m unit` and
-`-m integration` actually select something: 1532 and 15 tests out of 1547
+`-m integration` actually select something: 1537 and 15 tests out of 1552
 (measured with `pytest --collect-only -q` under each marker). Only the two
 modules that reach the network and skip themselves when it is unavailable
 (`test_fetcher.py`, `test_ip_checker.py`) carry `integration`. Pure logic needs
@@ -37,12 +37,13 @@ third network call, the case fails on `seen == []` instead of passing quietly.
 
 ## Test structure
 
-**1547 tests** in 44 files. A full run takes around 70–80 seconds on the
+**1552 tests** in 45 files. A full run takes around 70–80 seconds on the
 development machine (Windows, Python 3.12); the time depends on disk and machine
 load, so measure with `pytest -q` on your own machine.
 
 | File | Tests | Scope |
 |------|--------|---------|
+| `test_bypass_builder_remainder.py` | 5 | End-of-run <300 remainder flush to `bypass-{N}.txt`, preserving older files, `sealed_keys`, and `bypass-all.txt` ping order |
 | `test_config_processor.py` | 86 | Processing pipeline, `prepare_config_content`, `_add_unique`, `write_configs_file` |
 | `test_content_sniffing.py` | 9 | `try_decode_base64_content` and `_decode_if_base64` against SUPPORTED_PROTOCOLS: a scheme missing from the list leaves a whole subscription undecoded |
 | `test_file_utils.py` | 79 | `deduplicate_configs`, `is_valid_vpn_config_url`, `filter_secure_configs`, the SNI/CIDR filter's chunking |

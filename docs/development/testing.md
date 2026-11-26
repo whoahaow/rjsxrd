@@ -23,7 +23,7 @@ pytest --cov=fetchers --cov=utils  # С отчётом о покрытии
 ```
 
 Маркеры проставлены на каждом тестовом модуле (`pytestmark`), поэтому `-m unit`
-и `-m integration` действительно что-то выбирают: 1532 и 15 тестов из 1547
+и `-m integration` действительно что-то выбирают: 1537 и 15 тестов из 1552
 (замер — `pytest --collect-only -q` с тем и другим маркером). Сеть трогают
 только два модуля (`test_fetcher.py`, `test_ip_checker.py`) — они помечены
 `integration`. Чистая логика сети не требует и лежит в unit-модулях, включая
@@ -36,12 +36,13 @@ api.github.com, и это измерено, а не предполагается
 
 ## Структура тестов
 
-Всего **1547 тестов** в 44 файлах. Полный прогон на машине разработки (Windows,
+Всего **1552 тестов** в 45 файлах. Полный прогон на машине разработки (Windows,
 Python 3.12) занимает около 70–80 секунд; время зависит от диска и загрузки
 машины, поэтому ориентируйтесь на `pytest -q` у себя.
 
 | Файл | Тестов | Область |
 |------|--------|---------|
+| `test_bypass_builder_remainder.py` | 5 | Дозапись остатка <300 в `bypass-{N}.txt`, сохранение старых файлов, `sealed_keys` и порядок пинга в `bypass-all.txt` |
 | `test_config_processor.py` | 86 | Пайплайн обработки, `prepare_config_content`, `_add_unique`, `write_configs_file` |
 | `test_content_sniffing.py` | 9 | `try_decode_base64_content` и `_decode_if_base64` против SUPPORTED_PROTOCOLS: схемы, которой нет в списке, подписка не декодируется вовсе |
 | `test_file_utils.py` | 79 | `deduplicate_configs`, `is_valid_vpn_config_url`, `filter_secure_configs`, чанкование SNI/CIDR-фильтра |

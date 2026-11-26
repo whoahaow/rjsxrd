@@ -118,6 +118,22 @@ curl -s -o /dev/null -w '%{http_code}\n' \
   https://api.github.com/repos/<owner>/<repo>/commits/<sha>      # 200 — the commit is still there
 ```
 
+## Auto-commit history prune of 26 November 2026 (pre-rewrite record)
+
+Before stripping `auto: update ...` commits from `main`, the baseline was measured at `896de8e26a9b2f68763a14f6307f3e5292e364cb` (`2026-11-26`):
+
+| | |
+| --- | --- |
+| Branch / tip before rewrite | `main` — `896de8e26a9b2f68763a14f6307f3e5292e364cb` |
+| Root commit | `7640eff9` (`2026-06-27 reinit`) |
+| Total commits | 7077 |
+| Auto commits (`^auto: update `) | 6774 (`1464` `bypass-all.txt`, `5284` `bypass-1..9.txt`, `26` `configs`; 21 also modified `source/config/URLS.txt`) |
+| Non-auto commits | 303 (292 conventional, 10 `Merge remote-tracking branch 'origin/main'`, 1 root) |
+| `.git` size before rewrite | 83 MiB (`39387` packed objects = `77.55 MiB`, `388` loose = `3.21 MiB`) |
+| Local recovery bundle | `../rjsxrd-pre-rewrite.bundle` (`76 MiB`, `--all`) |
+
+Only `^auto: update ` commit objects are removed; file trees (including `URLS.txt` updates) fold cleanly into the next kept commit. Pre-checks verified one worktree (`main`), zero tags, and only stale PR #11 (`2026-06-29`) on `origin`.
+
 ## See also
 
 - [Modules](modules.en.md) — `git_updater.py` and `git_auto_cleaner.py`: how the

@@ -256,6 +256,58 @@ class TestPull:
         assert calls[3].args[0] == ["git", "clean", "-fd"]
         assert calls[4].args[0] == ["git", "pull", "--rebase", "origin", "main"]
 
+    def test_pull_aborts_incomplete_rebase_and_cleans_dir(
+        self, mock_subprocess_run, updater, tmp_path
+    ):
+        """Leftover .git/rebase-merge triggers rebase --abort and dir cleanup."""
+        rebase_dir = tmp_path / ".git" / "rebase-merge"
+        rebase_dir.mkdir(parents=True)
+        mock_subprocess_run.return_value = make_result(0, stdout="main\n")
+
+        updater.pull()
+
+        calls = [c.args[0] for c in mock_subprocess_run.call_args_list]
+        assert calls[0] == ["git", "rebase", "--abort"]
+        assert calls[1] == ["git", "rev-parse", "--abbrev-ref", "HEAD"]
+        assert calls[2] == ["git", "pull", "--rebase", "origin", "main"]
+        assert not rebase_dir.exists()
+
+    def test_pull_aborts_rebase_before_reset_on_conflict(self, mock_subprocess_run, updater):
+        """Failed pull --rebase runs rebase --abort before reset --hard origin/<branch>."""
+        mock_subprocess_run.side_effect = [
+            make_result(0, stdout="main\n"),  # rev-parse
+            subprocess.CalledProcessError(
+                1,
+                ["git", "pull", "--rebase", "origin", "main"],
+                stderr="CONFLICT (content): Merge conflict",
+            ),
+            make_result(0),  # rebase --abort
+            make_result(0),  # fetch origin
+            make_result(0),  # reset --hard origin/main
+        ]
+
+        updater.pull()
+
+        calls = [c.args[0] for c in mock_subprocess_run.call_args_list]
+        assert calls[2] == ["git", "rebase", "--abort"]
+        assert calls[3] == ["git", "fetch", "origin"]
+        assert calls[4] == ["git", "reset", "--hard", "origin/main"]
+
+    def test_resolve_branch_reattaches_detached_head(self, mock_subprocess_run, updater):
+        """Detached HEAD resolves via origin/HEAD and checks out branch."""
+        mock_subprocess_run.side_effect = [
+            make_result(0, stdout="HEAD\n"),  # rev-parse --abbrev-ref HEAD
+            make_result(0, stdout="origin/main\n"),  # symbolic-ref refs/remotes/origin/HEAD
+            make_result(0),  # checkout -B main
+            make_result(0),  # push origin main
+        ]
+
+        updater.push()
+
+        calls = [c.args[0] for c in mock_subprocess_run.call_args_list]
+        assert calls[2] == ["git", "checkout", "-B", "main"]
+        assert calls[3] == ["git", "push", "origin", "main"]
+
 
 # ── stage_files ───────────────────────────────────────────────────────
 

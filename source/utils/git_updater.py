@@ -2,6 +2,7 @@
 
 import os
 import re
+import shutil
 import subprocess
 from datetime import datetime, timedelta, timezone
 
@@ -54,9 +55,39 @@ class GitUpdater:
             log(f"Git command failed: {err_msg}")
             raise
 
+    def _abort_incomplete_rebase(self, force: bool = False) -> None:
+        """Abort any leftover rebase state so pull/push never stay wedged."""
+        git_dir = os.path.join(self.repo_dir, ".git")
+        rebase_dirs = [os.path.join(git_dir, name) for name in ("rebase-merge", "rebase-apply")]
+        if not force and not any(os.path.isdir(d) for d in rebase_dirs):
+            return
+        if not force:
+            log("Incomplete rebase detected — aborting before continuing...")
+        self._run_git("rebase", "--abort", check=False)
+        for d in rebase_dirs:
+            if os.path.isdir(d):
+                shutil.rmtree(d, ignore_errors=True)
+
+    def _resolve_branch(self, branch: str | None = None) -> str:
+        """Return target branch name, reattaching HEAD if currently detached."""
+        if branch is not None:
+            return branch
+        result = self._run_git("rev-parse", "--abbrev-ref", "HEAD")
+        detected = str(result.stdout or "").strip()
+        if detected and detected != "HEAD":
+            return detected
+
+        sym = self._run_git("symbolic-ref", "--short", "refs/remotes/origin/HEAD", check=False)
+        sym_ref = str(sym.stdout or "").strip()
+        target = sym_ref.split("/", 1)[1] if "/" in sym_ref else "main"
+        log(f"Detached HEAD detected — reattaching to branch '{target}'")
+        self._run_git("checkout", "-B", target, check=False)
+        return target
+
     def configure_git(self) -> None:
         """Configure git user and authenticated remote for commits."""
         log("Configuring git user...")
+        self._abort_incomplete_rebase()
         self._run_git("config", "user.name", "GitHub Actions")
         self._run_git("config", "user.email", "actions@github.com")
         log("Git user configured")
@@ -119,9 +150,8 @@ class GitUpdater:
 
     def pull(self, branch: str | None = None) -> None:
         """Pull latest changes from remote with rebase."""
-        if branch is None:
-            result = self._run_git("rev-parse", "--abbrev-ref", "HEAD")
-            branch = result.stdout.strip()
+        self._abort_incomplete_rebase()
+        branch = self._resolve_branch(branch)
 
         log(f"Pulling from origin/{branch}...")
         try:
@@ -143,10 +173,13 @@ class GitUpdater:
                 # Rebase conflict or other failure — likely caused by force-push
                 # squashing auto commits on remote. Since this machine only ever
                 # creates auto commits, it's safe to reset to remote state.
+                # Abort any active rebase first so .git/rebase-merge does not
+                # leave HEAD detached and block all future runs.
                 log(
                     f"Pull/rebase failed ({e.stderr.strip()[-200:]}) — "
                     f"resetting to origin/{branch} (safe — only auto commits lost)"
                 )
+                self._abort_incomplete_rebase(force=True)
                 self._run_git("fetch", "origin", check=False)
                 self._run_git("reset", "--hard", f"origin/{branch}", check=False)
                 log(f"Reset to origin/{branch}")
@@ -208,9 +241,7 @@ class GitUpdater:
         self, branch: str | None = None, force: bool = False, force_lease: bool = False
     ) -> None:
         """Push commits to remote."""
-        if branch is None:
-            result = self._run_git("rev-parse", "--abbrev-ref", "HEAD")
-            branch = result.stdout.strip()
+        branch = self._resolve_branch(branch)
 
         log(f"Pushing to origin/{branch}...")
 

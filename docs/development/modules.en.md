@@ -500,8 +500,8 @@ At the end, prints a summary report.
 
 - `commit_and_push_files(file_pairs)` — full cycle: configure → squash auto → stage → commit → push
 - For VPS cron (primary) and GitHub Actions (fallback); does not require a GitHub API token
-- `configure_git()` — sets `user.name` and `user.email` for commits
-- `pull(branch)` — pull with rebase; with unstaged changes does `reset --hard` + `clean -fd`
+- `configure_git()` — aborts any incomplete rebase, sets `user.name` and `user.email` for commits
+- `pull(branch)` — aborts leftover rebase state, reattaches detached `HEAD` if needed, pulls with rebase; with unstaged changes does `reset --hard` + `clean -fd`; on rebase conflict runs `rebase --abort` before `reset --hard origin/<branch>`
 - Retry on a push conflict: `pull --rebase` instead of blind waiting (up to 3 attempts)
 - All commands with a 60 s timeout
 - Before stage_files() calls `git_auto_cleaner.squash_auto_commits()` for auto-cleaning

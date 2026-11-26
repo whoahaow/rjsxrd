@@ -195,6 +195,9 @@ core.*
 # so the protection does not depend on a tool's internal file)
 .ruff_cache/
 
+# Home-dir config created when service user HOME equals repo root
+.config/
+
 # Raw config dumps (large unverified files, local only)
 githubmirror/**/raw/
 

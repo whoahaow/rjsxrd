@@ -479,8 +479,8 @@ xray его действительно читает, рвёт загрузку �
 
 - `commit_and_push_files(file_pairs)` — полный цикл: configure → squash auto → stage → commit → push
 - Для VPS cron (основной) и GitHub Actions (резервный); не требует токена GitHub API
-- `configure_git()` — устанавливает `user.name` и `user.email` для коммитов
-- `pull(branch)` — pull с rebase; при unstaged changes делает `reset --hard` + `clean -fd`
+- `configure_git()` — прерывает незавершённый rebase, устанавливает `user.name` и `user.email` для коммитов
+- `pull(branch)` — сбрасывает зависший rebase, возвращает отвязанный `HEAD` на ветку, делает pull с rebase; при unstaged changes делает `reset --hard` + `clean -fd`; при конфликте rebase выполняет `rebase --abort` до `reset --hard origin/<branch>`
 - Retry при push-конфликте: `pull --rebase` вместо слепого ожидания (до 3 попыток)
 - Все команды с таймаутом 60 с
 - Перед stage_files() вызывает `git_auto_cleaner.squash_auto_commits()` для авто-очистки
